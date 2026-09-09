@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo.png" alt="Rolling Start" width="230"></p>
+
 # Rolling Start
 
 A Claude Code native codebase tutor. An author describes the landscape
