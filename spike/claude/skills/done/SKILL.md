@@ -106,10 +106,6 @@ if open, what would close it). Then:
 
 !`sh .claude/scripts/show.sh lesson-for-task`
 
-## Direct-mode files, if any
-
-!`sh .claude/scripts/show.sh direct-files`
-
 ## Coding session log (direct mode; from hooks on the learner's coding session)
 
 !`sh .claude/scripts/show.sh session-log`

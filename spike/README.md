@@ -24,6 +24,7 @@ Plan: [`docs/plan.md`](../docs/plan.md) § 7, P0.
 | `claude/rolling-coding.json` | Hooks and a pinned default output style for the learner's coding session in a `direct` lesson, attached with `--settings` by `run.sh code`. |
 | `claude/biome.json` | A nested Biome config that switches linting off under `.claude/`, so Rallly's `pnpm check` does not lint the spike's own scripts. Spike-only: the real plugin keeps its scripts outside the learner's repo. |
 | `claude/scripts/session-log.mjs` | The hook handler: appends every prompt, tool call, and reply of the coding session to `.rolling/profile/session.log` for the tutor. |
+| `claude/scripts/guard-profile.mjs` | PreToolUse hook for the coding session: denies reads and writes under `.rolling/profile/`, where the reference lives. |
 | `claude/scripts/transcript.mjs` | Best-effort reader of a Claude Code session transcript (internal format), for detail beyond the log. |
 | `../examples/rallly/.rolling/` | The map and lessons for Rallly. |
 | `install.sh` | Copies all of the above into a Rallly clone. |
@@ -43,8 +44,9 @@ services by name. The only thing mounted from the host is the clone. The
 container's home is a named volume, `rolling-spike-home`, which is where
 Claude Code's login, the pnpm store, and the npm cache persist.
 
-What the host needs: git, and Docker with the compose plugin. That is
-all; no Node, no pnpm, no npm on the host.
+What the host needs: git, Docker with the compose plugin, and a POSIX
+shell with `od` (for the secret `env.sh` generates). No Node, no pnpm,
+no npm on the host.
 
 ```sh
 git clone https://github.com/lukevella/rallly ~/Projects/rallly-spike
@@ -63,10 +65,13 @@ container, the steps from Rallly's `CONTRIBUTING.md` that the
 ```sh
 spike/container/run.sh shell ~/Projects/rallly-spike
 pnpm install                       # the pinned pnpm is baked into the image
-pnpm db:generate && pnpm db:reset --force && pnpm db:seed
-pnpm type-check && pnpm test:unit && pnpm check   # the map's commands, green before you start
 exit
 ```
+
+Stop there. Generating the Prisma client, migrating and seeding the
+database, and getting the map's commands green is lesson one
+(`local-dev-setup`); doing it here would leave that lesson nothing to
+do. `pnpm install` is enough to prove the toolchain works.
 
 Then Claude Code, in the same container:
 
@@ -159,9 +164,9 @@ exit criterion is an honest answer, and memory flatters.
   where you left off?
 - Which of the rules in the skills held on their own, and which will
   need a hook (P2)? Two to watch: the tutor writing inside a `write`
-  task's scope, and the implementer or the tutor reading
-  `.rolling/profile/reference.md` or `planted.md`, which only prose
-  protects in P0.
+  task's scope, which only prose protects in P0, and the coding
+  session reaching into `.rolling/profile/`, which a PreToolUse hook
+  in `rolling-coding.json` now denies.
 - How long the inline verifier could run before Claude Code cut it off,
   if it ever did, and how long `/done` took to start speaking.
 - Anything about the map format that was awkward to write, and anything
@@ -202,5 +207,5 @@ the task starts, not by the verifier.
 
 **`.rolling/profile/`** is the learner's and is gitignored by its own
 `.gitignore`: `profile.md`, `task.md` (the open task; its shape is in
-the `lesson` skill), `reference.md`, `brief.md`, `review.md`,
-`planted.md`, and `evidence/<lesson>.md`.
+the `lesson` skill), `reference.md`, `session.log` (a `direct`
+lesson's coding session, written by hooks), and `evidence/<lesson>.md`.

@@ -13,12 +13,14 @@
 import { readFileSync, appendFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-const out = join(process.cwd(), ".rolling", "profile", "session.log");
+const root = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const out = join(root, ".rolling", "profile", "session.log");
 const cut = (s, n = 800) => { s = String(s).replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n) + ` […${s.length - n} more]` : s; };
 const stamp = () => new Date().toISOString().slice(11, 19);
 
 let ev;
-try { ev = JSON.parse(readFileSync(0, "utf8")); } catch { process.exit(0); }
+try { ev = JSON.parse(readFileSync(0, "utf8")) ?? {}; } catch { process.exit(0); }
+if (typeof ev !== "object" || Array.isArray(ev)) process.exit(0);
 let line = null;
 switch (ev.hook_event_name) {
   case "SessionStart":

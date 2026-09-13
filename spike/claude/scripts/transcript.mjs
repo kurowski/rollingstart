@@ -31,14 +31,15 @@ function resolveFile() {
   if (target) return join(projectDir, `${target}.jsonl`);
   if (!existsSync(projectDir)) return null;
   const candidates = readdirSync(projectDir)
-    .filter((f) => f.endsWith(".jsonl") && !f.startsWith(exclude))
+    .filter((f) => f.endsWith(".jsonl") && (!exclude || !f.startsWith(exclude)))
     .map((f) => ({ f, m: statSync(join(projectDir, f)).mtimeMs }))
     .filter((c) => c.m >= since)
     .sort((a, b) => b.m - a.m);
   return candidates.length ? join(projectDir, candidates[0].f) : null;
 }
 
-const file = resolveFile();
+let file = null;
+try { file = resolveFile(); } catch { file = null; }
 if (!file || !existsSync(file)) {
   console.log(`TRANSCRIPT: none found (looked in ${projectDir}${since ? `, modified since ${new Date(since).toISOString()}` : ""})`);
   process.exit(0);
@@ -48,7 +49,9 @@ const cut = (s) => (s.length > CUT ? s.slice(0, CUT) + ` […${s.length - CUT} m
 const one = (s) => s.replace(/\s+/g, " ").trim();
 let turns = 0, tools = 0;
 console.log(`TRANSCRIPT: ${file}`);
-for (const line of readFileSync(file, "utf8").split("\n")) {
+let body = "";
+try { body = readFileSync(file, "utf8"); } catch { console.log("TRANSCRIPT: unreadable"); process.exit(0); }
+for (const line of body.split("\n")) {
   if (!line.trim()) continue;
   let r; try { r = JSON.parse(line); } catch { continue; }
   if (r.type !== "user" && r.type !== "assistant") continue;

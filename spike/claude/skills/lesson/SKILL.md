@@ -128,8 +128,8 @@ the reference; `begin-task.sh` puts the branch in place), and record it
 in `task.md`.
 
 Then the learner works the way they work at their job: they open a
-coding agent in a second terminal (`spike/container/run.sh code`, a
-plain Claude Code session in this clone) and direct it, as many turns
+coding agent in a second window, a plain Claude Code session in this
+clone (the setup notes say how), and direct it, as many turns
 as it takes: brief it, look at what came back, steer, ask for the
 checks and tests, accept or send back, until they would merge. That
 whole conversation is the evidence. Hooks on that session log every

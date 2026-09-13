@@ -21,7 +21,9 @@ write() { # write <sample> <target> : copy unless target exists, then rewrite ho
     -e 's#^NEXT_PUBLIC_BASE_URL=https://web\.rallly\.test#NEXT_PUBLIC_BASE_URL=http://localhost:3000#' \
     "$2"
   if grep -q '^SECRET_PASSWORD=$' "$2"; then
-    sed -i "s/^SECRET_PASSWORD=$/SECRET_PASSWORD=$(openssl rand -hex 32)/" "$2"
+    secret=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
+    [ ${#secret} -eq 64 ] || { echo "could not generate a secret"; exit 1; }
+    sed -i "s/^SECRET_PASSWORD=$/SECRET_PASSWORD=$secret/" "$2"
   fi
   echo "wrote $2"
 }

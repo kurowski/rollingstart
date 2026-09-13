@@ -43,19 +43,12 @@ case "$what" in
       elif [ -f "$r/lessons/$slug.md" ]; then cat "$r/lessons/$slug.md"
       else echo "(the open task names lesson '$slug', but $r/lessons/$slug.md does not exist)"; fi
     else echo "(no open task)"; fi ;;
-  direct-files)
-    found=0
-    for f in brief review planted; do
-      [ -f "$r/profile/$f.md" ] || continue
-      found=1; echo "### $f"; cat "$r/profile/$f.md"; echo
-    done
-    [ "$found" -eq 1 ] || echo "(none)" ;;
   session-log)
     [ -f "$r/profile/session.log" ] && cat "$r/profile/session.log" || echo "(no coding session log: not a direct lesson, or the coding agent was not launched with run.sh code)" ;;
   transcript)
     if [ -f "$r/profile/task.md" ] && command -v node >/dev/null 2>&1; then
       started=$(sed -n 's/^started: *//p' "$r/profile/task.md" | head -n 1 | sed 's/[[:space:]].*$//')
-      cd "$root" && node .claude/scripts/transcript.mjs --latest ${started:+--since "$started"} --exclude "${CLAUDE_SESSION_ID:-}" 2>/dev/null || echo "(transcript not readable)"
+      cd "$root" && node .claude/scripts/transcript.mjs --latest ${started:+--since "$started"} --exclude "${CLAUDE_CODE_SESSION_ID:-${CLAUDE_SESSION_ID:-}}" 2>/dev/null || echo "(transcript not readable)"
     else echo "(no open task, or no node)"; fi ;;
   tree)
     cd "$root" || exit 0
@@ -67,6 +60,6 @@ case "$what" in
     else echo "(clean)"; fi
     if h=$(git rev-parse --verify -q HEAD); then echo "HEAD $h"; else echo "HEAD (no commits yet)"; fi ;;
   *)
-    echo "usage: show.sh map|corpus|lessons|lesson-heads|profile|task|lesson-for-task|direct-files|session-log|transcript|tree" ;;
+    echo "usage: show.sh map|corpus|lessons|lesson-heads|profile|task|lesson-for-task|session-log|transcript|tree" ;;
 esac
 exit 0

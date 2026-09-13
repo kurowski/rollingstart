@@ -37,10 +37,11 @@ gitmoji with the PR number at the end. Strings go through `Trans` and
 `apps/web/public/locales/en/app.json`; `pnpm i18n:scan` adds keys and
 does not overwrite existing English, which is what `i18n:sync` is for.
 
-This is a `direct` lesson: the learner writes the brief, an agent
-implements it, the learner reviews. The rules above are what a good
-brief names up front and what a good review catches when the agent
-ignored them.
+This is a `direct` lesson: the learner directs a coding agent over as
+many turns as it takes, briefing, steering, asking for the checks, and
+reviewing what comes back until they would merge. The rules above are
+what a good brief names up front, what good steering catches when the
+agent drifts, and what a good review sends back.
 
 Situations for the tutor to present: `aab791da` (#3235) as a symptom, a
 password manager popping up on a field that collects someone else's
@@ -54,9 +55,11 @@ instead of a server action.
 
 ## Rubric
 
-- The brief says where the change belongs (which layer, which feature
-  folder) and which checks must pass, so an agent could not plausibly
-  put it in the wrong place and call it done.
+- The opening brief, or the steering that followed it, says where the
+  change belongs (which layer, which feature folder) and which checks
+  must pass, so the agent could not plausibly put it in the wrong
+  place and call it done; and the learner asked for the repo's checks
+  before accepting.
 - The review catches a placement or layering mistake, a banned file
   name, or a write on the wrong surface, and names the file that
   enforces the rule it broke.

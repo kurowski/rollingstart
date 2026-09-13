@@ -98,6 +98,14 @@ implementer subagent is gone.
   problem. The general rule it brushes, that nothing the tutor puts in
   the repo may show up in the repo's own checks, is already met for
   the profile (gitignored, Markdown).
+- Review of the second commit caught two real breaks before push: the
+  transcript lookup excluded every session (an empty `--exclude` matched
+  everything, and the tutor's id variable was misnamed), and the
+  installer never removed the retired implementer agent from the clone.
+  Also decided: the README's setup stops at `pnpm install`, so lesson
+  one has something to do; and the coding session gets a PreToolUse
+  hook denying `.rolling/profile/`, since a real agent grepping the
+  repo could otherwise land on the reference.
 
 ## `write` task
 

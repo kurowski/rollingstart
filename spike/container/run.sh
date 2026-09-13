@@ -74,6 +74,7 @@ case "$cmd" in
   code)   enter claude --settings /work/.claude/rolling-coding.json ;;
   down)   $compose down ;;
   destroy)
+    docker rm -f "$container" >/dev/null 2>&1 || true
     $compose down --volumes --remove-orphans
     docker volume rm -f "$homevol" >/dev/null && echo "removed $homevol"
     ;;
