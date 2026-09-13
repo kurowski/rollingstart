@@ -2,7 +2,7 @@
 title: How a change ships here
 region: platform
 depth: orientation
-mode: write
+mode: direct
 requires: [local-dev-setup]
 assumes: [typescript, react, git]
 ---
@@ -37,18 +37,29 @@ gitmoji with the PR number at the end. Strings go through `Trans` and
 `apps/web/public/locales/en/app.json`; `pnpm i18n:scan` adds keys and
 does not overwrite existing English, which is what `i18n:sync` is for.
 
-Task sources for the tutor: `f58b281b` (#3180) is a complete small
-feature that touches every layer in order; `aab791da` (#3235) applies a
-convention across twelve files and is a good "find every place" task;
-a task that introduces a banned file name or a layering violation and
-has the learner make `structure` and `lint` pass is also fair.
+This is a `direct` lesson: the learner writes the brief, an agent
+implements it, the learner reviews. The rules above are what a good
+brief names up front and what a good review catches when the agent
+ignored them.
+
+Situations for the tutor to present: `aab791da` (#3235) as a symptom, a
+password manager popping up on a field that collects someone else's
+details, with ten inputs already opted out of one manager by hand; or
+`f58b281b` (#3180) as a user's request for a small feature that has to
+touch every layer. Mistakes worth watching for: a shared helper placed in
+the wrong layer (in `components/` when `packages/ui` was the home, or
+the reverse), a `helpers.ts` or `index.ts` barrel in a feature folder,
+a hardcoded English string, a write added to the frozen tRPC router
+instead of a server action.
 
 ## Rubric
 
-- The change respects the feature-folder set and the layering rules,
-  and `lint` and `structure` pass, without the tutor naming the rule
-  first.
-- The learner can point at the file that enforces each rule they were
-  held to.
-- The learner can say why a new write is a server action and where the
-  old way still lives.
+- The brief says where the change belongs (which layer, which feature
+  folder) and which checks must pass, so an agent could not plausibly
+  put it in the wrong place and call it done.
+- The review catches a placement or layering mistake, a banned file
+  name, or a write on the wrong surface, and names the file that
+  enforces the rule it broke.
+- The review says what would block a merge and what is taste, and the
+  learner can say why a new write is a server action and where the old
+  way still lives.

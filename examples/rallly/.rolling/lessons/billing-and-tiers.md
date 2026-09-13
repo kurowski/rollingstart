@@ -36,7 +36,7 @@ Situations for the tutor to present: `2875e7e4` (#3211, seventeen
 lines: the pay wall forgets the currency you picked) and `8ccb963f`
 (#3209, one line: two cookies with the same name and the wrong one
 wins) are small and real; `dd4833d3` (#3204) is the larger version with
-a test seam. Mistakes worth planting: deriving pro-ness from
+a test seam. Mistakes worth watching for: deriving pro-ness from
 `Space.tier` directly, gating with `privateProcedure` where
 `proProcedure` was meant, a webhook case that is not idempotent on
 redelivery.

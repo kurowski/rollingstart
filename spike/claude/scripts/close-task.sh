@@ -5,7 +5,7 @@
 set -u
 root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "not a git repository"; exit 0; }
 p="$root/.rolling/profile"
-for f in task.md reference.md brief.md review.md planted.md; do
+for f in task.md reference.md brief.md review.md planted.md planted-prompt.md session.log; do
   [ -f "$p/$f" ] && rm -f "$p/$f" && echo "removed $f"
 done
 echo "task closed; profile.md and evidence/ kept"

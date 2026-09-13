@@ -37,6 +37,17 @@ src/features/poll/mutations.test.ts`), which is what a task should use.
 `docker-compose.dev.yml` up; give it one spec, never the suite.
 `apps/web` needs `regenerate-client` before `typecheck` or any `test-*`.
 
+In this example's environment, the services Rallly needs
+(`docker-compose.dev.yml`: postgres, redis, an S3 stand-in, a mail
+catcher) are managed outside the toolchain: they are up before a lesson
+starts, and `docker` is not available where the toolchain runs. So the
+lessons here do not have the learner start, stop, or inspect them. A
+team that develops on bare machines would write this differently, with
+`pnpm docker:up` as a step in the setup lesson; that is the author's
+call. What does not vary: the tutor never brings services up, and a
+command that fails because one is unreachable is reported as an
+environment fault, not fixed.
+
 Read `CLAUDE.md` at the repo root before anything else: it is the
 maintainers' own account of how work is done here, and the lessons
 below assume you have.
@@ -119,8 +130,8 @@ and a gitmoji subject ending in the PR number (`🐛 Fix … (#3191)`).
 ## Mistakes agents make here
 
 The ways an agentic change to this repo goes wrong. What the learner is
-taught to catch in `direct` lessons, and what the implementer may be
-told to plant.
+taught to catch in `direct` lessons, and what the tutor reads an
+agent's change against at the end of one.
 
 - Adds a mutation to `apps/web/src/trpc/routers/` instead of a server
   action in `features/<x>/actions.ts` calling `features/<x>/mutations.ts`.

@@ -41,24 +41,37 @@ a different approach that meets the rubric is not wrong. Then:
 
 ## `direct` mode
 
-Three things to review, in this order, and the third only after the
-first two are written down:
+The record is the coding session's log (below): the learner's prompts,
+what the agent edited and ran, and its replies, in order. Read the
+whole thing before forming a view; a first prompt that was vague and a
+third that fixed it is a learner who steered, which is the skill. Then,
+in this order:
 
-1. **The brief** (`.rolling/profile/brief.md`): was it actionable
-   (could an agent start without asking), scoped (does it say what not
-   to touch), and testable (does it say how to tell it is done)? Cite
-   its own lines.
-2. **The review** (`.rolling/profile/review.md`) against the change:
-   what did the learner catch, what did they miss, and was what they
-   caught the important thing? Cite the diff. If a mistake was planted
-   (`.rolling/profile/planted.md`), say now whether they found it, and
-   reveal it either way.
-3. **The change itself**, briefly: whatever a maintainer here would
-   have said that neither the learner nor the implementer did.
+1. **The checks' ledger first, and off the table.** The verifier ran
+   above. Whatever it caught (a type error, a lint failure, a failing
+   test) is the checks' job, not the learner's; note it, and do not
+   hold the learner's review to it. The one thing on the learner's
+   ledger about the checks is whether they asked for them to be run,
+   or ran them, before saying done. Cite the log line.
+2. **The direction.** Was the opening brief actionable (could the
+   agent start without asking), scoped (did it say what not to touch),
+   and did it name where the change belongs and how to tell it is
+   done? When the agent went wrong or went wide, did the learner
+   notice and steer, and how many turns did it take? Cite the log
+   lines, and say what a stronger prompt would have said at that
+   point.
+3. **The review, on the human's ledger.** What did the learner catch
+   and send back, and what did they accept that a maintainer here
+   would have sent back: placement and layering, a convention missed,
+   scope creep, a missing test, a design that will not age. Read the
+   diff against the map's "Mistakes agents make here" and cite it.
+4. **The change itself**, briefly: anything a maintainer here would
+   say that neither the learner nor the agent did.
 
-Satisfied means: the brief would have worked as an issue, and the review
-would have stopped the planted mistake (or, unplanted, the worst real
-one) from merging.
+Satisfied means: the direction would have worked as a series of
+issues and review comments at this shop, and the review would have
+stopped the worst thing on the human's ledger from merging. Not: whether they wrote the perfect
+first prompt.
 
 ## Recording
 
@@ -68,9 +81,13 @@ location and provenance), and the outcome (`satisfied` or `open`, and
 if open, what would close it). Then:
 
 - **Satisfied:** add `- <lesson> (<date>)` under Satisfied in
-  `profile.md`; run `sh .claude/scripts/close-task.sh`, which removes
-  `task.md`, `reference.md`, `brief.md`, `review.md`, and `planted.md`
-  and nothing else; offer `/lesson`.
+  `profile.md`. Then ask whether to leave the task's branch now; if
+  yes, run `sh .claude/scripts/end-task.sh`, which commits anything
+  uncommitted on the branch (so nothing is lost), keeps the branch, and
+  returns to where the learner was. Then run
+  `sh .claude/scripts/close-task.sh`, which removes the task's files
+  (`task.md`, `reference.md`,
+  `session.log`) and nothing else; offer `/lesson`.
 - **Open:** leave everything in place; say what to do next.
 
 ## Verifier (ran before this turn)
@@ -92,6 +109,14 @@ if open, what would close it). Then:
 ## Direct-mode files, if any
 
 !`sh .claude/scripts/show.sh direct-files`
+
+## Coding session log (direct mode; from hooks on the learner's coding session)
+
+!`sh .claude/scripts/show.sh session-log`
+
+## Coding session transcript, best effort (internal format; may be empty)
+
+!`sh .claude/scripts/show.sh transcript`
 
 ## Corpus pointers and agent mistakes, from the map
 

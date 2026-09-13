@@ -22,6 +22,7 @@ printf '*\n' > "$target/.rolling/profile/.gitignore"
 chmod +x "$target"/.claude/scripts/*.sh
 
 echo "installed into $target:"
-echo "  .claude/skills/{start,lesson,done}  .claude/agents/implementer.md  .claude/scripts/{verify,diff,show,close-task}.sh"
+echo "  .claude/skills/{start,lesson,done}  .claude/scripts/{verify,diff,show,close-task,begin-task,end-task}.sh"
+echo "  .claude/scripts/{session-log,transcript}.mjs  .claude/rolling-coding.json (hooks for the coding session)"
 echo "  .rolling/map.md  .rolling/lessons/  .rolling/profile/ (gitignored)"
 echo "next: open Claude Code in $target and run /start"

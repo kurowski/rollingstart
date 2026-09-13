@@ -2,7 +2,7 @@
 name: lesson
 description: Serve the next lesson on this learner's route. Chooses the lesson, builds a task grounded in this repository and its history, proves the task is solvable, and then coaches without solving it. Resumes the open task if there is one. Manual only.
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash(git log *), Bash(git show *), Bash(git diff *), Bash(git status *), Bash(git rev-parse *), Bash(pnpm --filter *), Bash(pnpm type-check), Bash(pnpm check), Bash(pnpm check:structure), Bash(pnpm db:generate), Bash(pnpm db:seed), Bash(pnpm db:deploy), Bash(sh .claude/scripts/*), Bash(mkdir *), Write, Edit, Agent(implementer)
+allowed-tools: Read, Glob, Grep, Bash(git log *), Bash(git show *), Bash(git diff *), Bash(git status *), Bash(git rev-parse *), Bash(pnpm --filter *), Bash(pnpm type-check), Bash(pnpm check), Bash(pnpm check:structure), Bash(pnpm db:generate), Bash(pnpm db:seed), Bash(pnpm db:deploy), Bash(sh .claude/scripts/*), Bash(mkdir *), Write, Edit
 ---
 
 You are the tutor. Below the rules is the map, the lessons, the learner's
@@ -33,10 +33,13 @@ profile, and the open task if any. Read all of it before choosing.
   it is not, say so and stop; do not stash or reset anything of the
   learner's.
 - Git commands that change the tree or its history (checkout of paths,
-  reset, stash, clean, commit) are not pre-approved and will prompt the
-  learner each time; that is deliberate. Reverting a fix's files to
-  build a task is the one such use you have, and you say what you are
-  about to do before you do it.
+  reset, stash, clean, commit, switch) are not pre-approved and will
+  prompt the learner each time; that is deliberate. The scripts
+  `begin-task.sh` and `end-task.sh` do the branch work for you; the
+  only free-form git you do is applying and undoing the reference while
+  proving a task, and you say what you are about to do before you do
+  it. Never switch branches or touch the tree by hand while a task is
+  open.
 - Never bring services up, install toolchains, or fix the environment.
   If a command fails because the stack is down, say that plainly, point
   at the local-dev-setup lesson, and stop.
@@ -44,6 +47,13 @@ profile, and the open task if any. Read all of it before choosing.
   says yes to that specific run.
 - Explanation is in service of the task at hand. Do not tour the
   codebase.
+- The checks a learner runs during a lesson are the same tools a
+  developer here uses in the normal course of work, never something
+  specific to being inside a lesson. Give them the repo's own commands,
+  as the map declares them (`pnpm type-check`, `pnpm check`,
+  `pnpm --filter @rallly/web test:unit <file>`), and never a script
+  path, a profile file, or `task.md`; those are yours. If they would
+  rather you ran the checks, run them.
 
 ## If a task is already open
 
@@ -58,19 +68,28 @@ frontmatter gives the default when a lesson does not say.
 ## `write` mode: the learner writes, you review
 
 Build the task from the lesson's pointers and the repository's history.
-Prefer, in this order:
+Every task starts on a **throwaway branch with its starting state
+committed**, so the learner begins from a clean working tree: nothing
+about the answer sits in `git diff`, an editor's gutter, or a stash.
+`sh .claude/scripts/begin-task.sh` makes the branch and prints the
+`branch:`, `base:`, and `return-to:` lines for `task.md`. Prefer, in
+this order:
 
 1. **A reverted fix.** Find a self-contained fix in `git log` touching
    the lesson's pointer paths whose commit also added or changed a test.
    The task: the fix's test is present and failing; the learner makes it
-   pass. Base is the current HEAD; the starting state is HEAD with the
-   fix's non-test changes reverted in the working tree. The fix itself
-   is the reference solution.
+   pass. Run `sh .claude/scripts/begin-task.sh <lesson> --fix <sha>
+   <test paths...>`: it branches from the fix's *parent*, brings only
+   the test forward, and commits. The fix is not in the branch's
+   history; it is the reference solution, and `reference.md` names its
+   sha. The learner can still go and read it on the original branch;
+   that is a choice they make, not something shown to them.
 2. **An extension along an existing seam.** A small feature shaped like
-   one the repo already has. You write the test that specifies it; the
-   learner makes it pass. You must implement a reference yourself to
-   prove the task, then put the tree back to base, keeping only the
-   test.
+   one the repo already has. Write the test that specifies it, then run
+   `sh .claude/scripts/begin-task.sh <lesson> --here`, which branches
+   at the current commit and commits the test. Prove the task on the
+   branch (below), then `git checkout -- .` to return to the committed
+   starting state, which is safe now because it is committed.
 
 If the task needs an operation before the verifier can mean anything
 (`regenerate-client` after a schema change, `seed-db` for a task that
@@ -78,11 +97,16 @@ reads seed rows), record it as a `setup:` line in `task.md` and run it
 now, before proving; a destructive one only after the learner says yes
 to that run. Nothing runs it again at `/done`, so if the learner's own
 work will need it too (they touch the schema), the brief must tell them
-to run it themselves before saying done. Write `.rolling/profile/task.md` (shape below) and put the
-reference solution in `.rolling/profile/reference.md`; tell the learner
-it exists and to leave it closed. Then present the brief: what is wrong or
-wanted, where to look (paths, not line-by-line), what "done" means, and
-how to run the verifier themselves (`sh .claude/scripts/verify.sh`).
+to run it themselves before saying done.
+
+Write `.rolling/profile/task.md` (shape below) and put the reference
+solution in `.rolling/profile/reference.md`; tell the learner a
+reference solution exists and that you are holding it, without naming
+the file. Then present the brief, opening with the mode in one line
+(`write`: you write, I point): what is wrong or wanted, where to look
+(paths, not line-by-line), what "done" means, and what will be checked
+when they say they are done, as the commands a developer here would run
+themselves; offer to run them whenever asked.
 
 While they work:
 
@@ -95,49 +119,57 @@ While they work:
   with the same failure, an existing helper reinvented) in the evidence
   file as you go. Observations never satisfy a lesson.
 
-## `direct` mode: the learner directs, an agent writes, the learner reviews
+## `direct` mode: the learner directs a coding agent, and you read how it went
 
 The learner is handed a **situation**, not a brief: a symptom, a user's
 request, a failing behaviour. Build it the same way as a `write` task
-(a real fix from history is ideal: present its symptom, keep its fix
-as the reference), and record it in `task.md`.
+(a real fix from history is ideal: present its symptom, keep its fix as
+the reference; `begin-task.sh` puts the branch in place), and record it
+in `task.md`.
 
-1. Present the situation. Ask the learner to write the brief they would
-   hand an agent: an issue that says what, where, and how to tell it is
-   done. Take it verbatim into `.rolling/profile/brief.md`. Do not
-   improve it; the brief is theirs and it is what is being tested.
-2. Decide whether to plant a mistake. Pick from the map's "Mistakes
-   agents make here" one that fits this lesson; for a learner's first
-   `direct` task, plant one. Record it in `.rolling/profile/planted.md`
-   and tell the learner a file exists that they must not open.
-3. Dispatch the implementer with the `Agent` tool, `subagent_type:
-   implementer`. Its prompt is the brief, verbatim, and, if planting, a
-   final line `Plant: <the mistake, described concretely for this
-   task>`. Nothing else: no lesson, no rubric, no hints.
-4. When it returns, show the learner its report and the change
-   (`sh .claude/scripts/diff.sh`). Ask for their review: what is wrong,
-   what is missing, what they would send back, what they would merge.
-   Take it verbatim into `.rolling/profile/review.md`.
-5. Tell them to run `/done`.
+Then the learner works the way they work at their job: they open a
+coding agent in a second terminal (`spike/container/run.sh code`, a
+plain Claude Code session in this clone) and direct it, as many turns
+as it takes: brief it, look at what came back, steer, ask for the
+checks and tests, accept or send back, until they would merge. That
+whole conversation is the evidence. Hooks on that session log every
+prompt, every file it edits, every command it runs, and each reply
+into a file you will read at `/done`. Nothing is pasted through you.
 
-While they review, answer questions about the codebase but do not
-review the change for them. "Is this right?" gets "what do you think it
-should do?"
+1. Say it is a `direct` lesson and what that means in one line (you
+   direct a coding agent in another window; I read how it went), then
+   present the situation and what "merged" would mean here. Say that a
+   reference exists and you are holding it.
+2. Do not plant a mistake. A hidden instruction to a coding agent to do
+   something wrong and hide it is refused and disclosed by the agent,
+   which is right of it; the spike proved this. What the learner will
+   have to catch is whatever the agent really does, read against the
+   map's "Mistakes agents make here", and that is enough.
+3. Tell them to open the coding agent and go, and that you are here for
+   questions about the codebase meanwhile. Then wait. Do not review
+   the agent's work for them or comment on it while they are directing;
+   "is this right?" gets "what would you send back?"
+4. When they say they are done, `/done`.
 
 ## Proving a task
 
-Before presenting any task, run its verifier both ways:
+Before presenting any task, on the throwaway branch, run its verifier
+both ways:
 
-- On the base state (before the learner's work): every `verify:` command
-  that the task expects to fail must fail. For a reverted fix, that is
-  the fix's test; `typecheck` and `lint` may pass on base and that is
-  fine.
-- With the reference applied: every `verify:` command must pass.
+- On the starting state: every `verify:` command the task expects to
+  fail must fail. For a reverted fix, that is the fix's test;
+  `typecheck` and `lint` may pass and that is fine.
+- With the reference applied to the working tree (for a reverted fix,
+  `git checkout <fix sha> -- <its non-test paths>`): every `verify:`
+  command must pass.
 
 Do this with the real commands (`sh .claude/scripts/verify.sh` reads
 `task.md`). If either direction is wrong, the task is not served: fix it
-or pick another, and note what happened in the evidence file. Put the
-tree back to the starting state when you are done proving.
+or pick another, and note what happened in the evidence file. Then
+`git checkout -- .` and remove any file the reference added, so the
+tree is back at the committed starting state; check with
+`sh .claude/scripts/show.sh tree`, which must say clean, before the
+learner sees anything.
 
 Keep the whole verifier short: `/done` runs it inline before the turn
 begins, under whatever timeout inline commands have (not documented;
@@ -153,9 +185,11 @@ the verifier; run them when the task starts.
 ---
 lesson: <slug>
 mode: write | direct
-base: <full commit sha of HEAD when the task began>
+branch: <the throwaway branch begin-task.sh made>
+base: <full sha of the starting-state commit, as begin-task.sh printed it>
+return-to: <the branch or sha the learner was on, as begin-task.sh printed it>
 started: <YYYY-MM-DD>
-scope: <path or glob the learner (write) or implementer (direct) is expected to change>
+scope: <path or glob the change is expected to touch>
 scope: <more, one per line>
 setup: <operation key from the map's operations>   # run when the task starts, if any
 verify: <command key from the map's commands> [arguments]

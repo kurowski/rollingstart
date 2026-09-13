@@ -40,7 +40,7 @@ under `(space)/(dashboard)/polls/[pollId]/`.
 Situations for the tutor to present: `6b30747e` (#3193) and `f58b281b`
 (#3180) as symptoms rather than fixes; a request to record an activity
 a transition currently does not; a request to make a cron job's batch
-behaviour visible. Mistakes worth planting: a non-idempotent guard, a
+behaviour visible. Mistakes worth watching for: a non-idempotent guard, a
 missing `recordPollActivities`, a mutation added to the frozen router.
 
 ## Rubric

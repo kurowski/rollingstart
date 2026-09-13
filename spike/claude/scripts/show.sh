@@ -50,6 +50,13 @@ case "$what" in
       found=1; echo "### $f"; cat "$r/profile/$f.md"; echo
     done
     [ "$found" -eq 1 ] || echo "(none)" ;;
+  session-log)
+    [ -f "$r/profile/session.log" ] && cat "$r/profile/session.log" || echo "(no coding session log: not a direct lesson, or the coding agent was not launched with run.sh code)" ;;
+  transcript)
+    if [ -f "$r/profile/task.md" ] && command -v node >/dev/null 2>&1; then
+      started=$(sed -n 's/^started: *//p' "$r/profile/task.md" | head -n 1 | sed 's/[[:space:]].*$//')
+      cd "$root" && node .claude/scripts/transcript.mjs --latest ${started:+--since "$started"} --exclude "${CLAUDE_SESSION_ID:-}" 2>/dev/null || echo "(transcript not readable)"
+    else echo "(no open task, or no node)"; fi ;;
   tree)
     cd "$root" || exit 0
     dirty=$(git --no-pager -c color.ui=false -c core.quotePath=false status --porcelain -- . ':(exclude).rolling' ':(exclude).claude')
@@ -60,6 +67,6 @@ case "$what" in
     else echo "(clean)"; fi
     if h=$(git rev-parse --verify -q HEAD); then echo "HEAD $h"; else echo "HEAD (no commits yet)"; fi ;;
   *)
-    echo "usage: show.sh map|corpus|lessons|lesson-heads|profile|task|lesson-for-task|direct-files|tree" ;;
+    echo "usage: show.sh map|corpus|lessons|lesson-heads|profile|task|lesson-for-task|direct-files|session-log|transcript|tree" ;;
 esac
 exit 0
