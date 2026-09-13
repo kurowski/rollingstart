@@ -64,8 +64,8 @@ case "$cmd" in
     echo
     echo "stack is up on network $network. Next, inside the container:"
     echo "  spike/container/run.sh shell $clone"
-    echo "  pnpm install && pnpm db:generate && pnpm db:reset --force && pnpm db:seed"
-    echo "  pnpm type-check && pnpm test:unit && pnpm check"
+    echo "  pnpm install"
+    echo "and stop there: the Prisma client, the database, and the map's commands going green are lesson one."
     echo "then: spike/container/run.sh tutor $clone   (log in once; the login persists in $homevol)"
     echo "a second window joins the same container: spike/container/run.sh shell $clone"
     ;;

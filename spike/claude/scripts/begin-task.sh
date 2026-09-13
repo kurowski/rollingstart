@@ -27,13 +27,13 @@ lesson=${1:?usage: begin-task.sh <lesson> --fix <sha> <keep-path>... | --here}
 mode=${2:?usage: begin-task.sh <lesson> --fix <sha> <keep-path>... | --here}
 shift 2
 lesson=$(printf '%s' "$lesson" | tr -cs 'A-Za-z0-9._-' '-')
-rm -f "$root/.rolling/profile/session.log"   # a new task starts a new record
 
 excl='. :(exclude).rolling :(exclude).claude'
 # shellcheck disable=SC2086
 dirty=$(git status --porcelain -- $excl)
 return_to=$(git symbolic-ref -q --short HEAD || git rev-parse HEAD)
 branch="rolling/$lesson-$(date +%Y%m%d-%H%M)"
+git check-ref-format "refs/heads/$branch" || { echo "'$lesson' does not make a valid branch name"; exit 1; }
 git show-ref --verify -q "refs/heads/$branch" && { echo "branch $branch already exists"; exit 1; }
 
 case "$mode" in
@@ -43,7 +43,8 @@ case "$mode" in
     [ -z "$dirty" ] || { printf 'working tree is not clean; commit, stash, or discard first:\n%s\n' "$dirty"; exit 1; }
     git cat-file -e "$fix^{commit}" || { echo "$fix is not a commit"; exit 1; }
     fix=$(git rev-parse "$fix")
-    git rev-parse -q --verify "$fix^" >/dev/null || { echo "$fix has no single parent (root or merge commit); pick another fix"; exit 1; }
+    git rev-parse -q --verify "$fix^" >/dev/null || { echo "$fix is a root commit; pick another fix"; exit 1; }
+    git rev-parse -q --verify "$fix^2" >/dev/null 2>&1 && { echo "$fix is a merge commit; pick another fix"; exit 1; }
     # Every keep-path must be one the fix touched, or the checkout below
     # would fail after the branch switch and strand the tree mid-way.
     for p in "$@"; do
@@ -73,6 +74,7 @@ the branch is throwaway."
   *) echo "unknown mode $mode"; exit 1 ;;
 esac
 
+rm -f "$root/.rolling/profile/session.log"   # a task that actually started starts a new record
 echo "branch: $branch"
 echo "base: $(git rev-parse HEAD)"
 echo "return-to: $return_to"

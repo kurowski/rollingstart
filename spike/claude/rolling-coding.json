@@ -3,7 +3,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Read|Edit|Write|MultiEdit|NotebookEdit|Bash|Glob|Grep",
+        "matcher": "Read|Edit|Write|NotebookEdit|Bash|Glob|Grep",
         "hooks": [
           {
             "type": "command",
@@ -34,7 +34,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|Agent",
+        "matcher": "Edit|Write|NotebookEdit|Bash|Agent",
         "hooks": [
           {
             "type": "command",
