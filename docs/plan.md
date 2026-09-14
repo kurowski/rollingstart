@@ -290,19 +290,35 @@ pointers and the repo's history (revert a fix and hand over the issue;
 review a merged PR; extend a feature along an existing seam), and
 self-verified before being served. A task carries: the brief, the
 starting state (a branch and base commit, operations to run first), the
-**verifier** (structured: which declared commands, which test files the
-task adds), and a reference solution held back from the learner.
+**verifier** (structured: which declared commands, and which test files
+the tutor holds), and a reference solution held back from the learner.
+
+**The fix's test is held back, not handed over.** Nobody at work is
+given a failing test with an issue; writing one is part of the work,
+and asking an agent for one is part of directing it. So the learner
+gets the situation, as an issue, and writes their own test or has their
+agent write it. The test that shipped with the original fix stays with
+the tutor as the verifier: at `/done` it is applied and run as a hidden
+acceptance check, the way CI has expectations nobody sees verbatim.
+Whether the learner wrote a test, and whether it tests the right thing,
+is then on their ledger rather than given away. A held test written too
+close to the original fix can fail a valid implementation that took a
+different shape; that is a signal for the tutor to read, not a verdict,
+and the tutor says so rather than marking the task open. The spike's
+lesson showed the test, and it named half the answer. An author can
+still mark a lesson's test as shown, the Exercism shape, for early
+`write` lessons where the point is the mechanics of the repo rather
+than the analysis; held is the default.
 
 **Every task starts on a throwaway branch with its starting state
 committed.** For a reverted fix, the branch is cut from the fix's
-*parent* with only the fix's test brought forward, so the learner begins
-from a clean tree, `git diff` and the editor gutter show nothing, and
-the fix is not in the branch's history; reading it on the original
-branch is a choice, not something shown. When the lesson ends the
-learner's work is committed on the branch, the branch is kept, and they
-are returned to where they were. The spike's first `write` task left the
-"before" state as uncommitted changes on top of the fix, and every diff
-was the answer; this is the fix.
+*parent*, so the learner begins from a clean tree, `git diff` and the
+editor gutter show nothing, and the fix is not in the branch's history;
+reading it on the original branch is a choice, not something shown.
+When the lesson ends the learner's work is committed on the branch, the
+branch is kept, and they are returned to where they were. The spike's
+first `write` task left the "before" state as uncommitted changes on
+top of the fix, and every diff was the answer; this is the fix.
 
 The two modes use the same task differently. In a **`write`** lesson the
 learner is handed the brief and writes the change; the ladder (use →
@@ -362,17 +378,17 @@ learner, in conversation, never by the tutor on its own.
 |---|---|
 | Feedback is formative and in the loop | The `done` skill is a step in the same conversation. Its inline commands run the verifier and capture the diff before the model's turn begins, so the deterministic result is on the table before any opinion is. Those inline commands always exit zero and report in text: a non-zero exit aborts the skill, which is the opposite of what a failing verifier needs. |
 | Feedback is grounded | Every point of feedback carries a file, a line, a rule, and a provenance label (this repo's convention, or the language's norm). The skill has the tutor write the feedback to evidence in that shape; a script checks each cited path exists at the cited line and flags the ones that do not. Structure, not a second reader, is what stops hand-waving. |
-| The human's ledger (`direct`) | Before the learner's direction or review is read, the verifier's findings are taken off the table: a type error, a lint failure, a failing test are the checks' job, and the only thing on the learner's ledger about them is whether they asked for the checks before saying done. What is judged is what a person directing an agent is responsible for: placement, convention, scope, a missing test, a design that will not age, and the steering that got there. The spike's first `direct` run graded the learner on things the tests catch; that was wrong and this is the correction. |
+| The human's ledger (`direct`) | Before the learner's direction or review is read, the verifier's findings are taken off the table: a type error, a lint failure, a failing test are the checks' job, and the only thing on the learner's ledger about them is whether they asked for the checks before saying done. What is judged is what a person directing an agent is responsible for: placement, convention, scope, whether a test was written and tests the right thing, a design that will not age, and the steering that got there. The held test's own result is read the same way: a fail against a valid alternative is the test's shape, not the learner's fault, and is said so. The spike's first `direct` run graded the learner on things the tests catch; that was wrong and this is the correction. |
 | A second opinion is available, never required | An optional `second-opinion` subagent with fresh context and read-only tools, invoked by the learner when they want fresh eyes on a diff (or by the tutor when the two disagree). It advises; it does not satisfy or block anything. |
 | Don't do the task for the learner (`write`) | The `lesson` skill declares a `hooks:` block, so a **PreToolUse** hook exists only while a `write` lesson is open. It reads the open task's scope from the profile and returns `permissionDecision: deny` for Edit/Write inside it, except files the task marks as scaffold, where the tutor may leave `TODO(human)` markers the way the built-in Learning output style does. The hook is the one rule that must hold even when the learner asks nicely. |
 | The coding session is a real session (`direct`) | The learner's coding agent is an ordinary Claude Code session in the same repo, not a subagent of the tutor and not primed by it. The plugin's hooks (`UserPromptSubmit`, `PostToolUse`, `Stop`) apply to every session where the plugin is enabled; the handler writes to the session log only while a `direct` task is open and the session is not the tutor's own, whose id the lesson skill records in the task when it starts. A `PreToolUse` hook denies that session any read or write of the learner's state directory. Whatever the learner sets for their tutor session (an output style, say) must not reach the coding session by way of shared per-directory settings; the skills say what they need, and the evals check it. |
 | The tutor watches, sparingly (`direct`) | The lesson skill starts a Monitor on the session log, filtered to prompts, replies, and file edits, for the life of the session. The tutor speaks only on an event worth a word: the agent editing outside the task's scope and the learner not noticing, a result accepted without the repo's checks, the same ask rephrased a third time. One or two lines, as an offer, in its own window, written to evidence as its own intervention. Otherwise an empty turn. Triggers it cannot observe from the log are not triggers. |
 | No fourth wall | The checks a learner runs during a lesson are the same tools a developer here uses in the normal course of work: the map's declared commands, given verbatim. The tutor names the lesson's mode up front and never cites a script, a task file, or a profile file; those are its own. Nothing the tutor puts in the repo shows up in the repo's own checks, which the storage layout now guarantees rather than a gitignore. |
-| Every task on a throwaway branch | `begin-task` cuts the branch and commits the starting state before anything is presented; `end-task` commits what the learner left, keeps the branch, and returns them. The tutor does no free-form git while a task is open beyond applying and undoing the reference to prove the task, and those commands prompt on purpose. |
+| Every task on a throwaway branch | `begin-task` cuts the branch from the fix's parent and commits the starting state before anything is presented, with the fix's test held by the tutor rather than on the branch unless the lesson says shown; `end-task` commits what the learner left, keeps the branch, and returns them. The tutor does no free-form git while a task is open beyond applying and undoing the reference to prove the task, and those commands prompt on purpose. |
 | Verifiers are structured, never shell | A task's verifier names declared commands and test files; the `done` skill's inline steps run those and only those, before the model's turn begins. Arguments are words, never shell: anything with a metacharacter is rejected. Operations are the author's shell, code-reviewed in the repo. |
 | Destructive operations prompt | Operations marked destructive are run only after an explicit confirmation in the conversation, on top of Claude Code's own permission prompt. Skills pre-approve only the exact commands they use; `Bash(pnpm *)` would have pre-approved the destructive reset, and the spike caught that in review. |
 | Never orchestrates the environment | The tutor never brings services up, installs toolchains, or fixes the environment; a failing command is reported with the local-dev-setup lesson offered. Whether the *learner* starts services in a setup lesson is the author's call, per environment, said in the map: a bare-metal team's map has `pnpm docker:up` as a step, a contained one has the services as a precondition. |
-| Tasks are solvable | The both-ways check applies the reference on the starting branch, runs the verifier, restores the committed starting state, then runs it on that state; a task that fails either way is discarded and the failure logged for the author. |
+| Tasks are solvable | The both-ways check applies the reference and the held test on the starting branch, runs the verifier, restores the committed starting state, applies the held test alone, and runs it again; a task whose held test does not fail on the starting state or pass on the reference is discarded and the failure logged for the author. |
 | The tutor points the way, and only the way | The `next` skill serves lessons inside the learner's destination and detours off them; it never serves a region the learner did not choose, and never edits the destination. It justifies each choice against the profile in one line written to evidence. A route that reads as a fixed order across learners with the same destination and different backgrounds is a failing eval. |
 | Any editor | The learner's edits in their own editor are the normal case, not an exception. The tutor reads the working copy directly with Read and Grep, so a file saved in Vim is as visible as one Claude wrote. At `done`, the change is the working tree against the task's base commit, taken by script; nothing has to be committed or staged. The write-mode hook governs only what Claude writes; what the learner writes is theirs. |
 | Detours are bounded | Detour depth capped in the next skill; at the cap, escalate rather than route. |
@@ -598,9 +614,14 @@ TOML profile decision, and the strict-frontmatter posture.
   directing an agent is not responsible for what the tests catch, only
   for having asked for them. A catch the tutor prompted stays on the
   tutor's ledger.
-- **A throwaway branch per task**, cut from the fix's parent with only
-  its test brought forward, so nothing about the answer is in the diff
-  or the branch's history.
+- **A throwaway branch per task**, cut from the fix's parent, so
+  nothing about the answer is in the diff or the branch's history.
+- **The fix's test is held back** (2026-09-14, on the maintainer's
+  point that nobody is handed a failing test with an issue). The
+  learner writes their own; the original's test is the tutor's hidden
+  acceptance check at `/done`, read as a signal, since a valid
+  alternative can fail a test shaped to the original fix. An author may
+  mark a lesson's test shown for early mechanics lessons.
 - **No fourth wall.** The learner's checks are the repo's own commands;
   the tutor names the mode up front and never cites its scripts or
   files.
