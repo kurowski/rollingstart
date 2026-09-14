@@ -5,8 +5,8 @@ knowing the criteria up front is cheaper than learning them in review.
 
 ## Correctness first
 
-- Does it do what the issue said? Check the acceptance criteria
-  explicitly.
+- Does it do what the sub-scope in the checkpoint plan says? Check its
+  "done when" explicitly.
 - Are the failure paths handled, or only the happy one? The scripts run
   other people's commands in repositories and environments they do not
   control; failure is the common case, not the edge.
@@ -18,11 +18,8 @@ knowing the criteria up front is cheaper than learning them in review.
 
 ## Scope
 
-- One issue, one PR. A diff spanning a spec, the toolkit, and the
+- One change, one PR. A diff spanning a spec, the toolkit, and the
   skills at once should have been a stack.
-- Did in-flight additions pass the three tests in
-  [`docs/workflow.md`](docs/workflow.md)? If not, they belong in a
-  follow-up.
 - Claims about a target's code (`examples/*`, the map plugins) are
   cited by path and pin against the checkout named in that example's
   README. If that checkout is on this machine, read it and check them;
@@ -89,11 +86,12 @@ a row of the enforcement table in [`docs/plan.md`](docs/plan.md) § 5.
 
 ## Documentation
 
-- User-visible behaviour changed → the docs describing it changed in
-  the same PR. For the formats, that is `docs/map.md` or
-  `docs/profile.md`; for a skill, its own description and the workflow
-  it is part of.
-- A decision meeting the ADR threshold got an ADR.
+- A format changed → `docs/map.md` or `docs/profile.md` changed in the
+  same PR. A skill's behaviour changed → its `SKILL.md` says so, and
+  the run that checked it is in the checkpoint plan.
+- A decision that would have to be re-derived if forgotten is in
+  `docs/plan.md` § 10, dated, or in the commit body if it is smaller
+  than that.
 - Comments explain why, not what. Match the density of the surrounding
   code.
 - Roles are Author, Tutor, Learner. No employer codebase, no character

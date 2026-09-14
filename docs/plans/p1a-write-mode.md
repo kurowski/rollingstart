@@ -1,12 +1,9 @@
 # P1a: `write` mode, in-repo map
 
-> Expanded plan for the `P1a: write mode` checkpoint. The plan's entry
-> is [`docs/plan.md`](../plan.md) § 7, P1a.
->
-> This file is the drafting artifact. Its sub-scopes are copied
-> verbatim into GitHub issues; its remaining content becomes the
-> project board's README. After the checkpoint ships,
-> `/milestone-endgame` appends a retrospective.
+> The plan's entry is [`docs/plan.md`](../plan.md) § 7, P1a. This
+> file is the tracker for the checkpoint: sub-scopes flip from
+> `[PENDING]` to `[COMPLETE]` as their PRs merge, and a retrospective
+> is appended when the checkpoint ends.
 
 ## Context
 
@@ -44,6 +41,7 @@ file.
 
 | Decision | Choice | Why |
 |---|---|---|
+| The process is a page, not a system | `docs/workflow.md`; the checkpoint plan is the tracker; issues are a backlog; decisions go to `docs/plan.md` § 10 | The predecessor's milestones, boards, sub-issues, ADRs, and workflow skills were built for a team on a large Go system. This is a few thousand lines of shell and Node and a body of prose whose test is a run. The first version of this branch carried the whole apparatus across; the second cut it, and the history shows both. |
 | Toolkit executables are prefixed `rolling-` | `rolling-verify`, `rolling-diff`, `rolling-begin-task`, … | `bin/` is on the Bash tool's PATH for the whole session, shared with the target repo's own tools. A bare `verify` or `diff` collides with something eventually; the prefix also makes `allowed-tools` grants readable (`Bash(rolling-show *)`). |
 | The state directory is resolved one way, everywhere | `$ROLLING_DATA` if set, else `${CLAUDE_PLUGIN_DATA}`, then `/repos/<encoded toplevel>/` under it; encoding is the one Claude Code uses for its own project directories (every non-alphanumeric byte → `-`) | One resolver in one place, used by scripts, hooks, and tests alike. `ROLLING_DATA` exists so tests run in a temporary directory and never touch a real data directory. Whether `CLAUDE_PLUGIN_DATA` reaches a `bin/` script as an environment variable is a mechanism to confirm (below). |
 | Nothing is excluded from the diff | `rolling-diff` shows the working tree against `base`, every path | The spike excluded `.rolling/` and `.claude/` because the profile and the scripts lived there. Now the tree holds only the author's map and the learner's work; a learner who edits a lesson file has made a change the tutor should see. |
@@ -51,7 +49,7 @@ file.
 | The skill writes `task.md`; scripts print what it needs and a validator checks the result | `rolling-begin-task` prints `branch:`, `base:`, `return-to:`, `held:` lines; the model writes the file in the documented shape; `rolling-check-task` rejects a malformed one before anything reads it | Mixed ownership of one file (script writes the top, model appends the rest) is how fields drift. One writer, one checker. `rolling-diff` and `rolling-verify` also fail safe on a bad file and say why. |
 | `lesson` is the one skill the model may invoke | `disable-model-invocation: true` on `start`, `next`, `done`; not on `lesson` | `next` has to hand off to `lesson` (§ 5) and a skill reaches another only through the Skill tool. `lesson` only ever re-presents the open task, or says there is none, so an unprompted invocation is harmless; the other three do things. |
 | The session stamp is written by a script, not by the model | Every learner-side skill runs `` !`rolling-claim-session ${CLAUDE_SESSION_ID}` `` inline | The stamp is what P1b's hooks use to tell the tutor from the coding session; a value the model might forget to copy is not a stamp. Inline substitution of the session id is documented; a script call is the deterministic way to persist it. |
-| The spike's scripts are rewritten, not moved | `bin/` starts from the spike's contracts (§ Spike, `spike/README.md`) and the lessons in `spike/NOTES.md`, and reimplements them against the new layout | Every spike script hardcodes `.rolling/profile/`; the exclusions, the branch dance, and `show.sh`'s subcommands all follow from that. Porting line by line would carry the assumption along. |
+| The spike's scripts are rewritten, not moved | `bin/` starts from the spike's contracts (`spike/README.md`) and the lessons in `spike/NOTES.md`, and reimplements them against the new layout | Every spike script hardcodes `.rolling/profile/`; the exclusions, the branch dance, and `show.sh`'s subcommands all follow from that. Porting line by line would carry the assumption along. |
 | The Rallly map's source stays in this repository | `examples/rallly/.rolling/`, installed into the clone by the runner; the clone's copy is never pushed anywhere | The map has to live somewhere reviewable, and P1c repackages exactly this directory as the `rallly` map plugin. What "hand-written into a local clone's `.rolling/` and never pushed" (§ 7) rules out is a fork of Rallly carrying it, not a source here. |
 | The tutor's Bash writes inside scope are not hook-denied in P1a | The guard covers Edit, Write, NotebookEdit, MultiEdit | A Bash rule that denies any command naming a scope path would also deny `pnpm --filter … test <that path>`, which the tutor is supposed to run. Prose covers the `sed -i` case for now; P2's eval measures whether it holds, and P2 decides whether a narrower Bash rule is worth its false positives. |
 | CI arrives with the toolkit | `.github/workflows/ci.yml` lands in 1a.3 with the first scripts it can check | A gate with nothing to check is ceremony; a toolkit without one is how a red branch reaches `main`. |
@@ -68,52 +66,36 @@ recorded here.
 |---|---|---|
 | `CLAUDE_PLUGIN_DATA` reaches a `bin/` script as an environment variable when the Bash tool runs it, and `${CLAUDE_PLUGIN_DATA}` is substituted in a skill's inline command and in a `hooks.json` command | 1a.3 | |
 | A plugin's `bin/` is on the Bash tool's PATH in a session where the plugin is enabled through a local marketplace, and stays so across `/clear` | 1a.3 | |
+| `claude plugin validate` accepts the marketplace root and each plugin directory, and its exit status is usable as a gate | 1a.3 | |
 | `${CLAUDE_SESSION_ID}` is substituted inside a skill's inline `` !`…` `` command, and the same session's PreToolUse hook receives the same id in `session_id` | 1a.4 | |
 | A plugin's `hooks.json` PreToolUse handler fires in the tutor's session for Edit and Write, receives `tool_input.file_path`, and its `deny` is honoured in `auto` mode | 1a.4 | |
 | The `Skill` tool can invoke a plugin skill that does not disable model invocation, from inside another skill's turn | 1a.5 | |
-| `claude plugin validate` accepts the marketplace root and each plugin directory, and its exit status is usable as a gate | 1a.3 | |
 | Inline commands in one skill run in document order (so `rolling-diff` completes before `rolling-verify` starts) | 1a.5 | |
 
 ## Sub-scopes
 
 ### 1a.1 — The repository learns how work happens here [PENDING]
 
-**Goal.** Carry the old repository's process (`CLAUDE.md`,
-`REVIEW.md`, `docs/workflow.md`, the ADR discipline, the four workflow
-skills) across, rewritten for a plugin repository, and slice P1a into
-the sub-scopes on this page.
+**Goal.** `CLAUDE.md`, `REVIEW.md`, and `docs/workflow.md` for a
+plugin repository, and this plan.
 
 **Branch.** `p1a.1/process`
 
 **Depends on.** Nothing.
 
-**Acceptance criteria.**
+**Done when.**
 
-- `CLAUDE.md` states the rules an agent must follow here, with the
-  plan's architectural seams (§ 5) as rules and the working agreements
-  the maintainer has enforced since P0 written down; nothing Go-shaped
-  survives.
+- `CLAUDE.md` states the rules an agent must follow here: the plan's
+  architectural seams (§ 5) as rules, and the working agreements the
+  maintainer has enforced since P0. Nothing Go-shaped survives.
 - `REVIEW.md` names the seams a reviewer blocks on, and the shell and
   hook specifics that replace the old Go section.
-- `docs/workflow.md` describes the cycle with checkpoints (P1a, P1b,
-  …) as GitHub milestones, the gate (`shellcheck`, the test runner,
-  `claude plugin validate`), and merge-commits-only.
-- `docs/decisions/` holds the README and the template; `docs/plans/`
-  holds the template and this plan.
-- The four skills under `.claude/skills/` refer to `kurowski`, the
-  plan, and checkpoints; `create-issues.sh` resolves `P1a: …`
-  milestones and `### 1a.N —` headings.
-- This plan exists with every sub-scope below carrying a goal, a
-  branch, dependencies, acceptance criteria, and a verification list.
-
-**Verification.**
-
-- [ ] `bash -n` on `create-issues.sh`; `shellcheck` once it is
-      installed on the host
-- [ ] Every path `CLAUDE.md` § Key locations names either exists or is
-      marked with the sub-scope that creates it
-- [ ] The maintainer has read `CLAUDE.md` and the plan and agreed the
-      slicing
+- `docs/workflow.md` fits on a page: where things live, how a slice
+  ships, the gate, what ends a checkpoint. The predecessor's
+  apparatus (boards, sub-issues, ADRs, workflow skills) is in this
+  branch's first commit and not in its last, and the page says why.
+- This plan exists with every sub-scope carrying a goal, a branch,
+  dependencies, and a "done when" a reviewer can check.
 
 ---
 
@@ -127,7 +109,7 @@ either.
 
 **Depends on.** 1a.1.
 
-**Acceptance criteria.**
+**Done when.**
 
 - `docs/map.md` specifies `.rolling/map.md` (frontmatter: `name`,
   default `mode`, `commands`, `operations`, `destructive`; body:
@@ -150,19 +132,15 @@ either.
   `tasks/`, `evidence/<lesson>.md`, `detours/`, `escalations/`, and
   the mutation rules of § 4 (who may write what, when a lesson is
   satisfied, what never satisfies anything).
-- Both specs state the validator's checks (shape, not content) so
+- Both specs list the validator's checks (shape, not content) so
   `rolling-check-map`, `rolling-check-profile`, and
   `rolling-check-task` in 1a.3 implement a list rather than invent one.
 - Both use `billing`, `scheduling`, `platform` as example regions and
   never name the maintainer's employer's codebase.
-
-**Verification.**
-
-- [ ] The spike's Rallly map and five lessons conform to
-      `docs/map.md` after at most the `test:` field is added, or the
-      spec says why they had to change
-- [ ] Every field the spike's `task.md` shape carried is either in
-      `docs/profile.md` or listed there as dropped, with a reason
+- The spike's Rallly map and five lessons conform after at most the
+  `test:` field is added, or the spec says why they had to change;
+  every field the spike's `task.md` carried is in `docs/profile.md` or
+  listed there as dropped, with a reason.
 
 ---
 
@@ -177,7 +155,7 @@ gate.
 
 **Depends on.** 1a.2.
 
-**Acceptance criteria.**
+**Done when.**
 
 - `.claude-plugin/marketplace.json` lists `rolling`;
   `plugins/rolling/.claude-plugin/plugin.json` names it, versions it,
@@ -234,16 +212,11 @@ gate.
   and exits non-zero on any failure.
 - `.github/workflows/ci.yml` runs `shellcheck`, `tests/run.sh`, and
   `claude plugin validate` on every PR and on `main`, each as its own
-  step.
-
-**Verification.**
-
-- [ ] The gate is green locally and in CI
-- [ ] A scratch repository run through begin-task → edit → diff →
-      verify (with one held test) → end-task leaves the tree exactly
-      as the learner left it, the held test in no diff and no commit,
-      and the learner back on their branch
-- [ ] The mechanism rows assigned to 1a.3 are filled in
+  step, and is green.
+- A scratch repository run through begin-task → edit → diff → verify
+  (with one held test) → end-task leaves the tree exactly as the
+  learner left it, the held test in no diff and no commit, and the
+  learner back on their branch.
 
 ---
 
@@ -257,7 +230,7 @@ tutor cannot edit inside the task's scope, except scaffold paths.
 
 **Depends on.** 1a.3.
 
-**Acceptance criteria.**
+**Done when.**
 
 - `plugins/rolling/hooks/hooks.json` registers a PreToolUse handler
   for Edit, Write, MultiEdit, and NotebookEdit that runs a Node
@@ -279,13 +252,9 @@ tutor cannot edit inside the task's scope, except scaffold paths.
   scratch data directory: in-scope denied, scaffold allowed, out of
   scope allowed, no task allowed, wrong session allowed, `direct` mode
   allowed, garbage input allowed.
-
-**Verification.**
-
-- [ ] In a scratch repository with a `write` task open, the tutor's
-      session is denied an Edit inside scope in `auto` mode and told
-      why, and allowed one outside it
-- [ ] Gate green
+- In a scratch repository with a `write` task open, the tutor's
+  session is denied an Edit inside scope in `auto` mode and told why,
+  and allowed one outside it.
 
 ---
 
@@ -299,16 +268,15 @@ settled and none of the spike's fourth-wall slips.
 
 **Depends on.** 1a.3, 1a.4.
 
-**Acceptance criteria.**
+**Done when.**
 
 - `/rolling:start`: the intake as the spike's `start` skill had it
   (the author's course laid out, the learner bends it, the destination
   written in the learner's words), writing `profile.md` to the
   learner's directory through the toolkit, never to the tree; for a
   returning learner, where they are and what comes next; says once
-  that uninstalling the plugin deletes the profile and that
-  `rolling-export` exists, in words a learner can act on without a
-  script path being the instruction.
+  that uninstalling the plugin deletes the profile and that an export
+  exists, in words a learner can act on.
 - `/rolling:next`: reads map and profile; chooses a reachable lesson
   inside the destination with the spike's rule (region listed, depth
   at or below, `requires` satisfied, background covering `assumes`
@@ -333,8 +301,9 @@ settled and none of the spike's fourth-wall slips.
   read as a signal, and a fail against a valid alternative is said to
   be that; satisfied when the tutor says so and the learner agrees,
   both positions recorded when they do not; appends evidence; on
-  satisfied, appends to the profile, offers `rolling-end-task`, runs
-  `rolling-close-task`, and offers `/rolling:next`.
+  satisfied, appends to the profile, offers to leave the branch
+  (`rolling-end-task`), runs `rolling-close-task`, and offers
+  `/rolling:next`.
 - Every skill's `allowed-tools` grants exactly the `rolling-*`
   invocations and read tools it uses, and the map's commands are not
   pre-approved (the learner is asked, or the tutor's action prompts).
@@ -342,14 +311,10 @@ settled and none of the spike's fourth-wall slips.
   the learner is shown; the mode is named in the first line of every
   brief.
 - The mechanism rows assigned to 1a.5 are confirmed and recorded.
-
-**Verification.**
-
-- [ ] `claude plugin validate plugins/rolling` green; gate green
-- [ ] One `write` lesson end to end on the Rallly clone (with 1a.6's
-      runner and 1a.7's map, or the spike's five lessons before 1a.7
-      lands), transcript read for fourth-wall slips and for the tutor
-      writing inside scope
+- `claude plugin validate plugins/rolling` green; one `write` lesson
+  end to end on the Rallly clone (with the spike's five lessons if
+  1a.7 has not landed), transcript read for fourth-wall slips and for
+  the tutor writing inside scope, written up here.
 
 ---
 
@@ -363,7 +328,7 @@ machine without npm touching the host.
 
 **Depends on.** 1a.3 (the marketplace exists to register).
 
-**Acceptance criteria.**
+**Done when.**
 
 - `dev/contained/` (or the spike's `container/` moved and renamed;
   the implementer decides and the commit says why) builds the same
@@ -379,11 +344,8 @@ machine without npm touching the host.
   `down` and `destroy` as the spike had them.
 - `spike/README.md` gains one line pointing at the new runner and
   saying the spike's own is frozen.
-
-**Verification.**
-
-- [ ] From a fresh clone at the pin: `up`, `pnpm install` in `shell`,
-      `tutor`, `/rolling:start` is offered and runs
+- From a fresh clone at the pin: `up`, `pnpm install` in `shell`,
+  `tutor`, and `/rolling:start` is offered and runs.
 
 ---
 
@@ -397,7 +359,7 @@ a mode, and `test: held` or `shown`, every claim checked at the pin.
 
 **Depends on.** 1a.2.
 
-**Acceptance criteria.**
+**Done when.**
 
 - `examples/rallly/.rolling/` conforms to `docs/map.md`
   (`rolling-check-map` green once 1a.3 lands; by hand before).
@@ -421,13 +383,9 @@ a mode, and `test: held` or `shown`, every claim checked at the pin.
   has a fit to offer.
 - Every path, line, sha, and PR number cited is checked against
   `../rallly` at `aab791da`, and the map says so.
-
-**Verification.**
-
-- [ ] `rolling-check-map examples/rallly/.rolling` green
-- [ ] For each lesson with a source fix, `rolling-begin-task --fix`
-      succeeds on the clone and `rolling-verify` fails on the starting
-      state and passes with the reference applied
+- For each lesson with a source fix, `rolling-begin-task --fix`
+  succeeds on the clone and `rolling-verify` fails on the starting
+  state and passes with the reference applied.
 
 ---
 
@@ -440,7 +398,7 @@ out.
 
 **Depends on.** 1a.5, 1a.6, 1a.7.
 
-**Acceptance criteria.**
+**Done when.**
 
 - Three `write` lessons end to end on the Rallly clone, each in its
   own session (`/clear` or a new terminal between), the profile
@@ -454,15 +412,10 @@ out.
 - After all of it, `git status` in the clone shows only the learner's
   own work, and a search of the tree for the learner's directory
   contents finds nothing.
-- The retrospective is written per `/milestone-endgame`; `CLAUDE.md`
-  § Status and `docs/plan.md` § 7 are updated; the README stops saying
-  nothing is built.
-
-**Verification.**
-
-- [ ] The exit criterion in `docs/plan.md` § 7 P1a holds, with the
-      evidence in the retrospective
-- [ ] Every mechanism row above is filled in
+- The retrospective is appended here per `docs/workflow.md`;
+  `CLAUDE.md` § Status and `docs/plan.md` § 7 are updated; the README
+  stops saying nothing is built; every mechanism row above is filled
+  in.
 
 ## Explicitly deferred
 

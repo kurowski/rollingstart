@@ -1,12 +1,9 @@
 # P{N}{x}: {Title}
 
-> Expanded plan for the `P{N}{x}: {Title}` checkpoint. The plan's entry
-> is [`docs/plan.md`](../plan.md) § 7, P{N}{x}.
->
-> This file is the drafting artifact. Its sub-scopes are copied
-> verbatim into GitHub issues; its remaining content becomes the
-> project board's README. After the checkpoint ships,
-> `/milestone-endgame` appends a retrospective.
+> The plan's entry is [`docs/plan.md`](../plan.md) § 7, P{N}{x}. This
+> file is the tracker for the checkpoint: sub-scopes flip from
+> `[PENDING]` to `[COMPLETE]` as their PRs merge, and a retrospective
+> is appended when the checkpoint ends.
 
 ## Context
 
@@ -19,14 +16,17 @@ now.
 | Decision | Choice | Why |
 |---|---|---|
 
-Anything meeting the ADR threshold gets a record in
-[`docs/decisions/`](../decisions/) instead of a table row here.
+A decision that would have to be re-derived if forgotten also goes to
+`docs/plan.md` § 10, dated, when the checkpoint ends.
 
 ## Mechanisms to confirm first
 
 Claude Code behaviours this checkpoint rests on that the docs do not
 confirm, each with the sub-scope that must confirm it before building
 on it, and the result once known.
+
+| Mechanism | Sub-scope | Result |
+|---|---|---|
 
 ## Sub-scopes
 
@@ -38,14 +38,8 @@ on it, and the result once known.
 
 **Depends on.** Nothing, or `{N}{x}.y`.
 
-**Acceptance criteria.**
-
-- Stated as outcomes, not file lists; the implementor chooses the files
-- Testable: someone else can confirm each one independently
-
-**Verification.**
-
-- [ ] What must be observed for this sub-scope to be done
+**Done when.** Outcomes, not file lists; each one something a reviewer
+can check.
 
 ---
 
@@ -55,11 +49,10 @@ on it, and the result once known.
 
 ## Explicitly deferred
 
-What is out of scope for this checkpoint, and why. Naming it here
-stops it being re-litigated mid-implementation.
+What is out of scope for this checkpoint, and why, so it isn't
+re-litigated mid-implementation.
 
 ## Verification
 
-End-to-end criteria for the checkpoint as a whole, distinct from any
-single sub-scope's. The closure sub-scope confirms these. The plan's
-own exit criterion for the checkpoint is the floor.
+End-to-end criteria for the checkpoint as a whole. The plan's own exit
+criterion is the floor.

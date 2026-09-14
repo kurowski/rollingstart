@@ -16,7 +16,8 @@ points the way.
 what changed from the original conception, the three roles, the
 repository layout, the formats, the loop and where each rule is
 enforced, the phases, the risks, and what has been decided. Read it
-before proposing anything structural.
+before proposing anything structural. Decisions made after it go in its
+§ 10, dated, not in a separate record.
 
 ## Status
 
@@ -41,12 +42,10 @@ before proposing anything structural.
 | `examples/rallly/.rolling/` | The Rallly map's source until it becomes a map plugin |
 | `docs/plan.md` | Design and decision record |
 | `docs/map.md`, `docs/profile.md` | The formats: what the author writes, what the tutor writes. (P1a) |
-| `docs/workflow.md` | How work happens here. The skills point at it. |
-| `docs/plans/` | One expanded plan per phase checkpoint, plus its retrospective |
-| `docs/decisions/` | ADRs, for decisions made after the plan |
+| `docs/workflow.md` | How work happens here |
+| `docs/plans/` | One plan per checkpoint, the tracker for its work, with a retrospective at the end |
 | `spike/` | P0, kept as a record. None of it is the plugin. |
 | `evals/` | `claude plugin eval` suites, the tests of a prompt product. (P2) |
-| `.claude/skills/` | `/plan-milestone`, `/refine-issue`, `/implement-issue`, `/milestone-endgame` |
 | `../rallly` | Rallly reference checkout, pinned at `aab791da`. Read-only. |
 | `../rallly-spike` | A writable Rallly clone the tutor runs in, contained |
 | `../homie` | The maintainer's Go CLI, the toolchain-diversity target (P1c) |
@@ -106,38 +105,21 @@ a fixed order across learners with different backgrounds is a bug.
 two-minute timeout. Every script a skill runs inline reports in words
 and exits 0; a script a skill runs as an action may exit non-zero.
 
-**One issue → one branch → one PR.** For large scopes, base-chained
-stacks. Never GitHub's native stacked PRs. Direct commits to `main` are
-the exception, not a lane: for a change where a PR would be needless
-ceremony, and only on the maintainer's say-so, asked each time. A new
-spec, reference page, or ADR always goes through a PR.
+**One change → one branch → one PR.** The maintainer merges, with a
+merge commit. A change that crosses layers is a base-chained stack,
+never GitHub's native one.
 
-**Every push that changes behaviour gets a local code review first.**
+**Scripts and hooks get a local code review before they are pushed.**
 Spawn a code-review sub-agent on the Opus model (`claude-opus-5`) over
-the outgoing diff, reviewing against [`REVIEW.md`](REVIEW.md), the
-checkpoint plan in [`docs/plans/`](docs/plans/), and the relevant ADRs,
-and fix the real findings before pushing. The gate is the push, not
-finishing the work: a review-round fix is a push and gets its own
-review, however small the fix felt. The reviewer's brief confines any
-state-changing experiment (a hook, a script run under odd env, a git
-operation) to a scratch copy of the repository under the session's
-scratchpad, never the live checkout and never `../rallly`, and the tree
-is verified (status, log, local config) when a review returns. Exempt
-only pushes that change no behaviour at all: comment wording, doc prose.
-Skills are behaviour.
-
-**Code review lives on three surfaces; triage all of them.** Inline
-per-file comments (`gh api repos/kurowski/rollingstart/pulls/<N>/comments`),
-review summary bodies (`gh pr view <N> --json reviews`), and the
-PR-level conversation
-(`gh api repos/kurowski/rollingstart/issues/<N>/comments`). An empty
-inline list plus green checks is not review-clean.
-
-**Answer review findings where they were raised.** Reply to each inline
-comment in its own thread
-(`gh api repos/kurowski/rollingstart/pulls/<N>/comments -X POST -f body='…' -F in_reply_to=<id>`)
-with the disposition and the fixing commit; reserve PR-level comments
-for whole-PR feedback.
+the outgoing diff, against [`REVIEW.md`](REVIEW.md) and the checkpoint
+plan, and fix the real findings first. A review-round fix is a push and
+gets its own review. The reviewer's brief confines any state-changing
+experiment (a hook, a script under odd env, a git operation) to a
+scratch copy under the session's scratchpad, never the live checkout
+and never `../rallly`, and the tree is verified (status, log, local
+config) when a review returns. Prose (a skill, a spec, a map, a doc) is
+reviewed by running it: a lesson on the Rallly clone, its transcript
+read for the failure modes the plan names, and from P2 an eval.
 
 **Write commit bodies you'd want a new hire to learn from.** What and
 why, each decision with its reason. This repository is meant to become
@@ -148,8 +130,8 @@ history is teaching material.
 mechanism that does not behave as the docs say, or an uncovered design
 question means stop and ask, not guess and continue. The mechanisms the
 plan rests on that the docs do *not* confirm are named in
-[`docs/plan.md`](docs/plan.md) § 3 and § 7; confirm each before
-building on it.
+[`docs/plan.md`](docs/plan.md) § 3 and § 7 and tabled in the checkpoint
+plan; confirm each in a scratch setup before building on it.
 
 **Facts about Rallly come from the pinned checkout at `../rallly`.**
 Not from memory, and not from an unpinned read. When a claim rests on
@@ -173,9 +155,9 @@ skill. The analogy the project started from stays in conversation.
   scratch repository built in a temporary directory, never against a
   real checkout. A plain-`sh` runner, no framework.
 - **The gate**, before any push: `shellcheck` over every shell script,
-  the test runner, and the plugin manifest validator for each plugin,
-  each checked by its own exit status and never through a pipe that
-  masks it. CI runs the same.
+  the test runner, and `claude plugin validate` for each plugin and the
+  marketplace, each checked by its own exit status and never through a
+  pipe that masks it. CI runs the same.
 - **Skills.** `disable-model-invocation: true` on every learner-facing
   skill except `lesson`, which only ever re-presents the open task and
   is how `next` hands off; `allowed-tools` grants narrow and named,
@@ -187,7 +169,6 @@ skill. The analogy the project started from stays in conversation.
 
 ## Workflow
 
-[`docs/workflow.md`](docs/workflow.md) is the reference. The cycle is
-`/plan-milestone` → `/refine-issue` → `/implement-issue` →
-`/milestone-endgame`, where a milestone is one checkpoint of the plan's
-phases (P1a, P1b, …).
+[`docs/workflow.md`](docs/workflow.md): the checkpoint plan is the
+tracker, a slice ships as spec, test, code, gate, review, PR, and a
+checkpoint ends with a retrospective.
