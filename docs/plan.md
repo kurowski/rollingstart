@@ -161,7 +161,7 @@ rollingstart/                        # the new repo
     profile.md                       # the format the tutor writes
     decisions/                       # ADRs, same discipline as before
   examples/
-    rallly/                          # a complete map for Rallly, copyable
+    rallly/                          # a complete map for Rallly, packaged as a map plugin (below)
   evals/                             # claude plugin eval suites: the tests of a prompt product
 ```
 
@@ -190,18 +190,33 @@ and never exercised them: that one plugin's `bin/` is callable from
 another's skill, and whether a plugin can declare that it requires
 another so a missing `rolling` fails at install rather than at runtime.
 
-**The install story, and it is the whole onboarding pitch.** the author
-commits two things to the target repo: the map, and a
-`.claude/settings.json` that registers the public marketplace and
+**The install story, and it is the whole onboarding pitch.** An author
+inside the project commits two things to the target repo: the map, and
+a `.claude/settings.json` that registers the public marketplace and
 enables `rolling`. The learner clones the repo, opens Claude Code, and is
-offered the tutor. No binary, no PATH, no second process. The author
-enables `rolling-author` in their own user settings; nobody else sees it.
+offered the tutor. No binary, no PATH, no second process. An author
+outside the project publishes the map as a plugin instead, and the
+learner installs two things: `rolling` and the map. The author enables
+`rolling-author` in their own user settings; nobody else sees it.
 
-**Why the map lives in the target repo, not in a plugin.** The map is
-about *this* codebase and changes with it; it is reviewed in the same
-PRs. The plugin looks for `.rolling/` in the repo root; a map-as-plugin
-variant for codebases that cannot be modified is a later option, not the
-default.
+**Where the map lives: with its author.** A map is a directory of
+Markdown, and it can live in two places. Inside the target repo, at
+`.rolling/`, committed and reviewed in the repo's own PRs: the natural
+home when the author is inside the project. Or as a **map plugin**, a
+directory with a manifest, published in any marketplace: the natural
+home when the author is outside the project, or when a project would
+rather not carry it. The distinction is who the author is, not what
+kind of project it is; a company may keep its map out of the source
+tree and an open source project may commit one. The format is identical
+either way, and `rolling` resolves it with one question: is there a
+`.rolling/` in the repo root, and if not, has a map plugin registered
+itself for this repo? A map plugin registers through a SessionStart hook
+that writes its own root into the learner's state directory for the
+repo, since a plugin knows its own root and nobody else's, and it
+declares which repo it is for, so a map installed against the wrong
+checkout says so instead of teaching it. The Rallly example is a map
+plugin, because Rallly is not ours to commit to, and that is the demo:
+`/plugin install rallly@rollingstart` in any Rallly clone.
 
 **Why the learner's state does not live in the repo.** Draft 1 kept the
 profile in the working copy, gitignored by its own `.gitignore`, so it
@@ -456,8 +471,11 @@ none of it is the plugin.
 of § 3 and § 4 (state out of the tree); the throwaway-branch scripts,
 the verifier, the diff, the session-log and profile-guard hook handlers,
 and the watch, all in `bin/`; the plugin's `hooks.json` with the
-tutor-or-not test; a profile validator; a SessionStart hook. `docs/map.md`
-and `docs/profile.md` written as the specs. The Rallly map grows to 8–10
+tutor-or-not test; a profile validator; a SessionStart hook; the map
+resolver (repo first, then a registered map plugin) and the map plugin's
+registration hook and manifest. `docs/map.md` and `docs/profile.md`
+written as the specs, the first covering both homes for a map. The
+Rallly map becomes a map plugin in the marketplace, grows to 8–10
 lessons with rubrics, regions, depths, and modes, and its list of agent
 mistakes grows from the spike's. The old repo's `CLAUDE.md`, workflow
 skills, and ADR discipline come across, since this is the first real
@@ -599,10 +617,13 @@ TOML profile decision, and the strict-frontmatter posture.
   and will not take the project seriously without it; `direct` is the
   point of the project and is expected to become the majority of
   lessons.
-- **Map in the target repo.** `.rolling/` at the root, reviewed in the
-  codebase's own PRs, because that is the easiest thing to adopt. A
-  per-codebase plugin in the marketplace would suit open source projects
-  and is out of scope for now.
+- **The map lives with its author.** In the target repo at `.rolling/`
+  when the author is inside the project; as a map plugin when the author
+  is outside it or the project would rather not carry it. Same format,
+  one resolver, both supported from the first release (decided
+  2026-09-14, replacing draft 1's "in the repo, plugin later": the spike
+  spent real effort pretending Rallly carried a map it does not, and the
+  distinction was never corporate versus open source).
 - **Two plugins.** `rolling` for learners, `rolling-author` for authors,
   one marketplace repo, shared scripts in `rolling`'s `bin/`.
 - **Names.** Repo and domain `rollingstart`; plugin and map directory
