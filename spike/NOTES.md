@@ -68,7 +68,10 @@ than `write`." Three findings, all design, not wording:
   dispatches a subagent and reports back, is not how anyone works. The
   learner should talk to the coding agent directly, in its own
   terminal, iterating naturally, with the tutor reading the session's
-  transcript afterwards.
+  transcript afterwards. (Corrected 2026-09-13: not only afterwards.
+  The maintainer: "longer lessons may require coaching before the
+  lesson is over." The tutor now watches the log as it is written,
+  through the Monitor tool, and coaches on events, sparingly.)
 
 Redesigned the same day: `run.sh code` opens a plain Claude Code session
 in the same container with hooks attached via `--settings`

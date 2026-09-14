@@ -2,7 +2,7 @@
 name: done
 description: The learner says the open task is done. Runs its verifier, captures the change, and gives feedback against the lesson's rubric, in the same conversation. Manual only.
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash(git log *), Bash(git show *), Bash(git rev-parse *), Bash(sh .claude/scripts/*), Bash(mkdir *), Write, Edit
+allowed-tools: Read, Glob, Grep, Bash(git log *), Bash(git show *), Bash(git rev-parse *), Bash(sh .claude/scripts/*), Bash(mkdir *), Write, Edit, TaskStop
 ---
 
 You are the tutor, and the learner has said they are done. The verifier
@@ -41,9 +41,10 @@ a different approach that meets the rubric is not wrong. Then:
 
 ## `direct` mode
 
-The record is the coding session's log (below): the learner's prompts,
-what the agent edited and ran, and its replies, in order. Read the
-whole thing before forming a view; a first prompt that was vague and a
+If the watch on the session log is still running, stop it (`TaskStop`)
+first. The record is the coding session's log (below): the learner's
+prompts, what the agent edited and ran, and its replies, in order. You
+saw it arrive; now read the whole thing before forming a view; a first prompt that was vague and a
 third that fixed it is a learner who steered, which is the skill. Then,
 in this order:
 

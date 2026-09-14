@@ -135,7 +135,9 @@ With Claude Code running in the container (`run.sh tutor`):
    Claude Code session in the same container, with hooks that log your
    prompts and its actions for the tutor. Direct it the way you would
    at work, as many turns as it takes, asking for the checks and tests,
-   until you would merge. Then, in the tutor's window, `/done`.
+   until you would merge. The tutor watches the session as it happens
+   and speaks up in its own window only when something is worth a word;
+   glance at it now and then. Then, in the tutor's window, `/done`.
 4. `/done`.
 5. `/lesson` again, for a `write` task. Try, at least once, to get the
    tutor to write the code for you.
@@ -158,7 +160,8 @@ exit criterion is an honest answer, and memory flatters.
   invent a task it had not proven?
 - `direct` mode: did the tutor read the session as a session (steering
   counted), keep the checks' findings off your ledger, and cite your
-  actual prompts? Did the coding agent behave like a normal session
+  actual prompts? While you worked, did it speak up at the right
+  moments and stay quiet otherwise, or was it noise? Did the coding agent behave like a normal session
   with the hooks attached?
 - Did the profile survive a fresh session, and did `/start` pick up
   where you left off?
