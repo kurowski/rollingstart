@@ -142,8 +142,9 @@ rollingstart/                        # the new repo
       agents/
         second-opinion.md            # optional, learner-invoked: fresh eyes on a diff, never a gate
       hooks/hooks.json               # SessionStart (profile summary); PreToolUse (write-mode scope guard;
-                                     #   profile guard); UserPromptSubmit/PostToolUse/Stop (the session log,
-                                     #   written only while a direct task is open and this is not the tutor)
+                                     #   profile guard; ask before the map's destructive operations);
+                                     #   UserPromptSubmit/PostToolUse/Stop (the session log, written only
+                                     #   while a direct task is open and this is not the tutor)
       bin/                           # on PATH while enabled; the shared toolkit both plugins call:
                                      #   verify, diff, begin-task/end-task (the throwaway branch),
                                      #   watch-session, the hook handlers, map and profile checks
@@ -386,13 +387,23 @@ learner, in conversation, never by the tutor on its own.
 | No fourth wall | The checks a learner runs during a lesson are the same tools a developer here uses in the normal course of work: the map's declared commands, given verbatim. The tutor names the lesson's mode up front and never cites a script, a task file, or a profile file; those are its own. Nothing the tutor puts in the repo shows up in the repo's own checks, which the storage layout now guarantees rather than a gitignore. |
 | Every task on a throwaway branch | `begin-task` cuts the branch from the fix's parent and commits the starting state before anything is presented, with the fix's test held by the tutor rather than on the branch unless the lesson says shown; `end-task` commits what the learner left, keeps the branch, and returns them. The tutor does no free-form git while a task is open beyond applying and undoing the reference to prove the task, and those commands prompt on purpose. |
 | Verifiers are structured, never shell | A task's verifier names declared commands and test files; the `done` skill's inline steps run those and only those, before the model's turn begins. Arguments are words, never shell: anything with a metacharacter is rejected. Operations are the author's shell, code-reviewed in the repo. |
-| Destructive operations prompt | Operations marked destructive are run only after an explicit confirmation in the conversation, on top of Claude Code's own permission prompt. Skills pre-approve only the exact commands they use; `Bash(pnpm *)` would have pre-approved the destructive reset, and the spike caught that in review. |
+| Destructive operations prompt, in every mode | The author marks an operation destructive in the map, once. The plugin's **PreToolUse** hook reads that list and returns `permissionDecision: "ask"` for any command matching it, which prompts the learner in every permission mode: ask decisions are the one thing auto mode's classifier cannot override. The tutor's own confirmation in conversation sits on top. Nothing here depends on which mode the learner runs in or on any grant a skill declares. |
 | Never orchestrates the environment | The tutor never brings services up, installs toolchains, or fixes the environment; a failing command is reported with the local-dev-setup lesson offered. Whether the *learner* starts services in a setup lesson is the author's call, per environment, said in the map: a bare-metal team's map has `pnpm docker:up` as a step, a contained one has the services as a precondition. |
 | Tasks are solvable | The both-ways check applies the reference and the held test on the starting branch, runs the verifier, restores the committed starting state, applies the held test alone, and runs it again; a task whose held test does not fail on the starting state or pass on the reference is discarded and the failure logged for the author. |
 | The tutor points the way, and only the way | The `next` skill serves lessons inside the learner's destination and detours off them; it never serves a region the learner did not choose, and never edits the destination. It justifies each choice against the profile in one line written to evidence. A route that reads as a fixed order across learners with the same destination and different backgrounds is a failing eval. |
 | Any editor | The learner's edits in their own editor are the normal case, not an exception. The tutor reads the working copy directly with Read and Grep, so a file saved in Vim is as visible as one Claude wrote. At `done`, the change is the working tree against the task's base commit, taken by script; nothing has to be committed or staged. The write-mode hook governs only what Claude writes; what the learner writes is theirs. |
 | Detours are bounded | Detour depth capped in the next skill; at the cap, escalate rather than route. |
 | Profile survives | In the plugin's data directory, keyed by repo, per user, never in the tree (§ 3). A **SessionStart** hook injects a profile summary as `additionalContext`, so every session opens knowing where the learner is. |
+
+Two notes on permissions, since Claude Code's default mode moved to
+`auto` while this was being written. Nothing in the table depends on the
+mode: the rules that must hold are held by hooks, which apply in every
+mode, or by scripts the skills run. And skills declare narrow grants or
+none, never a wildcard over a package manager or git: narrow grants
+still apply in auto mode and matter to the manual-mode users
+(enterprise and API-key sessions default there, and an organisation can
+force it), while a broad one is either dropped by auto mode or, in
+manual mode, a pre-approval of whatever the wildcard covers.
 
 ## 6. What the harness gave that a plugin has to earn back
 
