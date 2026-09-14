@@ -141,11 +141,12 @@ rollingstart/                        # the new repo
         escalate/SKILL.md            # write an escalation with the trace attached
       agents/
         second-opinion.md            # optional, learner-invoked: fresh eyes on a diff, never a gate
-      hooks/hooks.json               # every handler opens with the same test (is a task open; is this
-                                     #   the tutor's session): PreToolUse (write-mode scope guard for the
-                                     #   tutor; state-directory guard and ask-before-destructive for every
-                                     #   session); UserPromptSubmit/PostToolUse/Stop (the session log, for
-                                     #   sessions that are not the tutor's while a direct task is open)
+      hooks/hooks.json               # every handler opens by reading the open task, if any, and this
+                                     #   session's id, then acts on the answer: PreToolUse (write-mode scope
+                                     #   guard, tutor only; state-directory guard, every session;
+                                     #   ask-before-destructive, every session, task or no task);
+                                     #   UserPromptSubmit/PostToolUse/Stop (the session log, for sessions
+                                     #   that are not the tutor's while a direct task is open)
       bin/                           # on PATH while enabled; the shared toolkit both plugins call:
                                      #   verify, diff, begin-task/end-task (the throwaway branch),
                                      #   watch-sessions, export, the hook handlers, map and profile checks
@@ -176,8 +177,8 @@ everything about one.
 
 **Why a marketplace and not a bare plugin.** A marketplace is the unit a
 project's settings can point at (`extraKnownMarketplaces`,
-`enabledPlugins`), and it holds the plugins and the example maps in one
-clone with one CI and one docs tree.
+`enabledPlugins`), and it holds every plugin, the two example maps
+included, in one clone with one CI and one docs tree.
 
 **Why two plugins.** The learner should never see `/rolling-author:init`
 in a menu, never have to be told which skills are not for them, and
@@ -377,8 +378,8 @@ directs a coding agent in a second, ordinary Claude Code session: they
 brief it, look at what came back, steer, ask for the checks and tests,
 accept or send back, over as many turns as it takes, until they would
 merge. Nothing passes through the tutor. The plugin's hooks on that
-session log every prompt, file edit, command, and reply; the tutor
-watches the log as it is written and reads all of it at `/done`. The
+session's log every prompt, file edit, command, and reply; the tutor
+watches the logs as they are written and reads all of them at `/done`. The
 ladder here is articulate → steer → review → architect, and steering is
 the baseline, not an upper rung. Nothing is planted: the spike showed
 that a coding agent given a hidden instruction to do wrong and hide it
@@ -405,20 +406,22 @@ learner, in conversation, never by the tutor on its own.
                 → first lesson is usually the course's opener, local-dev setup: done when the commands run green
 /rolling:next   → read map + profile → choose a reachable lesson inside the destination, skipping what
                   the background already covers → build a task from the map and history → throwaway branch,
-                  starting state committed → prove it both ways → present it, mode first
+                  starting state committed → prove it both ways → hand off to
+/rolling:lesson → present it, mode first
     write:  the learner works, in their own editor; the tutor explains, points, asks; never writes
             inside the task's scope; runs the repo's checks when asked
-    direct: the learner directs a coding agent in a second session; hooks log it; the tutor watches
-            the log and speaks only on an event worth a word, as an offer, in its own window
+    direct: the learner directs a coding agent in a second session; hooks log it; the tutor starts the
+            watch and speaks only on an event worth a word, as an offer, in its own window
 /rolling:done   → run the verifier (deterministic tier: the repo's own commands), before the tutor speaks
                 → capture what changed: the working tree against the task's base commit, nothing committed
+                → the held test, if any: applied, run, reverted, now that the diff is captured; its result
+                  joins the verifier's
                 → write:  the tutor reads the diff against the rubric and the corpus pointers: what is good,
                           what is missing, what a maintainer here would say, with a line and a rule each
                 → direct: the verifier's findings come off the learner's ledger first; then the session,
                           turn by turn: was the direction actionable and scoped, did they steer when the
                           agent drifted, did they ask for the checks, what did they send back, what did
                           they accept that a maintainer here would have bounced
-                → the held test, if any: applied, run, reverted, after the diff is captured
                 → satisfied when the tutor says so and the learner agrees; reasons to evidence either way
                 → the learner's work is committed on the task branch, which is kept; the learner is returned;
                   offer the next
@@ -431,7 +434,7 @@ learner, in conversation, never by the tutor on its own.
 | The human's ledger (`direct`) | Before the learner's direction or review is read, the verifier's findings are taken off the table: a type error, a lint failure, a failing test are the checks' job, and the only thing on the learner's ledger about them is whether they asked for the checks before saying done. What is judged is what a person directing an agent is responsible for: placement, convention, scope, whether a test was written and tests the right thing, a design that will not age, and the steering that got there. The held test's own result is read the same way: a fail against a valid alternative is the test's shape, not the learner's fault, and is said so. The spike's first `direct` run graded the learner on things the tests catch; that was wrong and this is the correction. |
 | A second opinion is available, never required | An optional `second-opinion` subagent with fresh context and read-only tools, invoked by the learner when they want fresh eyes on a diff (or by the tutor when the two disagree). It advises; it does not satisfy or block anything. |
 | Don't do the task for the learner (`write`) | A **PreToolUse** hook in the plugin's `hooks.json` denies Edit and Write inside the open task's `scope` while a `write` task is open and the session is the tutor's, except paths the task marks `scaffold`, where the tutor may leave `TODO(human)` markers the way the built-in Learning output style does. It lives in `hooks.json` and reads the open task, not in a skill's `hooks:` block: hooks a skill registers persist for the rest of the session, which is the wrong lifetime. The hook is the one rule that must hold even when the learner asks nicely. |
-| The coding session is a real session (`direct`) | The learner's coding agent is an ordinary Claude Code session in the same repo, not a subagent of the tutor and not primed by it. The plugin's hooks apply to every session where the plugin is enabled, so every hook handler begins with the same test: is a `direct` task open, and is this session the tutor's? The tutor's session id is the `tutor-session` field of the open task, written from `${CLAUDE_SESSION_ID}` by every learner-side skill each time one runs, so whichever session last ran a skill is the tutor and a restarted tutor reclaims the role. A session that fails the test is logged, one file per session id under `sessions/`, and denied any read or write of the learner's state directory; a session that passes is neither logged nor guarded. Nothing is injected into any session at start. Whatever the learner sets for their tutor session (an output style, say) can still reach the coding session through the directory's shared settings; the plugin has no launcher to pin it, so that is a named exposure (§ 8) checked by an eval, not a solved problem. |
+| The coding session is a real session (`direct`) | The learner's coding agent is an ordinary Claude Code session in the same repo, not a subagent of the tutor and not primed by it. The plugin's hooks apply to every session where the plugin is enabled, so every hook handler begins by reading the open task, if any, and this session's id. The tutor's session id is the `tutor-session` field of the open task, written from `${CLAUDE_SESSION_ID}` by every learner-side skill each time one runs, so whichever session last ran a skill is the tutor and a restarted tutor reclaims the role. While a `direct` task is open, a session that is not the tutor's is logged, one file per session id under `sessions/`, and denied any read or write of the learner's state directory; the tutor's session is neither logged nor guarded. Nothing is injected into any session at start. Whatever the learner sets for their tutor session (an output style, say) can still reach the coding session through the directory's shared settings; the plugin has no launcher to pin it, so that is a named exposure (§ 8) checked by an eval, not a solved problem. |
 | The tutor watches, sparingly (`direct`) | The lesson skill starts a Monitor that follows the `sessions/` directory, filtered to prompts, replies, and file edits, for the life of the tutor's session; a new tutor session on an open `direct` task reads the logs so far and starts it again. Replies arrive once per turn, from the Stop hook's last message. The tutor speaks only on an event worth a word: the agent editing outside the task's scope and the learner not noticing, a result accepted without the repo's checks, the same ask rephrased a third time. One or two lines, as an offer, in its own window, written to evidence as its own intervention. Otherwise an empty turn. Triggers it cannot observe from the log are not triggers. Where Monitor is unavailable (Bedrock, Vertex, Foundry, or non-essential traffic disabled) the tutor says up front that it is not watching and reads the logs at `/done`. |
 | No fourth wall | The checks a learner runs during a lesson are the same tools a developer here uses in the normal course of work: the map's declared commands, given verbatim. The tutor names the lesson's mode up front and never cites a script, a task file, or a profile file; those are its own. Nothing the tutor puts in the repo shows up in the repo's own checks, which the storage layout now guarantees rather than a gitignore. |
 | Every task on a throwaway branch | `begin-task` cuts the branch from the fix's parent, commits the starting state, and records in the task both `base` (that commit) and `return-to` as a symbolic ref with its resolved sha. `end-task` refuses, with a message, unless HEAD is still the task branch; otherwise it commits what the learner left, keeps the branch, and returns to the ref if it still resolves, else to the sha with a note. The tutor does no free-form git while a task is open beyond applying and undoing the reference to prove the task, and those commands prompt on purpose. |
@@ -530,8 +533,10 @@ second front-loads the mechanics the docs do not confirm.
 `start`, `next`, `lesson`, `done`; the storage layout of § 3 and § 4
 (state out of the tree); `begin-task`, `end-task`, `verify` with the
 held test, `diff`, and `export` in `bin/`; the profile validator; the
-write-mode scope guard in `hooks.json`; `docs/map.md` and
-`docs/profile.md` as the specs. The Rallly map, hand-written, grows to
+write-mode scope guard in `hooks.json`, with the `tutor-session` stamp
+it reads (trivial while the tutor's is the only session, real in P1b);
+`docs/map.md` and `docs/profile.md` as the specs. The Rallly map,
+hand-written into a local clone's `.rolling/` and never pushed, grows to
 8–10 lessons with rubrics, regions, depths, modes, and tests marked held
 or shown. The old repo's `CLAUDE.md`, workflow skills, and ADR
 discipline come across, since this is the first real branch. *Exit:*
@@ -747,7 +752,7 @@ TOML profile decision, and the strict-frontmatter posture.
   hook denies the path, the repo's tooling never sees the tutor's
   files, and nothing has to be excluded from anything.
 - **The tutor watches live.** Longer lessons need coaching before they
-  are over; a Monitor on the session log gives the tutor each prompt,
+  are over; a Monitor on the session logs gives the tutor each prompt,
   reply, and edit as it happens, and a short list of triggers says when
   to speak.
 
