@@ -466,6 +466,21 @@ mode needed a redesign mid-spike and got one. Everything it changed is
 in § 10 and in `spike/NOTES.md`; the spike's code is scaffolding and
 none of it is the plugin.
 
+**Targets, from P1 on.** Three, each for a different reason, none of
+them a codebase to learn from scratch. **Rallly**, public, as a map
+plugin: the demo, and the external-author path, since it is not ours to
+commit to. **The maintainer's own codebase at work**, private, with
+`.rolling/` committed in its own tree: the internal-author path and the
+actual corporate case, with nothing about it ever appearing in this
+repository. **Rolling Stop**, the archived Go predecessor, as a map
+plugin: the toolchain check, because the plugin's scripts have only ever
+seen pnpm, and generalising from one ecosystem produces the wrong
+interface. Same stack twice over (Rallly and the work codebase are both
+Next.js, Prisma, pnpm) diversifies nothing the plugin touches, which is
+why the third is Go and small. A second unfamiliar Node app (Papermark
+was the candidate) would test only whether `rolling-author:init` can
+draft a map for a repo the author does not know, which is P3's question.
+
 **P1 — The learner loop as a plugin, both modes.** Marketplace +
 `rolling` skeleton; `start`, `next`, `lesson`, `done`; the storage layout
 of § 3 and § 4 (state out of the tree); the throwaway-branch scripts,
@@ -518,13 +533,14 @@ maintainers said). Steering is no longer a rung here; the spike made it
 the baseline of every `direct` lesson. *Exit:* a `direct` lesson on
 Rallly at each rung that a strong engineer finds fair.
 
-**P5 — Second target and release.** A Go repo (this plugin's own repo is
-a candidate: it should be an instance of itself, as Rolling Stop meant
-to be), a colleague onboarding onto something real, the authoring guide,
-managed-settings install notes, and the question of whether the Rallly
-example ships a `.devcontainer/` so anyone can run it contained the
-standard way. *Exit:* a colleague who has never seen the target completes
-a real task in it.
+**P5 — Release.** A colleague onboarding onto something real, the
+authoring guide covering both homes for a map, managed-settings install
+notes, and the question of whether the Rallly example ships a
+`.devcontainer/` so anyone can run it contained the standard way. The
+three targets above have been in use since P1; whether this repository
+should be an instance of itself is a question for when it has something
+to teach. *Exit:* a colleague who has never seen the target completes a
+real task in it.
 
 ## 8. Risks particular to this approach
 
