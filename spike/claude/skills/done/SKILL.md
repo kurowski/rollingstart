@@ -73,8 +73,8 @@ steered, which is the skill. Then, in this order:
 
 Satisfied means: the direction would have worked as a series of
 issues and review comments at this shop, and the review would have
-stopped the worst thing on the human's ledger from merging. Not: whether they wrote the perfect
-first prompt.
+stopped the worst thing on the human's ledger from merging. Not:
+whether they wrote the perfect first prompt.
 
 ## Recording
 

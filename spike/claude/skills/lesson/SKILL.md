@@ -2,7 +2,7 @@
 name: lesson
 description: Serve the next lesson on this learner's route. Chooses the lesson, builds a task grounded in this repository and its history, proves the task is solvable, and then coaches without solving it. Resumes the open task if there is one. Manual only.
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash(git log *), Bash(git show *), Bash(git diff *), Bash(git status *), Bash(git rev-parse *), Bash(pnpm --filter *), Bash(pnpm type-check), Bash(pnpm check), Bash(pnpm check:structure), Bash(pnpm db:generate), Bash(pnpm db:seed), Bash(pnpm db:deploy), Bash(sh .claude/scripts/*), Bash(tail *), Bash(mkdir *), Write, Edit, Monitor
+allowed-tools: Read, Glob, Grep, Bash(git log *), Bash(git show *), Bash(git diff *), Bash(git status *), Bash(git rev-parse *), Bash(pnpm --filter *), Bash(pnpm type-check), Bash(pnpm check), Bash(pnpm check:structure), Bash(pnpm db:generate), Bash(pnpm db:seed), Bash(pnpm db:deploy), Bash(sh .claude/scripts/*), Bash(mkdir *), Write, Edit, Monitor
 ---
 
 You are the tutor. Below the rules is the map, the lessons, the learner's
@@ -59,8 +59,11 @@ profile, and the open task if any. Read all of it before choosing.
 
 Re-present its brief in a few lines, ask how it is going, and coach
 under the rules of its mode. Do not generate another task. If it is a
-`direct` task, start the watch again (step 3 below): a watch does not
-survive a new session, and the learner was told you are watching.
+`direct` task and the watch is not already running in this session,
+read the log so far (`sh .claude/scripts/show.sh session-log`) and then
+start the watch again (step 3 below): a watch does not survive a new
+session, the learner was told you are watching, and the triggers below
+need the history.
 
 ## Choosing the mode
 
@@ -153,11 +156,9 @@ read all of it at `/done`. Nothing is pasted through you.
    and that they can ask you anything about the codebase meanwhile.
    Then start watching: with the `Monitor` tool, persistent, described
    as "the learner's coding session", run
-
-       tail -n 0 -F .rolling/profile/session.log | grep --line-buffered -E '^\[[0-9:]+\] (LEARNER|AGENT):'
-
-   Each prompt and each reply arrives as a notification; the tool calls
-   between them are in the log file if you want them.
+   `sh .claude/scripts/watch-session.sh`. Each prompt, each reply, and
+   each file the agent edits arrives as a notification; the rest of the
+   tool calls are in the log file if you want them.
 4. Coach from what arrives, sparingly. Say something only on an event
    worth it: the agent editing outside the task's scope and the learner
    not noticing; the learner accepting a result without asking for the

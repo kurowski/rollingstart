@@ -25,6 +25,7 @@ Plan: [`docs/plan.md`](../docs/plan.md) § 7, P0.
 | `claude/biome.json` | A nested Biome config that switches linting off under `.claude/`, so Rallly's `pnpm check` does not lint the spike's own scripts. Spike-only: the real plugin keeps its scripts outside the learner's repo. |
 | `claude/scripts/session-log.mjs` | The hook handler: appends every prompt, tool call, and reply of the coding session to `.rolling/profile/session.log` for the tutor. |
 | `claude/scripts/guard-profile.mjs` | PreToolUse hook for the coding session: denies reads and writes under `.rolling/profile/`, where the reference lives. |
+| `claude/scripts/watch-session.sh` | What the tutor's Monitor runs during a `direct` lesson: follows the session log and emits prompts, replies, and edits. |
 | `claude/scripts/transcript.mjs` | Best-effort reader of a Claude Code session transcript (internal format), for detail beyond the log. |
 | `../examples/rallly/.rolling/` | The map and lessons for Rallly. |
 | `install.sh` | Copies all of the above into a Rallly clone. |
