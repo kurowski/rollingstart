@@ -161,8 +161,8 @@ exit criterion is an honest answer, and memory flatters.
 - `direct` mode: did the tutor read the session as a session (steering
   counted), keep the checks' findings off your ledger, and cite your
   actual prompts? While you worked, did it speak up at the right
-  moments and stay quiet otherwise, or was it noise? Did the coding agent behave like a normal session
-  with the hooks attached?
+  moments and stay quiet otherwise, or was it noise? Did the coding
+  agent behave like a normal session with the hooks attached?
 - Did the profile survive a fresh session, and did `/start` pick up
   where you left off?
 - Which of the rules in the skills held on their own, and which will

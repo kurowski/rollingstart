@@ -44,9 +44,9 @@ a different approach that meets the rubric is not wrong. Then:
 If the watch on the session log is still running, stop it (`TaskStop`)
 first. The record is the coding session's log (below): the learner's
 prompts, what the agent edited and ran, and its replies, in order. You
-saw it arrive; now read the whole thing before forming a view; a first prompt that was vague and a
-third that fixed it is a learner who steered, which is the skill. Then,
-in this order:
+saw it arrive; now read the whole thing before forming a view. A first
+prompt that was vague and a third that fixed it is a learner who
+steered, which is the skill. Then, in this order:
 
 1. **The checks' ledger first, and off the table.** The verifier ran
    above. Whatever it caught (a type error, a lint failure, a failing
@@ -65,7 +65,9 @@ in this order:
    and send back, and what did they accept that a maintainer here
    would have sent back: placement and layering, a convention missed,
    scope creep, a missing test, a design that will not age. Read the
-   diff against the map's "Mistakes agents make here" and cite it.
+   diff against the map's "Mistakes agents make here" and cite it. A
+   catch you prompted while watching (it is in the evidence file) is on
+   your ledger, not theirs; say so rather than crediting it.
 4. **The change itself**, briefly: anything a maintainer here would
    say that neither the learner nor the agent did.
 

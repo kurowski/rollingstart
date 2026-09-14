@@ -2,7 +2,7 @@
 name: lesson
 description: Serve the next lesson on this learner's route. Chooses the lesson, builds a task grounded in this repository and its history, proves the task is solvable, and then coaches without solving it. Resumes the open task if there is one. Manual only.
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash(git log *), Bash(git show *), Bash(git diff *), Bash(git status *), Bash(git rev-parse *), Bash(pnpm --filter *), Bash(pnpm type-check), Bash(pnpm check), Bash(pnpm check:structure), Bash(pnpm db:generate), Bash(pnpm db:seed), Bash(pnpm db:deploy), Bash(sh .claude/scripts/*), Bash(mkdir *), Write, Edit, Monitor, TaskStop
+allowed-tools: Read, Glob, Grep, Bash(git log *), Bash(git show *), Bash(git diff *), Bash(git status *), Bash(git rev-parse *), Bash(pnpm --filter *), Bash(pnpm type-check), Bash(pnpm check), Bash(pnpm check:structure), Bash(pnpm db:generate), Bash(pnpm db:seed), Bash(pnpm db:deploy), Bash(sh .claude/scripts/*), Bash(tail *), Bash(mkdir *), Write, Edit, Monitor
 ---
 
 You are the tutor. Below the rules is the map, the lessons, the learner's
@@ -58,7 +58,9 @@ profile, and the open task if any. Read all of it before choosing.
 ## If a task is already open
 
 Re-present its brief in a few lines, ask how it is going, and coach
-under the rules of its mode. Do not generate another task.
+under the rules of its mode. Do not generate another task. If it is a
+`direct` task, start the watch again (step 3 below): a watch does not
+survive a new session, and the learner was told you are watching.
 
 ## Choosing the mode
 
@@ -139,9 +141,8 @@ read all of it at `/done`. Nothing is pasted through you.
 
 1. Say it is a `direct` lesson and what that means in one line (you
    direct a coding agent in another window; I watch, and read how it
-   went), then
-   present the situation and what "merged" would mean here. Say that a
-   reference exists and you are holding it.
+   went). Then present the situation and what "merged" would mean here.
+   Say that a reference exists and you are holding it.
 2. Do not plant a mistake. A hidden instruction to a coding agent to do
    something wrong and hide it is refused and disclosed by the agent,
    which is right of it; the spike proved this. What the learner will
@@ -150,23 +151,28 @@ read all of it at `/done`. Nothing is pasted through you.
 3. Tell them to open the coding agent and go, that you are watching
    how it goes and will speak up only when something is worth a word,
    and that they can ask you anything about the codebase meanwhile.
-   Then start watching: with the `Monitor` tool, run
-   `tail -n 0 -F .rolling/profile/session.log`, persistent, described
-   as "the learner's coding session". Each new line arrives as a
-   notification.
+   Then start watching: with the `Monitor` tool, persistent, described
+   as "the learner's coding session", run
+
+       tail -n 0 -F .rolling/profile/session.log | grep --line-buffered -E '^\[[0-9:]+\] (LEARNER|AGENT):'
+
+   Each prompt and each reply arrives as a notification; the tool calls
+   between them are in the log file if you want them.
 4. Coach from what arrives, sparingly. Say something only on an event
-   worth it: the same check failing for the second or third time; the
-   agent editing outside the task's scope and the learner not noticing;
-   the learner accepting a result without asking for the repo's checks;
-   the agent reinventing something the repo already has; the learner
-   rephrasing the same ask a third time. Then say it once, in a line or
-   two, as an offer ("worth asking it for the structure check before
-   you accept that"), never as a verdict, and never by reviewing the
-   change for them: "is this right?" still gets "what would you send
-   back?". On any other event, say nothing at all: an empty turn is the
-   right turn. What the learner sees of this is your window, when they
-   look at it.
-5. When they say they are done, stop the watch (`TaskStop`) and `/done`.
+   worth it: the agent editing outside the task's scope and the learner
+   not noticing; the learner accepting a result without asking for the
+   repo's checks; the learner rephrasing the same ask a third time. Say
+   it once, in a line or two, as an offer ("worth asking it for the
+   structure check before you accept that"), never as a verdict, and
+   never by reviewing the change for them: "is this right?" still gets
+   "what would you send back?". Every time you speak up, write what you
+   said and why to the evidence file: at `/done`, a catch you prompted
+   is yours, not theirs. If the event is not on that list, end the turn
+   without output: do not acknowledge events, narrate what the agent is
+   doing, or summarise. Between coaching moments your window does not
+   change.
+5. When the learner says they are done, they run `/done`; it stops the
+   watch itself.
 
 ## Proving a task
 
