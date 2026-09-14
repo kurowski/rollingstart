@@ -1,0 +1,55 @@
+---
+title: The poll lifecycle
+region: polls
+depth: working
+mode: direct
+requires: [poll-data-model]
+assumes: [trpc, zod, next-app-router]
+---
+
+What happens to a poll between creation and deletion, where each
+transition lives, and what has to be true on the far side of it. This
+is a `direct` lesson: you will write the brief, an agent will
+implement, and you will review.
+
+The transitions, and the two surfaces they are spread across.
+Creation is still the legacy router's `make` (`trpc/routers/polls.ts`
+line 95) and the new `createPoll` in `features/poll/mutations.ts` line
+74. Closing is `closePoll` (mutations line 133): an idempotent
+`updateMany` guarded by `status: { not: "closed" }`, then
+`recordPollActivities` with `poll_closed` and a reason; the legacy
+`close` at router line 1290 does the same by hand. Booking is `book`
+(router line 842, `proProcedure`): it creates a `ScheduledEvent`
+(`event.prisma`) and sends the `finalized-host` and
+`finalized-participant` emails. Reopen is at 1223, soft delete is
+`deletePoll` (mutations 208) and `markAsDeleted` (router 672). Three
+cron jobs run the rest of the lifecycle from
+`app/api/house-keeping/[...method]/route.ts` on the schedule in
+`vercel.json`: `autoClosePolls` (mutations 322, reason `auto`),
+`deleteInactivePolls` (266), `removeDeletedPolls` (364).
+`tests/house-keeping.spec.ts` covers them.
+
+Two things a maintainer will check in any change here: that a
+transition is idempotent (a poll closed twice records one activity),
+and that it writes the activity the timeline page reads
+(`features/poll/activity/`). The pages that show state:
+`app/[locale]/invite/[urlId]/page.tsx` for voters,
+`(optional-space)/poll/[urlId]/` for hosts, and the flag-gated new admin
+under `(space)/(dashboard)/polls/[pollId]/`.
+
+Situations for the tutor to present: `6b30747e` (#3193) and `f58b281b`
+(#3180) as symptoms rather than fixes; a request to record an activity
+a transition currently does not; a request to make a cron job's batch
+behaviour visible. Mistakes worth watching for: a non-idempotent guard, a
+missing `recordPollActivities`, a mutation added to the frozen router.
+
+## Rubric
+
+- The brief names the transition, the surface it lives on, what must
+  be true afterwards (idempotency, the activity written, who gets an
+  email), and how to prove it.
+- The review catches a missing or duplicated activity, a
+  non-idempotent transition, or a write placed on the frozen tRPC
+  surface, and says which file it would have gone in.
+- The review distinguishes what would block a merge from what is
+  taste.
