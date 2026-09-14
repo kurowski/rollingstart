@@ -214,7 +214,9 @@ itself for this repo? A map plugin registers through a SessionStart hook
 that writes its own root into the learner's state directory for the
 repo, since a plugin knows its own root and nobody else's, and it
 declares which repo it is for, so a map installed against the wrong
-checkout says so instead of teaching it. The Rallly example is a map
+checkout says so instead of teaching it. When both are present the repo's own map wins, which is what lets a
+project adopt an outsider's map without a flag day: commit it, and the
+plugin is simply no longer consulted. The Rallly example is a map
 plugin, because Rallly is not ours to commit to, and that is the demo:
 `/plugin install rallly@rollingstart` in any Rallly clone.
 
@@ -472,12 +474,19 @@ plugin: the demo, and the external-author path, since it is not ours to
 commit to. **The maintainer's own codebase at work**, private, with
 `.rolling/` committed in its own tree: the internal-author path and the
 actual corporate case, with nothing about it ever appearing in this
-repository. **Rolling Stop**, the archived Go predecessor, as a map
-plugin: the toolchain check, because the plugin's scripts have only ever
-seen pnpm, and generalising from one ecosystem produces the wrong
-interface. Same stack twice over (Rallly and the work codebase are both
-Next.js, Prisma, pnpm) diversifies nothing the plugin touches, which is
-why the third is Go and small. A second unfamiliar Node app (Papermark
+repository. **Homie**, the maintainer's own Go CLI, public: the
+toolchain check, because the plugin's scripts have only ever seen pnpm
+and a compose stack, and generalising from one ecosystem produces the
+wrong interface; a single binary with `go test` and no services is as
+different an environment as we have to hand. Homie also plays out the
+lifecycle most open source maps would follow: it starts as a map plugin
+in this repository, written as an outsider would, and once it proves
+useful the project adopts it by committing `.rolling/` and retiring the
+plugin. Supporting that handoff is part of P1: the resolver prefers the
+in-repo map when both are present, and `rolling-author` gets an
+`adopt` step that moves a map plugin into a repo's tree. Same stack
+twice over (Rallly and the work codebase are both Next.js, Prisma, pnpm)
+diversifies nothing the plugin touches, which is why the third is Go. A second unfamiliar Node app (Papermark
 was the candidate) would test only whether `rolling-author:init` can
 draft a map for a repo the author does not know, which is P3's question.
 
@@ -633,10 +642,12 @@ TOML profile decision, and the strict-frontmatter posture.
   and will not take the project seriously without it; `direct` is the
   point of the project and is expected to become the majority of
   lessons.
-- **The map lives with its author.** In the target repo at `.rolling/`
-  when the author is inside the project; as a map plugin when the author
-  is outside it or the project would rather not carry it. Same format,
-  one resolver, both supported from the first release (decided
+- **The map lives with its author, and can move.** In the target repo
+  at `.rolling/` when the author is inside the project; as a map plugin
+  when the author is outside it or the project would rather not carry
+  it; and adoptable from the second home into the first once it earns
+  it, with the in-repo map winning whenever both exist. Same format, one
+  resolver, both supported from the first release (decided
   2026-09-14, replacing draft 1's "in the repo, plugin later": the spike
   spent real effort pretending Rallly carried a map it does not, and the
   distinction was never corporate versus open source).
