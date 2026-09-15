@@ -137,6 +137,7 @@ still proving ok, redirections) and closed them; a third found the
 symbolic-link cases, and the toolkit now refuses a link anywhere in a
 held path rather than reason about it. The test file for the review
 rounds is the largest in the suite, which is the right way round.
+PR #5.
 
 ---
 
