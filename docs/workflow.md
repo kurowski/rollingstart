@@ -40,14 +40,16 @@ the spike's version and what `spike/NOTES.md` says went wrong with it.
 2. **Spec.** A format change lands in `docs/map.md` or
    `docs/profile.md` first. A script's contract is its header comment.
    A skill's is its own `SKILL.md` and the loop in `docs/plan.md` § 5.
-3. **Test**, for a script: under `plugins/rolling/tests/`, against a
-   scratch repository, failing first.
-4. **Implement.** Bash 3.2 or later; Node without dependencies only
-   for hook handlers. Logical commits with real bodies.
-5. **The gate**, each by its own exit status: `shellcheck` over every
-   shell script, the test runner, `claude plugin validate` for each
-   plugin and the marketplace. CI runs the same on every PR and on
-   `main`; the commands live in `.github/workflows/ci.yml` from P1a.3.
+3. **Test**, for the toolkit: `unittest` under `plugins/rolling/tests/`,
+   against the scratch world in `support.py`, failing first.
+4. **Implement.** Python 3.9, standard library only, in
+   `plugins/rolling/lib/rolling/`; the executables in `bin/` stay a
+   few lines. Logical commits with real bodies.
+5. **The gate**, each by its own exit status: byte-compile with
+   warnings as errors, the test suite, `claude plugin validate
+   --strict` for each plugin and the marketplace. CI runs the same on
+   every PR and on `main`, on Python 3.9 and a Mac; the commands live
+   in `.github/workflows/ci.yml`.
 6. **Review.** Scripts and hooks: a code-review sub-agent on Opus over
    the outgoing diff, per `CLAUDE.md` § Rules, real findings fixed
    before the push. Prose: a run on the Rallly clone, transcript read,

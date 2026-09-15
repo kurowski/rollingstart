@@ -145,23 +145,32 @@ skill. The analogy the project started from stays in conversation.
 
 ## Conventions
 
-- **Shell.** `plugins/*/bin/` scripts are bash, 3.2 or later
-  (`#!/usr/bin/env bash`, `set -u`), because a stock Mac ships 3.2 and
-  will not update it: arrays, `[[ ]]`, `local`, `pipefail`, and
-  `${var//pat/rep}` are fine; associative arrays, `mapfile`, and
-  `${var,,}` are not. Clean under `shellcheck --shell=bash`. The tools
-  they call are `git` and a POSIX userland and nothing else: no `jq`,
-  no Python, no Node beyond what the target repo already requires.
-  Hook handlers are the one exception: Node (`.mjs`, no dependencies),
-  because they read JSON on stdin; see the plan's deferred list for
-  the host that has no `node`.
-- **Tests.** Each script in `bin/` has a test that runs it against a
-  scratch repository built in a temporary directory, never against a
-  real checkout. A plain bash runner, no framework.
-- **The gate**, before any push: `shellcheck` over every shell script,
-  the test runner, and `claude plugin validate` for each plugin and the
-  marketplace, each checked by its own exit status and never through a
-  pipe that masks it. CI runs the same.
+- **Python 3.9 or later, standard library only.** That is what a Mac
+  with the command line tools and any desktop Linux already have, and
+  the plugin must not ask a learner to install a runtime first (the
+  native Claude Code installer no longer brings Node). So nothing
+  newer than 3.9 (no `match`, no `X | Y` in annotations at runtime, no
+  `tomllib`), no third-party packages, and `subprocess` always with an
+  argument list, never a shell. Every module starts with
+  `from __future__ import annotations`: 3.14 evaluates annotations
+  lazily and 3.9 does not, and the difference has bitten once. The
+  executables in `plugins/*/bin/`
+  are a few lines each and import `lib/rolling/`; the library is
+  where the code is. Hook handlers are the same Python. The first
+  toolkit was bash; it was replaced (PR for 1a.3b) because bash made
+  the one destructive path, applying and reverting the held test,
+  need six review rounds to get right, and a map validator in bash
+  was unreadable.
+- **Tests.** `unittest`, under `plugins/rolling/tests/`, against a
+  scratch repository built in a temporary directory, never a real
+  checkout. Assert on the structured result where the library returns
+  one (a fault list, a report), on the rendered text only where the
+  text is the contract a skill reads.
+- **The gate**, before any push: byte-compile with warnings as
+  errors, the test suite, and `claude plugin validate --strict` for
+  each plugin and the marketplace, each checked by its own exit
+  status. CI runs the same on Python 3.9, a current Python, and a
+  Mac's system Python.
 - **Skills.** `disable-model-invocation: true` on every learner-facing
   skill except `lesson`, which only ever re-presents the open task and
   is how `next` hands off; `allowed-tools` grants narrow and named,

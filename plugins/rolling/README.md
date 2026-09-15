@@ -24,9 +24,18 @@ deletes it; `rolling-export` copies it out first.
 ## The toolkit (`bin/`)
 
 On the Bash tool's PATH for the whole session while the plugin is
-enabled. Every script is bash 3.2 or later, calls only `git` (2.23 or
-later, for `git switch`) and a POSIX userland, and carries its
-contract in its header comment. Every script that touches the tree
+enabled. Each executable is a few lines that import
+[`lib/rolling/`](lib/rolling/), Python 3.9 or later with no
+dependencies beyond `git` (2.23 or later, for `git switch`). The
+library's modules carry the contracts: `rules` (what a slug, an
+argument, a path may be), `frontmatter` (the flat subset), `paths`
+(where the map and the learner's directory are), `model`
+(the map, lessons, task, and learner's directory as objects),
+`validate` (the three checkers, returning faults), `repo` (git behind
+a small wrapper), `heldtest` (the held test's apply and revert, with
+the record that survives a kill), `verifier` (a structured report and
+its rendering), `diff`, `tasks` (begin, end, close, and every
+refusal), `session`, and `cli`. Every command that touches the tree
 first finishes any held-test revert a killed run left behind.
 
 | Script | Run by | What |
@@ -52,25 +61,24 @@ on refusal.
 ## Tests
 
 ```sh
-plugins/rolling/tests/run.sh
+cd plugins/rolling/tests && python3 -m unittest discover -s . -p 'test_*.py'
 ```
 
 Each test builds a scratch repository with a small map and a fix in
 its history under a temporary directory, points `ROLLING_DATA` at
-another, and runs the scripts against that. Nothing touches a real
-checkout or a real data directory. To run one script by hand outside
-a session, set `ROLLING_DATA` yourself.
+another, and runs the commands against that (`support.py`). Nothing
+touches a real checkout or a real data directory. To run one command
+by hand outside a session, set `ROLLING_DATA` yourself.
 
-The scripts target bash 3.2, the one a stock Mac ships. CI runs the
-tests on macOS under `/bin/bash`; to check on a Linux host, the
-official `bash:3.2` image does it with a busybox userland, which is
-stricter than macOS's:
+The floor is Python 3.9, the one a Mac's command line tools ship. CI
+runs the suite on 3.9 and on a Mac; to check the floor on a Linux
+host, the `python:3.9-alpine` image does it:
 
 ```sh
-docker run --rm -v "$PWD/plugins:/w/plugins:ro" -w /w bash:3.2 bash -c '
+docker run --rm -v "$PWD/plugins:/w/plugins:ro" -w /w python:3.9-alpine sh -c '
   apk add --no-cache -q git; cp -R /w/plugins /tmp/plugins; export HOME=/tmp
   git config --global user.email t@x; git config --global user.name t
-  bash /tmp/plugins/rolling/tests/run.sh'
+  cd /tmp/plugins/rolling/tests && python3 -m unittest discover -s . -p "test_*.py"'
 ```
 
 ## Hooks
