@@ -1,11 +1,19 @@
 # rolling
 
-The learner's plugin. Enable it in a repository that carries a Rolling
-Start map (`.rolling/`, see [`docs/map.md`](../../docs/map.md)) and
-Claude Code becomes the tutor: `/rolling:start` for intake,
-`/rolling:next` for the next task, `/rolling:lesson` to be re-briefed,
-`/rolling:done` when you think you are done. The skills arrive in P1a.5;
-what is here now is the toolkit they call and the one hook they need.
+The learner's plugin. Enable it, and Claude Code becomes the tutor for
+whichever repository you are in that has a Rolling Start map: a
+description of the codebase written by someone who knows it, in the
+format [`docs/map.md`](../../docs/map.md) defines. A map has two homes.
+An author inside the project commits it at `.rolling/` in the
+repository root; an author outside it publishes the same directory as
+a map plugin, and the learner installs both plugins. In P1a only the
+first is wired up; the map-plugin route and the resolver that prefers
+a committed map over an installed one arrive in P1c.
+
+The skills are `/rolling:start` for intake, `/rolling:next` for the
+next task, `/rolling:lesson` to be re-briefed, and `/rolling:done` when
+you think you are done. They arrive in P1a.5; what is here now is the
+toolkit they call and the one hook they need.
 
 Everything the tutor knows about you lives outside the repository, in
 this plugin's data directory, keyed by the repository
