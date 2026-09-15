@@ -74,88 +74,49 @@ recorded here.
 
 ## Sub-scopes
 
+A sub-scope is a paragraph: goal, branch, dependencies, and a
+done-when a reviewer can check in a line or three. Detail lives in the
+artifact it describes (a spec, a script's header comment, a skill),
+and the sub-scope points at it once it exists. The two exceptions
+below, 1a.3 and 1a.4, carry their scripts' contracts because they were
+drafted before the scripts; each slice's PR replaces its contract with
+a pointer when it lands.
+
 ### 1a.1 — The repository learns how work happens here [PENDING]
 
-**Goal.** `CLAUDE.md`, `REVIEW.md`, and `docs/workflow.md` for a
-plugin repository, and this plan.
-
-**Branch.** `p1a.1/process`
-
-**Depends on.** Nothing.
-
-**Done when.**
-
-- `CLAUDE.md` states the rules an agent must follow here: the plan's
-  architectural seams (§ 5) as rules, and the working agreements the
-  maintainer has enforced since P0. Nothing Go-shaped survives.
-- `REVIEW.md` names the seams a reviewer blocks on, and the shell and
-  hook specifics that replace the old Go section.
-- `docs/workflow.md` fits on a page: where things live, how a slice
-  ships, the gate, what ends a checkpoint. The predecessor's
-  apparatus (boards, sub-issues, ADRs, workflow skills) is in this
-  branch's first commit and not in its last, and the page says why.
-- This plan exists with every sub-scope carrying a goal, a branch,
-  dependencies, and a "done when" a reviewer can check.
+`CLAUDE.md`, `REVIEW.md`, and `docs/workflow.md` for a plugin
+repository, and this plan. Branch `p1a.1/process`; depends on
+nothing. Done when an agent can read `CLAUDE.md` and know the rules,
+`docs/workflow.md` fits on a page, and this plan has a paragraph per
+sub-scope. PR #3.
 
 ---
 
 ### 1a.2 — The formats: `docs/map.md` and `docs/profile.md` [PENDING]
 
-**Goal.** Write the two specs the plugin reads and writes against,
-from the plan's § 4 and the spike's drafts, before any script parses
-either.
-
-**Branch.** `p1a.2/specs`
-
-**Depends on.** 1a.1.
-
-**Done when.**
-
-- `docs/map.md` specifies `.rolling/map.md` (frontmatter: `name`,
-  default `mode`, `commands`, `operations`, `destructive`; body:
-  regions, one or more suggested courses, corpus, mistakes agents make
-  here, the environment's shape) and `.rolling/lessons/<slug>.md`
-  (frontmatter: `title`, `region`, `depth`, `mode`, `requires`,
-  `assumes`, `test: held | shown`; body ending in `## Rubric`), with
-  the slug and link rules carried from the old skills spec (lowercase
-  kebab-case; `requires` entries are slugs; a flat directory), and the
-  optional `tasks/<slug>.md` for pre-authored tasks. It says what the
-  scripts parse (the frontmatter, flat, two-space indented) and what
-  only the tutor reads (the body), and why the line is there.
-- `docs/profile.md` specifies the learner's directory in the plugin's
-  data directory: its location and encoding, `profile.md` (background,
-  destination as `<region>: <depth>` lines, why, satisfied), `task.md`
-  (`lesson`, `mode`, `branch`, `base`, `return-to` as ref and sha,
-  `started`, `scope`, `scaffold`, `setup`, `verify`,
-  `expect-fail-on-base`, `held`, `tutor-session`; then brief or
-  situation, then source), `reference.md`, `held/`, `sessions/`,
-  `tasks/`, `evidence/<lesson>.md`, `detours/`, `escalations/`, and
-  the mutation rules of § 4 (who may write what, when a lesson is
-  satisfied, what never satisfies anything).
-- Both specs list the validator's checks (shape, not content) so
-  `rolling-check-map`, `rolling-check-profile`, and
-  `rolling-check-task` in 1a.3 implement a list rather than invent one.
-- Both use `billing`, `scheduling`, `platform` as example regions and
-  never name the maintainer's employer's codebase.
-- The spike's Rallly map and five lessons conform after at most the
-  `test:` field is added, or the spec says why they had to change;
-  every field the spike's `task.md` carried is in `docs/profile.md` or
-  listed there as dropped, with a reason.
+The two specs, from `docs/plan.md` § 4 and the spike's drafts, written
+before any script parses either. Branch `p1a.2/specs`; depends on
+1a.1. Done when `docs/map.md` specifies the map and lesson files
+(carrying the slug and link rules from the old skills spec, and the
+`test: held | shown` field), `docs/profile.md` specifies the learner's
+directory and every file in it with the mutation rules of § 4, each
+lists the validator's checks so 1a.3 implements a list, and the
+spike's Rallly map conforms after at most the `test:` field is added.
 
 ---
 
 ### 1a.3 — The marketplace, the plugin skeleton, and the toolkit [PENDING]
 
-**Goal.** The repository becomes a marketplace with one plugin,
-`rolling`, whose `bin/` holds every script the skills and hooks will
-call, each tested against a scratch repository, with CI running the
-gate.
+The repository becomes a marketplace with one plugin, `rolling`, whose
+`bin/` holds every script the skills and hooks call, each tested
+against a scratch repository, with CI running the gate. Branch
+`p1a.3/toolkit`; depends on 1a.2. Done when the gate is green in CI
+and a scratch repository run through begin-task → edit → diff →
+verify (with one held test) → end-task leaves the tree exactly as the
+learner left it, the held test in no diff and no commit, and the
+learner back on their branch.
 
-**Branch.** `p1a.3/toolkit`
-
-**Depends on.** 1a.2.
-
-**Done when.**
+Contracts drafted in advance (to become the scripts' header comments):
 
 - `.claude-plugin/marketplace.json` lists `rolling`;
   `plugins/rolling/.claude-plugin/plugin.json` names it, versions it,
@@ -212,25 +173,21 @@ gate.
   and exits non-zero on any failure.
 - `.github/workflows/ci.yml` runs `shellcheck`, `tests/run.sh`, and
   `claude plugin validate` on every PR and on `main`, each as its own
-  step, and is green.
-- A scratch repository run through begin-task → edit → diff → verify
-  (with one held test) → end-task leaves the tree exactly as the
-  learner left it, the held test in no diff and no commit, and the
-  learner back on their branch.
+  step.
 
 ---
 
 ### 1a.4 — The `write`-mode scope guard [PENDING]
 
-**Goal.** The one rule that must hold when the learner asks nicely:
-while a `write` task is open and this session is the tutor's, the
-tutor cannot edit inside the task's scope, except scaffold paths.
+The one rule that must hold when the learner asks nicely: while a
+`write` task is open and this session is the tutor's, the tutor cannot
+edit inside the task's scope, except scaffold paths. Branch
+`p1a.4/write-guard`; depends on 1a.3. Done when, in a scratch
+repository with a `write` task open, the tutor's session is denied an
+Edit inside scope in `auto` mode and told why, allowed one outside it,
+and a test drives the handler through every case below.
 
-**Branch.** `p1a.4/write-guard`
-
-**Depends on.** 1a.3.
-
-**Done when.**
+Contract drafted in advance (to become the handler's header comment):
 
 - `plugins/rolling/hooks/hooks.json` registers a PreToolUse handler
   for Edit, Write, MultiEdit, and NotebookEdit that runs a Node
@@ -248,174 +205,79 @@ tutor cannot edit inside the task's scope, except scaffold paths.
   exit 0 silently.
 - The mechanism rows assigned to 1a.4 are confirmed and recorded
   before the handler is written against them.
-- A test drives the handler with hand-built JSON events against a
-  scratch data directory: in-scope denied, scaffold allowed, out of
-  scope allowed, no task allowed, wrong session allowed, `direct` mode
+- The test's cases: in-scope denied, scaffold allowed, out of scope
+  allowed, no task allowed, wrong session allowed, `direct` mode
   allowed, garbage input allowed.
-- In a scratch repository with a `write` task open, the tutor's
-  session is denied an Edit inside scope in `auto` mode and told why,
-  and allowed one outside it.
 
 ---
 
 ### 1a.5 — The four skills [PENDING]
 
-**Goal.** `start`, `next`, `lesson`, and `done` as `rolling`'s
-skills, calling the toolkit by name, with the coaching rules the spike
-settled and none of the spike's fourth-wall slips.
-
-**Branch.** `p1a.5/skills`
-
-**Depends on.** 1a.3, 1a.4.
-
-**Done when.**
-
-- `/rolling:start`: the intake as the spike's `start` skill had it
-  (the author's course laid out, the learner bends it, the destination
-  written in the learner's words), writing `profile.md` to the
-  learner's directory through the toolkit, never to the tree; for a
-  returning learner, where they are and what comes next; says once
-  that uninstalling the plugin deletes the profile and that an export
-  exists, in words a learner can act on.
-- `/rolling:next`: reads map and profile; chooses a reachable lesson
-  inside the destination with the spike's rule (region listed, depth
-  at or below, `requires` satisfied, background covering `assumes`
-  speeds rather than skips); writes the one-line justification to
-  evidence; builds the task (a reverted fix with its test held, or
-  shown when the lesson says so; else an extension along a seam);
-  runs `rolling-begin-task`; writes `task.md` and `reference.md`;
-  proves the task both ways with `rolling-verify` and restores the
-  committed starting state; refuses to serve an unproven task; then
-  hands off to `lesson`.
-- `/rolling:lesson`: presents the open task, mode first, brief, where
-  to look, what done means, and the checks as the map's own commands
-  verbatim; holds the `write` coaching rules (explain, point, ask;
-  never write inside scope; observations to evidence); re-presents
-  when invoked on an open task in a new session; says there is
-  nothing open otherwise. The only skill without
-  `disable-model-invocation: true`.
-- `/rolling:done`: inline, in this order, `rolling-claim-session`,
-  `rolling-diff`, `rolling-verify`, then the task, the lesson, and the
-  corpus; the verifier speaks first; every point of feedback carries
-  `path:line`, the rule, and its provenance; the held test's result is
-  read as a signal, and a fail against a valid alternative is said to
-  be that; satisfied when the tutor says so and the learner agrees,
-  both positions recorded when they do not; appends evidence; on
-  satisfied, appends to the profile, offers to leave the branch
-  (`rolling-end-task`), runs `rolling-close-task`, and offers
-  `/rolling:next`.
-- Every skill's `allowed-tools` grants exactly the `rolling-*`
-  invocations and read tools it uses, and the map's commands are not
-  pre-approved (the learner is asked, or the tutor's action prompts).
-- No skill names a script, a task file, or a profile file in anything
-  the learner is shown; the mode is named in the first line of every
-  brief.
-- The mechanism rows assigned to 1a.5 are confirmed and recorded.
-- `claude plugin validate plugins/rolling` green; one `write` lesson
-  end to end on the Rallly clone (with the spike's five lessons if
-  1a.7 has not landed), transcript read for fourth-wall slips and for
-  the tutor writing inside scope, written up here.
+`start`, `next`, `lesson`, and `done` as `rolling`'s skills, calling
+the toolkit by name, holding the loop of `docs/plan.md` § 5 and the
+coaching rules the spike settled (`spike/claude/skills/`, corrected
+per `spike/NOTES.md`), with none of the spike's fourth-wall slips.
+`lesson` is the one skill the model may invoke; `done` runs
+`rolling-claim-session`, `rolling-diff`, `rolling-verify` inline, in
+that order, before it speaks. Branch `p1a.5/skills`; depends on 1a.3
+and 1a.4. Done when `claude plugin validate` is green, no skill grants
+a map command or names a script, a task file, or a profile file to
+the learner, the mechanism rows assigned to 1a.5 are recorded, and
+one `write` lesson has run end to end on the Rallly clone with its
+transcript read for fourth-wall slips and for the tutor writing inside
+scope, written up here.
 
 ---
 
 ### 1a.6 — Running it, contained [PENDING]
 
-**Goal.** A runner that puts the plugin, the map, and a Rallly clone
-together in the spike's container so a lesson can be run on this
-machine without npm touching the host.
-
-**Branch.** `p1a.6/runner`
-
-**Depends on.** 1a.3 (the marketplace exists to register).
-
-**Done when.**
-
-- `dev/contained/` (or the spike's `container/` moved and renamed;
-  the implementer decides and the commit says why) builds the same
-  image, brings up Rallly's compose stack, and starts a named
-  toolchain container with the Rallly clone mounted at the workspace
-  and this repository mounted read-only.
-- On `up`, the runner registers this repository as a local
-  marketplace in the container, installs `rolling` from it, and copies
-  `examples/rallly/.rolling/` into the clone; on re-run it refreshes
-  both. The learner's directory lands in the home volume with Claude
-  Code's login, so it survives a rebuild.
-- `tutor` opens Claude Code in the clone; `shell` opens a shell;
-  `down` and `destroy` as the spike had them.
-- `spike/README.md` gains one line pointing at the new runner and
-  saying the spike's own is frozen.
-- From a fresh clone at the pin: `up`, `pnpm install` in `shell`,
-  `tutor`, and `/rolling:start` is offered and runs.
+A runner that puts the plugin, the map, and a Rallly clone together in
+the spike's container, so a lesson runs on this machine without npm
+touching the host: this repository mounted read-only and registered as
+a local marketplace, `rolling` installed from it, the map copied into
+the clone, the learner's directory in the home volume so it survives a
+rebuild. Branch `p1a.6/runner`; depends on 1a.3. Done when, from a
+fresh clone at the pin, `up`, `pnpm install` in `shell`, and `tutor`
+lead to `/rolling:start` being offered and running, and
+`spike/README.md` points at the new runner and calls its own frozen.
 
 ---
 
 ### 1a.7 — The Rallly map at eight to ten lessons [PENDING]
 
-**Goal.** The map grows from the spike's five lessons to the set a
-first fortnight needs, every lesson with a rubric, a region, a depth,
-a mode, and `test: held` or `shown`, every claim checked at the pin.
-
-**Branch.** `p1a.7/rallly-map`
-
-**Depends on.** 1a.2.
-
-**Done when.**
-
-- `examples/rallly/.rolling/` conforms to `docs/map.md`
-  (`rolling-check-map` green once 1a.3 lands; by hand before).
-- The five spike lessons are revised: `test:` added; the setup lesson
-  states the environment's shape as a description of this example's
-  environment; nothing names a script.
-- Three to five lessons added across the regions, chosen from the
-  code at the pin, each with a source fix or seam the tutor can build
-  a task from (a sha and the paths it touched, checked against
-  `../rallly`). Candidates, to be confirmed at the pin before any is
-  written: the tRPC procedure ladder and server-action clients
-  (platform, working); email templates and their i18n (platform,
-  working); feature flags and instance policy (platform, working);
-  invites and participants (polls, working); the house-keeping cron
-  (polls, deep); the Stripe webhook (billing, deep, `direct`, so it
-  waits for P1b to be served but is written now).
-- At least one early `write` lesson marks `test: shown`, so the
-  Exercism shape is exercised.
-- The map's suggested course covers the added lessons, and at least
-  two courses exist (a generalist and a billing engineer) so intake
-  has a fit to offer.
-- Every path, line, sha, and PR number cited is checked against
-  `../rallly` at `aab791da`, and the map says so.
-- For each lesson with a source fix, `rolling-begin-task --fix`
-  succeeds on the clone and `rolling-verify` fails on the starting
-  state and passes with the reference applied.
+The map grows from the spike's five lessons to the set a first
+fortnight needs, every lesson with a rubric, a region, a depth, a
+mode, and `test: held` or `shown`; the five revised; three to five
+added across the regions from the code at the pin (candidates to
+confirm at the pin first: the tRPC procedure ladder and server-action
+clients; email templates and their i18n; feature flags and instance
+policy; invites and participants; the house-keeping cron; the Stripe
+webhook as a `direct` lesson written now and served in P1b); at least
+one early `write` lesson with `test: shown`; at least two suggested
+courses. Branch `p1a.7/rallly-map`; depends on 1a.2. Done when
+`rolling-check-map` is green, every path, line, sha, and PR number is
+checked against `../rallly` at `aab791da`, and for each lesson with a
+source fix `rolling-begin-task --fix` succeeds on the clone with
+`rolling-verify` failing on the starting state and passing with the
+reference applied.
 
 ---
 
 ### 1a.8 — The exit run, and closure [PENDING]
 
-**Goal.** Run the checkpoint's exit criterion honestly and close it
-out.
-
-**Branch.** `p1a.8/closure`
-
-**Depends on.** 1a.5, 1a.6, 1a.7.
-
-**Done when.**
-
-- Three `write` lessons end to end on the Rallly clone, each in its
-  own session (`/clear` or a new terminal between), the profile
-  carrying the thread; the transcripts read for the properties § 7
-  names: did the tutor write inside scope, cite code, wave a failing
-  verifier through, name a script.
-- Three seeded profiles (one region deep; a different region deep;
-  every region at working) each get a different first lesson from
-  `/rolling:next`, and two seeded backgrounds with the same
-  destination still diverge, recorded as profile → route.
-- After all of it, `git status` in the clone shows only the learner's
-  own work, and a search of the tree for the learner's directory
-  contents finds nothing.
-- The retrospective is appended here per `docs/workflow.md`;
-  `CLAUDE.md` § Status and `docs/plan.md` § 7 are updated; the README
-  stops saying nothing is built; every mechanism row above is filled
-  in.
+Run the checkpoint's exit criterion honestly and close it out. Branch
+`p1a.8/closure`; depends on 1a.5, 1a.6, 1a.7. Done when three `write`
+lessons have run end to end on the Rallly clone in three separate
+sessions with the profile carrying the thread and the transcripts read
+for the properties § 7 names; three seeded profiles (one region deep,
+a different region deep, every region at working) get three different
+first lessons and two seeded backgrounds with the same destination
+still diverge, recorded as profile → route; `git status` in the clone
+shows only the learner's own work and nothing of the learner's
+directory is findable in the tree; the retrospective is appended here,
+`CLAUDE.md` § Status and `docs/plan.md` § 7 are updated, the README
+stops saying nothing is built, and every mechanism row above is filled
+in.
 
 ## Explicitly deferred
 

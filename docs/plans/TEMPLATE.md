@@ -30,16 +30,18 @@ on it, and the result once known.
 
 ## Sub-scopes
 
+A sub-scope is a paragraph: goal, branch, dependencies, and a
+done-when a reviewer can check in a line or three. Detail lives in the
+artifact it describes (a spec, a script's header comment, a skill),
+and the sub-scope points at it once it exists. A contract drafted
+before its artifact may sit under the paragraph until the slice lands,
+and that slice's PR replaces it with a pointer.
+
 ### {N}{x}.1 — {Title} [PENDING]
 
-**Goal.** One sentence.
-
-**Branch.** `p{N}{x}.1/{slug}`
-
-**Depends on.** Nothing, or `{N}{x}.y`.
-
-**Done when.** Outcomes, not file lists; each one something a reviewer
-can check.
+Goal in a sentence. Branch `p{N}{x}.1/{slug}`; depends on nothing, or
+`{N}{x}.y`. Done when: outcomes, not file lists, each one something a
+reviewer can check.
 
 ---
 
