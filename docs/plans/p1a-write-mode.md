@@ -127,7 +127,7 @@ Contracts drafted in advance (to become the scripts' header comments):
   mechanism rows for `CLAUDE_PLUGIN_DATA` and `bin/` on PATH are
   confirmed and recorded before anything depends on them.
 - `rolling-show <what>` prints one piece of context for a skill's
-  inline command (`map`, `lessons`, `lesson-heads`, `profile`, `task`,
+  inline command (`map`, `lessons`, `lesson-index`, `profile`, `task`,
   `lesson-for-task`, `corpus`, `tree`, `state-dir`) and always exits 0,
   reporting absence in words.
 - `rolling-claim-session <id>` records the id as `tutor-session` in
