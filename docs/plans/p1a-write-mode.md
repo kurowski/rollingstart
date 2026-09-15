@@ -127,9 +127,13 @@ Contracts drafted in advance (to become the scripts' header comments):
   mechanism rows for `CLAUDE_PLUGIN_DATA` and `bin/` on PATH are
   confirmed and recorded before anything depends on them.
 - `rolling-show <what>` prints one piece of context for a skill's
-  inline command (`map`, `lessons`, `lesson-index`, `profile`, `task`,
-  `lesson-for-task`, `corpus`, `tree`, `state-dir`) and always exits 0,
-  reporting absence in words.
+  inline command and always exits 0, reporting absence in words:
+  `map`; `lessons`, the index, one frontmatter block per slug, which
+  is what `start` lays the course out from and `next` chooses from;
+  `lesson <slug>`, one lesson in full, and `lesson` with no slug, the
+  open task's; `profile`; `task`; `corpus`; `tree`; `state-dir`. Plural
+  is the list, singular is the item, so no skill takes every lesson
+  body into context to pick one.
 - `rolling-claim-session <id>` records the id as `tutor-session` in
   the open task, or in the learner's directory when no task is open;
   always exits 0.
