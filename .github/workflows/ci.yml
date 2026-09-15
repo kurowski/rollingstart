@@ -19,8 +19,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - run: sudo apt-get update -q && sudo apt-get install -y -q shellcheck
-      - run: shellcheck --version
+      # Pinned to the version the gate runs locally; apt's is older and
+      # judges style notes differently, which is not what a gate is for.
+      - name: Install shellcheck 0.11.0
+        run: |
+          set -eu
+          curl -sSL -o sc.tar.xz https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz
+          tar -xJf sc.tar.xz
+          sudo install -m 755 shellcheck-v0.11.0/shellcheck /usr/local/bin/shellcheck
+          shellcheck --version
       - name: shellcheck
         run: |
           set -eu

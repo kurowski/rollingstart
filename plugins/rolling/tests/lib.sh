@@ -53,6 +53,9 @@ scratch_world() {
   REPO="$WORLD/repo"
   mkdir -p "$REPO" && cd "$REPO" || exit 1
   git init -q -b main
+  # git reports the physical path (on macOS the temp dir is under a
+  # symlink, /var -> /private/var); use the same spelling everywhere.
+  REPO=$(git rev-parse --show-toplevel) && cd "$REPO" || exit 1
   git config user.email test@example.com
   git config user.name Test
   git config commit.gpgsign false
