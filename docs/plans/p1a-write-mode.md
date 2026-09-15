@@ -170,8 +170,9 @@ Contracts drafted in advance (to become the scripts' header comments):
   repository to `<dir>`, refusing to overwrite, and prints what it
   wrote; because uninstalling the plugin deletes the data directory
   (§ 8).
-- Every script is POSIX `sh`, `shellcheck` clean, assumes only `git`
-  and a POSIX userland, and has a test under `plugins/rolling/tests/`
+- Every script is bash 3.2 or later, `shellcheck --shell=bash` clean,
+  calls only `git` and a POSIX userland, builds any command line from
+  a task file as an array, and has a test under `plugins/rolling/tests/`
   that builds a scratch repository in a temporary directory with
   `ROLLING_DATA` pointed at another one; `tests/run.sh` runs them all
   and exits non-zero on any failure.
@@ -305,6 +306,14 @@ in.
   Decide before P1c publishes it as a plugin.
 - **A Bash-level scope guard** for the tutor: P2, if the eval shows
   prose does not hold.
+- **Hook handlers on a host without `node`.** The plan (§ 8) has the
+  handlers in Node because every Claude Code host had Node when Claude
+  Code was only an npm package. The native installer bundles its own
+  runtime, so a learner with a native install on a repo that does not
+  need Node (Homie, in P1c) may have no `node` on PATH. Not a P1a
+  problem, since Rallly requires Node; P1c meets it, and the likely
+  answer is a bash handler that pulls the two or three fields it needs
+  out of the hook's JSON by pattern rather than a parser.
 - **The review bot workflow** (`review.yml`) from the old repository:
   needs an API key in the repository's secrets, which is the
   maintainer's to add; the local Opus review is the gate until then.

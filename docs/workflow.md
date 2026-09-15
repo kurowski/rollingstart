@@ -42,8 +42,8 @@ the spike's version and what `spike/NOTES.md` says went wrong with it.
    A skill's is its own `SKILL.md` and the loop in `docs/plan.md` § 5.
 3. **Test**, for a script: under `plugins/rolling/tests/`, against a
    scratch repository, failing first.
-4. **Implement.** POSIX `sh`; Node without dependencies only for hook
-   handlers. Logical commits with real bodies.
+4. **Implement.** Bash 3.2 or later; Node without dependencies only
+   for hook handlers. Logical commits with real bodies.
 5. **The gate**, each by its own exit status: `shellcheck` over every
    shell script, the test runner, `claude plugin validate` for each
    plugin and the marketplace. CI runs the same on every PR and on

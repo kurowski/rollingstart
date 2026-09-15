@@ -145,15 +145,19 @@ skill. The analogy the project started from stays in conversation.
 
 ## Conventions
 
-- **Shell.** `plugins/*/bin/` scripts are POSIX `sh` (`#!/bin/sh`,
-  `set -u`, no bashisms), clean under `shellcheck`. They assume `git`
-  and a POSIX userland and nothing else: no `jq`, no Python, no Node
-  beyond what the target repo already requires. Hook handlers are the
-  one exception: Node (`.mjs`, no dependencies), because they read JSON
-  on stdin and every Claude Code host has Node.
+- **Shell.** `plugins/*/bin/` scripts are bash, 3.2 or later
+  (`#!/usr/bin/env bash`, `set -u`), because a stock Mac ships 3.2 and
+  will not update it: arrays, `[[ ]]`, `local`, `pipefail`, and
+  `${var//pat/rep}` are fine; associative arrays, `mapfile`, and
+  `${var,,}` are not. Clean under `shellcheck --shell=bash`. The tools
+  they call are `git` and a POSIX userland and nothing else: no `jq`,
+  no Python, no Node beyond what the target repo already requires.
+  Hook handlers are the one exception: Node (`.mjs`, no dependencies),
+  because they read JSON on stdin; see the plan's deferred list for
+  the host that has no `node`.
 - **Tests.** Each script in `bin/` has a test that runs it against a
   scratch repository built in a temporary directory, never against a
-  real checkout. A plain-`sh` runner, no framework.
+  real checkout. A plain bash runner, no framework.
 - **The gate**, before any push: `shellcheck` over every shell script,
   the test runner, and `claude plugin validate` for each plugin and the
   marketplace, each checked by its own exit status and never through a

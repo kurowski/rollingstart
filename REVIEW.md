@@ -53,8 +53,12 @@ a row of the enforcement table in [`docs/plan.md`](docs/plan.md) § 5.
 
 ## Shell and hook specifics
 
-- POSIX `sh`, no bashisms: `[ ]` not `[[ ]]`, no arrays, no `local`
-  relied on, no `pipefail`. `shellcheck` clean.
+- Bash 3.2 or later, nothing newer: no associative arrays, no
+  `mapfile`, no `${var,,}`; a stock Mac has to run it. `shellcheck
+  --shell=bash` clean.
+- A command line assembled from a task file is built as an array and
+  expanded as `"${args[@]}"`, never re-parsed by `sh -c` or word-split
+  from a string; that is the reason the scripts are bash.
 - `set -u` everywhere; `set -e` only in scripts a skill runs as an
   action, never in one it runs inline.
 - Every variable that reaches a command line is quoted, and every
