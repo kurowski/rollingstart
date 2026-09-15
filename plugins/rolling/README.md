@@ -3,12 +3,13 @@
 The learner's plugin. Enable it, and Claude Code becomes the tutor for
 whichever repository you are in that has a Rolling Start map: a
 description of the codebase written by someone who knows it, in the
-format [`docs/map.md`](../../docs/map.md) defines. A map has two homes.
-An author inside the project commits it at `.rolling/` in the
-repository root; an author outside it publishes the same directory as
-a map plugin, and the learner installs both plugins. In P1a only the
-first is wired up; the map-plugin route and the resolver that prefers
-a committed map over an installed one arrive in P1c.
+format [`docs/map.md`](../../docs/map.md) defines. A map can come from
+one of two places: an author inside the project commits it at
+`.rolling/` in the repository root, or an author outside it publishes
+the same directory as a map plugin, which the learner installs beside
+this one. In P1a only the first is wired up; the map-plugin route, and
+the resolver that prefers a committed map over an installed one when
+both are present, arrive in P1c.
 
 The skills are `/rolling:start` for intake, `/rolling:next` for the
 next task, `/rolling:lesson` to be re-briefed, and `/rolling:done` when
