@@ -1,20 +1,9 @@
-#!/usr/bin/env bash
-# Close the open task: remove task.md, reference.md, and held/ from the
-# learner's directory, and nothing else. profile.md, evidence/, tasks/,
-# and sessions/ stay. Run by the done skill once a lesson is satisfied, so
-# the skill never needs a broad rm in its grants. Always exits 0.
-set -u
-here=$(cd "$(dirname "$0")" && pwd)
-# shellcheck source=../lib/common.sh
-. "$here/../lib/common.sh"
+#!/usr/bin/env python3
+# rolling-close-task: see lib/rolling/cli.py and the plugin README.
+import os
+import sys
 
-top=$(rolling_toplevel) || { echo "not inside a git repository; nothing closed"; exit 0; }
-learner=$(rolling_learner_dir "$top") || { echo "$rolling_no_data_msg; nothing closed"; exit 0; }
-[ -d "$learner" ] || { echo "no learner directory; nothing closed"; exit 0; }
-held_finish_pending "$learner" "$top" || echo "note: a held-test revert is still pending; task files removed anyway"
-for f in task.md reference.md; do
-  [ -f "$learner/$f" ] && rm -f "$learner/$f" && echo "removed $f"
-done
-[ -d "$learner/held" ] && rm -rf "$learner/held" && echo "removed held/"
-echo "task closed; profile.md, evidence/, tasks/, sessions/ kept"
-exit 0
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
+from rolling.cli import main  # noqa: E402
+
+sys.exit(main("close-task", sys.argv[1:]))

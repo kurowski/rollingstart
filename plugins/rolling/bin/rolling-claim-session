@@ -1,36 +1,9 @@
-#!/usr/bin/env bash
-# Record this session as the tutor's. Every learner-side skill runs this
-# inline with ${CLAUDE_SESSION_ID} substituted, so whichever session last
-# ran a skill is the tutor and a restarted tutor reclaims the role. With a
-# task open the id goes into task.md's tutor-session: line (added if
-# missing); otherwise into the learner directory's `session` file. The
-# rewrite is a temp file and a rename, so a reader never sees half a
-# task.md. Always exits 0: this runs inline.
-#
-#   rolling-claim-session <session-id>
-set -u
-here=$(cd "$(dirname "$0")" && pwd)
-# shellcheck source=../lib/common.sh
-. "$here/../lib/common.sh"
+#!/usr/bin/env python3
+# rolling-claim-session: see lib/rolling/cli.py and the plugin README.
+import os
+import sys
 
-sid=${1:-}
-case $sid in
-  ''|*[!A-Za-z0-9-]*) echo "SESSION: not recorded (no session id, or one with characters outside [A-Za-z0-9-])"; exit 0 ;;
-esac
-top=$(rolling_toplevel) || { echo "SESSION: not recorded (not inside a git repository)"; exit 0; }
-learner=$(rolling_learner_dir "$top") || { echo "SESSION: not recorded ($rolling_no_data_msg)"; exit 0; }
-mkdir -p "$learner" 2>/dev/null || { echo "SESSION: not recorded (cannot create $learner)"; exit 0; }
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
+from rolling.cli import main  # noqa: E402
 
-task="$learner/task.md"
-if [ -f "$task" ] && fm_has "$task"; then
-  tmp=$(mktemp "$learner/.task.XXXXXX") || { echo "SESSION: not recorded (mktemp failed)"; exit 0; }
-  awk -v sid="$sid" '
-    NR == 1 { print; next }
-    !closed && /^tutor-session:/ { print "tutor-session: " sid; seen = 1; next }
-    !closed && /^---\r?$/ { if (!seen) print "tutor-session: " sid; closed = 1 }
-    { print }' "$task" > "$tmp" && mv "$tmp" "$task" && echo "SESSION: $sid is the tutor (recorded in the open task)" || echo "SESSION: not recorded (could not rewrite $task)"
-  rm -f "$tmp"
-else
-  printf '%s\n' "$sid" > "$learner/session" && echo "SESSION: $sid is the tutor (no task open)" || echo "SESSION: not recorded (could not write $learner/session)"
-fi
-exit 0
+sys.exit(main("claim-session", sys.argv[1:]))

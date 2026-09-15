@@ -1,86 +1,9 @@
-#!/usr/bin/env bash
-# Print one piece of Rolling Start context for a skill's inline command.
-#
-#   rolling-show map          the map, whole
-#   rolling-show lessons      the index: one frontmatter block per lesson slug
-#   rolling-show lesson SLUG  one lesson, whole
-#   rolling-show lesson       the open task's lesson, whole
-#   rolling-show profile      the learner's profile
-#   rolling-show task         the open task
-#   rolling-show corpus       the map from ## Corpus to the end
-#   rolling-show tree         the working tree's status and HEAD
-#   rolling-show state-dir    the learner's directory, resolved
-#
-# Plural is the list, singular is the item, so no skill takes every lesson
-# body into context to pick one. Always exits 0 and reports absence in
-# words: a skill's inline commands start together and abort the skill on a
-# non-zero exit, so status is not a channel here.
-set -u
-here=$(cd "$(dirname "$0")" && pwd)
-# shellcheck source=../lib/common.sh
-. "$here/../lib/common.sh"
+#!/usr/bin/env python3
+# rolling-show: see lib/rolling/cli.py and the plugin README.
+import os
+import sys
 
-top=$(rolling_toplevel) || { echo "(not inside a git repository)"; exit 0; }
-map_dir=$(rolling_map_dir "$top")
-learner=$(rolling_learner_dir "$top") || learner=""
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
+from rolling.cli import main  # noqa: E402
 
-what=${1:-}
-case $what in
-  map)
-    if [ -f "$map_dir/map.md" ]; then cat "$map_dir/map.md" 2>/dev/null || echo "(the map exists but cannot be read: $map_dir/map.md)"
-    else echo "(no map: $map_dir/map.md does not exist)"; fi ;;
-  lessons)
-    found=0
-    for f in "$map_dir"/lessons/*.md; do
-      [ -f "$f" ] || continue
-      found=1
-      slug=$(basename "$f" .md)
-      echo "### $slug"
-      fm_block "$f"
-      echo
-    done
-    [ "$found" -eq 1 ] || echo "(no lessons under $map_dir/lessons/)" ;;
-  lesson)
-    slug=${2:-}
-    if [ -z "$slug" ]; then
-      if [ -n "$learner" ] && [ -f "$learner/task.md" ]; then
-        slug=$(fm_scalar "$learner/task.md" lesson)
-        [ -n "$slug" ] || { echo "(the open task names no lesson)"; exit 0; }
-      else
-        echo "(no open task, so no lesson to show; name one: rolling-show lesson <slug>)"; exit 0
-      fi
-    fi
-    if ! slug_ok "$slug"; then echo "('$slug' is not a lesson slug)"
-    elif [ -f "$map_dir/lessons/$slug.md" ]; then cat "$map_dir/lessons/$slug.md" 2>/dev/null || echo "(lesson '$slug' exists but cannot be read)"
-    else echo "(no lesson '$slug': $map_dir/lessons/$slug.md does not exist)"; fi ;;
-  profile)
-    if [ -z "$learner" ]; then echo "($rolling_no_data_msg)"
-    elif [ -f "$learner/profile.md" ]; then cat "$learner/profile.md" 2>/dev/null || echo "(the profile exists but cannot be read)"
-    else echo "(no profile: this is a new learner, or /rolling:start has not run)"; fi ;;
-  task)
-    if [ -z "$learner" ]; then echo "($rolling_no_data_msg)"
-    elif [ -f "$learner/task.md" ]; then cat "$learner/task.md" 2>/dev/null || echo "(the task exists but cannot be read)"
-    else echo "(no open task)"; fi ;;
-  corpus)
-    if [ -f "$map_dir/map.md" ]; then
-      out=$(sed -n '/^## Corpus[[:space:]]*$/,$p' "$map_dir/map.md")
-      if [ -n "$out" ]; then printf '%s\n' "$out"; else echo "(the map has no ## Corpus section)"; fi
-    else echo "(no map)"; fi ;;
-  tree)
-    cd "$top" || { echo "(cannot enter $top)"; exit 0; }
-    dirty=$(git --no-pager -c color.ui=false -c core.quotePath=false status --porcelain 2>/dev/null)
-    if [ -n "$dirty" ]; then
-      n=$(printf '%s\n' "$dirty" | wc -l | tr -d ' ')
-      printf '%s\n' "$dirty" | head -n 20
-      [ "$n" -gt 20 ] && echo "(... and $((n - 20)) more)"
-    else echo "(clean)"; fi
-    if h=$(git rev-parse --verify -q HEAD); then
-      b=$(git symbolic-ref -q --short HEAD || echo "(detached)")
-      echo "HEAD $h on $b"
-    else echo "HEAD (no commits yet)"; fi ;;
-  state-dir)
-    if [ -z "$learner" ]; then echo "($rolling_no_data_msg)"; else printf '%s\n' "$learner"; fi ;;
-  *)
-    echo "usage: rolling-show map|lessons|lesson [slug]|profile|task|corpus|tree|state-dir" ;;
-esac
-exit 0
+sys.exit(main("show", sys.argv[1:]))
