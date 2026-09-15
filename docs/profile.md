@@ -110,6 +110,7 @@ base: 4f1c2e9d8b7a6c5e4d3f2a1b0c9d8e7f6a5b4c3d
 return-to: main 0e9d8c7b6a5f4e3d2c1b0a9f8e7d6c5b4a3f2e1d
 started: 2026-09-14
 tutor-session: 8b1f0c2e-…
+task: participant-token
 fix: af3d9273
 scope: apps/web/src/trpc/routers/polls/participants.ts
 scope: apps/web/tests/email-invites.spec.ts
@@ -127,7 +128,8 @@ What is wrong or wanted, where to look, what done means …
 
 ## Source
 
-Built from af3d9273 (#3191), a ten-line fix in participants.ts with
+Built from the author's task participant-token, which points at
+af3d9273 (#3191): a ten-line fix in participants.ts with
 the assertion in email-invites.spec.ts held back.
 ```
 
@@ -153,6 +155,12 @@ Fields, all in the frontmatter subset `map.md` defines:
   skill runs, so whichever session last ran one is the tutor and a
   restarted tutor reclaims the role. The write-mode guard acts only in
   this session.
+- **`task`** (optional). The slug of the author's hand-written task
+  this was built from, `lessons/<lesson>/<task>.md` in the map, when
+  it was built from one; absent when the tutor generated the task.
+  `done` reads the author's brief and rubric against it, evidence
+  cites it, and `next` uses it to avoid serving the same hand-written
+  task to the same learner twice.
 - **`fix`** (optional). The commit the task was built from, when it
   was built from one.
 - **`scope`** (one or more). Paths or globs the change is expected to
@@ -321,7 +329,8 @@ the field.
   and one `verify`; no unknown field.
 - `mode` is `write` or `direct`; `base` is 7 to 40 hex characters;
   `return-to` is a ref and a sha or a sha alone; `started` is a date;
-  `fix`, if present, is hex.
+  `fix`, if present, is hex; `task`, if present, is a valid slug and
+  `lessons/<lesson>/<task>.md` exists in the map.
 - Every `verify` and `held-verify` line's first word is a command key
   in the map and the rest carries no shell metacharacter or glob;
   every `setup` line names an operation key; every
