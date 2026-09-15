@@ -1,9 +1,9 @@
 # P1a: `write` mode, in-repo map
 
 > The plan's entry is [`docs/plan.md`](../plan.md) § 7, P1a. This
-> file is the tracker for the checkpoint: each PR flips its own
-> sub-scope from `[PENDING]` to `[COMPLETE]`, and a retrospective
-> is appended when the checkpoint ends.
+> file is the tracker for the checkpoint. Each PR flips its own
+> sub-scope from `[PENDING]` to `[COMPLETE]`. When the whole checkpoint
+> ends, a retrospective is appended.
 
 ## Context
 
