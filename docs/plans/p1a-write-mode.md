@@ -51,6 +51,7 @@ file.
 | The session stamp is written by a script, not by the model | Every learner-side skill runs `` !`rolling-claim-session ${CLAUDE_SESSION_ID}` `` inline | The stamp is what P1b's hooks use to tell the tutor from the coding session; a value the model might forget to copy is not a stamp. Inline substitution of the session id is documented; a script call is the deterministic way to persist it. |
 | The spike's scripts are rewritten, not moved | `bin/` starts from the spike's contracts (`spike/README.md`) and the lessons in `spike/NOTES.md`, and reimplements them against the new layout | Every spike script hardcodes `.rolling/profile/`; the exclusions, the branch dance, and `show.sh`'s subcommands all follow from that. Porting line by line would carry the assumption along. |
 | The Rallly map's source stays in this repository | `examples/rallly/.rolling/`, installed into the clone by the runner; the clone's copy is never pushed anywhere | The map has to live somewhere reviewable, and P1c repackages exactly this directory as the `rallly` map plugin. What "hand-written into a local clone's `.rolling/` and never pushed" (§ 7) rules out is a fork of Rallly carrying it, not a source here. |
+| The toolkit is Python 3.9, standard library only, not bash | `plugins/rolling/lib/rolling/` as a package; `bin/` executables of a few lines; `unittest` | Bash was the first choice, on a misreading of "assume nothing beyond git and a POSIX userland" as a rule about the scripts' language rather than the tools they call. Six review rounds on the bash toolkit were mostly paying for bash: quoting, word splitting, no `try`/`finally` around the one destructive path. Node was the obvious second choice and wrong for the same audience reason: Claude Code's native installer no longer brings Node, and a learner on a Go repository may not have it. Python 3 is on every Mac that has git (both come with the command line tools) and on every desktop Linux; 3.9 is the floor a Mac's tools ship. Perl is more present still, and unreadable for the same reason bash was. |
 | The tutor's Bash writes inside scope are not hook-denied in P1a | The guard covers Edit, Write, NotebookEdit, MultiEdit | A Bash rule that denies any command naming a scope path would also deny `pnpm --filter … test <that path>`, which the tutor is supposed to run. Prose covers the `sed -i` case for now; P2's eval measures whether it holds, and P2 decides whether a narrower Bash rule is worth its false positives. |
 | CI arrives with the toolkit | `.github/workflows/ci.yml` lands in 1a.3 with the first scripts it can check | A gate with nothing to check is ceremony; a toolkit without one is how a red branch reaches `main`. |
 
@@ -109,9 +110,9 @@ PR #4.
 ### 1a.3 — The marketplace, the plugin skeleton, and the toolkit [COMPLETE]
 
 The repository is a marketplace with one plugin, `rolling`, whose
-`bin/` holds every script the skills and hooks call, each tested
-against a scratch repository, with CI running the gate on Linux and on
-macOS's bash 3.2. Branch `p1a.3/toolkit`; depends on 1a.2. Done: the
+`bin/` holds every command the skills and hooks call, each tested
+against a scratch repository, with CI running the gate on Python 3.9
+and on a Mac. Branch `p1a.3/toolkit`; depends on 1a.2. Done: the
 gate is green, and the scratch-repository loop (begin-task → edit →
 diff → verify with a held test → end-task) is a test that leaves the
 tree as the learner left it, the held test in no diff and no commit,
@@ -137,7 +138,12 @@ still proving ok, redirections) and closed them; a third found the
 symbolic-link cases, and the toolkit now refuses a link anywhere in a
 held path rather than reason about it. The test file for the review
 rounds is the largest in the suite, which is the right way round.
-PR #5.
+PR #5. Then the maintainer read the map checker, asked whether bash
+was the right language, and it was not: the toolkit was rewritten in
+Python from the contract (the lines a skill reads, the specs' check
+lists, the exit conventions) rather than translated, with the same
+scenarios as tests (1a.3b). The bash version is in the history as the
+record of what the reviews found. PR #6.
 
 ---
 
@@ -154,8 +160,8 @@ and a test drives the handler through every case below.
 Contract drafted in advance (to become the handler's header comment):
 
 - `plugins/rolling/hooks/hooks.json` registers a PreToolUse handler
-  for Edit, Write, MultiEdit, and NotebookEdit that runs a Node
-  handler in `bin/` (no dependencies) and passes it the data directory.
+  for Edit, Write, MultiEdit, and NotebookEdit that runs a handler in
+  `bin/` (Python, like the rest) and passes it the data directory.
 - The handler reads the open task; if there is none, or its mode is
   not `write`, or the event's `session_id` differs from
   `tutor-session`, it exits 0 with no output. Otherwise it resolves
@@ -265,14 +271,6 @@ in.
   Decide before P1c publishes it as a plugin.
 - **A Bash-level scope guard** for the tutor: P2, if the eval shows
   prose does not hold.
-- **Hook handlers on a host without `node`.** The plan (§ 8) has the
-  handlers in Node because every Claude Code host had Node when Claude
-  Code was only an npm package. The native installer bundles its own
-  runtime, so a learner with a native install on a repo that does not
-  need Node (Homie, in P1c) may have no `node` on PATH. Not a P1a
-  problem, since Rallly requires Node; P1c meets it, and the likely
-  answer is a bash handler that pulls the two or three fields it needs
-  out of the hook's JSON by pattern rather than a parser.
 - **The review bot workflow** (`review.yml`) from the old repository:
   needs an API key in the repository's secrets, which is the
   maintainer's to add; the local Opus review is the gate until then.

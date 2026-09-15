@@ -1,4 +1,0 @@
-# The scripts source ../lib/common.sh relative to their own directory.
-source-path=SCRIPTDIR
-external-sources=true
-shell=bash

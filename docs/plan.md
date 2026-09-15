@@ -679,10 +679,11 @@ real task in it.
 - **AGPL.** Rallly is AGPL; a public example map with reference
   solutions is the same derivative-work question as before. Decide before
   the example ships publicly; a private target has no such problem.
-- **Script dependencies.** Scripts must not assume `jq`, Python, or Node
-  beyond what the target repo already requires. The spike's hook
-  handlers are Node, which every Claude Code host has; the rest is
-  POSIX sh and git.
+- **Script dependencies.** The toolkit assumes Python 3.9 and git and
+  nothing else (decided 2026-09-15, § 10): Python 3 comes with a Mac's
+  command line tools and every desktop Linux, and the native Claude
+  Code installer no longer brings Node, so Node is not a runtime a
+  learner can be assumed to have.
 
 ## 9. Carried over from Rolling Stop
 
@@ -773,3 +774,17 @@ TOML profile decision, and the strict-frontmatter posture.
 - **Three targets from P1**: Rallly public as a map plugin, the work
   codebase private in its own tree, Homie public as a map plugin to be
   adopted.
+
+**While building P1a** (2026-09-15):
+
+- **The toolkit is Python 3.9, standard library only.** The first
+  version was bash, chosen on a misreading of "assume nothing beyond
+  git and a POSIX userland" as a rule about the scripts' language
+  rather than the tools they call; six review rounds on it were mostly
+  paying for bash. Node was the obvious second choice and wrong for
+  the audience: the native Claude Code installer bundles its own
+  runtime, so a learner on a repository that does not need Node may not
+  have it. Python 3 is on every Mac that has git and on every desktop
+  Linux; 3.9 is the floor a Mac's tools ship. Rewritten from the
+  contract, not translated, with the same scenarios as tests.
+

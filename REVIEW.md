@@ -51,27 +51,30 @@ a row of the enforcement table in [`docs/plan.md`](docs/plan.md) § 5.
   come off the table before the learner's direction and review are
   read, and a catch the tutor prompted is the tutor's.
 
-## Shell and hook specifics
+## Python and hook specifics
 
-- Bash 3.2 or later, nothing newer: no associative arrays, no
-  `mapfile`, no `${var,,}`; a stock Mac has to run it. `shellcheck
-  --shell=bash` clean.
-- A command line assembled from a task file is built as an array and
-  expanded as `"${args[@]}"`, never re-parsed by `sh -c` or word-split
-  from a string; that is the reason the scripts are bash.
-- `set -u` everywhere; `set -e` only in scripts a skill runs as an
-  action, never in one it runs inline.
-- Every variable that reaches a command line is quoted, and every
-  argument that came from a task file is checked against the
-  metacharacter list before it goes anywhere near `sh -c`.
-- Paths from the model (a task's `scope`, a `verify:` line's arguments)
-  are treated as untrusted input, because the model wrote them.
+- Python 3.9, standard library only; nothing a 3.9 interpreter would
+  refuse. `subprocess` gets an argument list, never a string and never
+  `shell=True`; the one place a shell runs is the map's own declared
+  command, with the task's arguments appended as separate argv words.
+- Paths and arguments from the model (a task's `scope`, a `verify:`
+  line's arguments, a `held:` path) are untrusted input: checked by
+  `rules` before use, refused rather than sanitised.
+- Anything that changes the learner's tree is written so that a kill
+  at any point leaves either the original or a recorded copy: record
+  the step, then take it; copy in full, then rename; `try`/`finally`
+  around the apply and revert, with the record on disk for the kill
+  no `finally` sees.
 - Git operations are explicit about which ref, which paths, and which
-  tree. A script that switches branches checks the tree is clean first
-  and says what it refused.
+  tree, through the `Repo` wrapper. Everything that can be refused is
+  checked before anything is written, so a refusal never leaves the
+  repository half-way.
 - A hook handler never blocks the session on its own failure: it exits
   0 with no output on anything it did not understand, and expresses a
   decision only in the documented JSON shape.
+- Logic returns structured results (faults, a report) and rendering is
+  separate, so the tests assert on objects and only the skill-facing
+  lines are string contracts.
 - A skill's `allowed-tools` grants exactly what its instructions call
   for, by name. A grant that would pre-approve a destructive command
   is a finding.
@@ -86,7 +89,8 @@ a row of the enforcement table in [`docs/plan.md`](docs/plan.md) § 5.
   scratch repository. That is this tool's actual job, not an incidental
   detail.
 - A test never touches a real checkout: not this repository, not
-  `../rallly`, not `../rallly-spike`.
+  `../rallly`, not `../rallly-spike`. The scratch world in
+  `tests/support.py` is the only fixture.
 
 ## Documentation
 

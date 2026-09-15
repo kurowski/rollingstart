@@ -1,49 +1,9 @@
-#!/usr/bin/env bash
-# Leave a task's throwaway branch and return the learner to where they
-# were. Anything uncommitted on the branch is committed there first, so
-# nothing of theirs is lost; the branch is kept, not deleted. Reads
-# branch: and return-to: from task.md. Refuses, with a message and a
-# non-zero exit, unless HEAD is the task branch: a learner who switched
-# branches by hand mid-task has a tree this script should not guess about.
-# Returns to the ref if it still resolves, else to the sha with a note.
-# Run as an action by the done skill, after the learner agrees.
-set -eu
-here=$(cd "$(dirname "$0")" && pwd)
-# shellcheck source=../lib/common.sh
-. "$here/../lib/common.sh"
+#!/usr/bin/env python3
+# rolling-end-task: see lib/rolling/cli.py and the plugin README.
+import os
+import sys
 
-top=$(rolling_toplevel) || { echo "not inside a git repository"; exit 1; }
-cd "$top"
-learner=$(rolling_learner_dir "$top") || { echo "$rolling_no_data_msg"; exit 1; }
-held_finish_pending "$learner" "$top" || { echo "a previous held-test revert could not be finished (see above); leaving nothing"; exit 1; }
-task="$learner/task.md"
-if ! { [ -f "$task" ] && fm_has "$task"; }; then echo "no open task"; exit 1; fi
-branch=$(fm_scalar "$task" branch)
-return_to=$(fm_scalar "$task" return-to)
-[ -n "$branch" ] && [ -n "$return_to" ] || { echo "task.md has no branch: or return-to: line; nothing to leave"; exit 1; }
-current=$(git symbolic-ref -q --short HEAD || echo "")
-[ "$current" = "$branch" ] || { echo "not on $branch (on ${current:-a detached HEAD}); leaving nothing"; exit 1; }
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
+from rolling.cli import main  # noqa: E402
 
-git add -A
-if ! git diff --cached --quiet; then
-  git commit -q -m "rolling: the learner's work, as left
-
-Committed on the throwaway branch when the task ended, so nothing is
-lost. Not for merging."
-  echo "committed the learner's uncommitted work on $branch"
-fi
-
-# shellcheck disable=SC2086  # return-to is "<ref> <sha>" or a sha; splitting is the point
-set -- $return_to
-[ $# -le 2 ] || { echo "task.md return-to has $# words; expected '<ref> <sha>' or a sha"; exit 1; }
-ref=$1; sha=${2:-}
-if [ -n "$sha" ] && git show-ref --verify -q "refs/heads/$ref"; then
-  git switch -q "$ref"
-  echo "back on $ref; $branch kept"
-elif [ -n "$sha" ]; then
-  git switch -q --detach "$sha"
-  echo "back at $sha, detached: the branch '$ref' no longer exists; $branch kept"
-else
-  git switch -q --detach "$ref"
-  echo "back at $ref, detached; $branch kept"
-fi
+sys.exit(main("end-task", sys.argv[1:]))
