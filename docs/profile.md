@@ -37,7 +37,7 @@ of its location.
   reference.md             # the held reference solution for the open task
   held/<path>              # the held test files for the open task
   sessions/<session id>.log  # a direct lesson's coding sessions (P1b)
-  tasks/<lesson>-<stamp>.md  # tasks the tutor built and kept for reuse
+  tasks/<lesson>/<stamp>.md  # tasks the tutor built and kept for reuse
   evidence/<lesson>.md     # feedback, observations, interventions, appended
   detours/<slug>.md        # lessons the tutor created for this learner (P2)
   escalations/<stamp>.md   # what went to a human, with the trace (P2)
@@ -225,9 +225,10 @@ every command run, each reply, one line each, in order. The tutor
 watches the directory while the learner works and reads all of it at
 `done`. P1a writes none.
 
-## `tasks/<lesson>-<stamp>.md`
+## `tasks/<lesson>/<stamp>.md`
 
-A task the tutor built and kept, in `task.md`'s shape minus the
+A task the tutor built and kept, nested under its lesson the way an
+author's hand-written tasks are in the map, in `task.md`'s shape minus the
 branch, base, return-to, started, and tutor-session fields, so a later
 session (or another learner on this machine) can reuse it. Optional;
 the `next` skill keeps a task here when it proved cleanly.

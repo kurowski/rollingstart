@@ -15,9 +15,9 @@ covers both. The design is in [`plan.md`](plan.md) § 4.
 
 ```
 .rolling/
-  map.md              # the landscape
-  lessons/<slug>.md   # one file per lesson
-  tasks/<slug>.md     # optional: tasks the author wrote by hand
+  map.md                        # the landscape
+  lessons/<slug>.md             # one file per lesson
+  lessons/<slug>/<task-slug>.md # optional: tasks the author wrote by hand for that lesson
 ```
 
 Two audiences read these files. The **tutor** reads all of it, as
@@ -69,7 +69,9 @@ together …
 
 ## Environment
 ## Regions
-## Suggested course
+## Suggested courses
+### Generalist
+### Billing engineer
 ## Corpus
 ## Mistakes agents make here
 ```
@@ -103,7 +105,7 @@ together …
 
 The body is prose for the tutor. Five headings are conventional, and
 the toolkit checks for the presence of two of them, `## Regions` and
-`## Suggested course`, and reads the region names out of the first.
+`## Suggested courses`, and reads the region names out of the first.
 
 - **A one-paragraph summary** under the title: what the software is,
   how the repository is put together, and the commit the map was
@@ -122,14 +124,42 @@ the toolkit checks for the presence of two of them, `## Regions` and
   and is what a lesson's `region` field and a profile's destination
   name. This is the one body convention the scripts parse: the bold
   slug at the start of each bullet under this heading, nothing else.
-- **`## Suggested course`** (required). The author's default itinerary:
-  the opening lessons everyone takes, then regions in a sensible
-  order with a depth for each, and a sentence on who would skip or
-  deepen what. An author who knows their teams writes more than one,
-  each under a `### <course name>` heading, and intake offers the
-  closest fit. A course is a suggestion the learner edits at intake,
-  not a requirement the tutor enforces; there is no destination in
-  the map.
+- **`## Suggested courses`** (required; the singular heading is
+  accepted). The author's default itineraries, one per kind of
+  learner the author expects, each under a `### <course name>`
+  heading: the opening lessons everyone takes, then regions in a
+  sensible order with a depth for each, and a sentence on who this
+  course is for. A map with one course still writes it under a
+  `###`. At intake the tutor lays out the course that fits what the
+  learner said they are here for, names the others, and the learner
+  bends it: drops a region, deepens one, says why. A course is a
+  suggestion the learner edits, not a requirement the tutor enforces;
+  there is no destination in the map.
+
+  ```markdown
+  ## Suggested courses
+
+  Everyone starts with the two platform lessons, in this order;
+  nothing else can be run or shipped without them.
+
+  ### Generalist
+
+  1. platform, orientation: local-dev-setup, how-a-change-ships
+  2. polls, working
+  3. billing, working
+
+  For someone who will work across the product. Nobody needs deep in
+  the first fortnight.
+
+  ### Billing engineer
+
+  1. platform, orientation: local-dev-setup, how-a-change-ships
+  2. billing, deep
+
+  Skips polls entirely; the billing lessons require only the opening
+  two. Take polls at orientation later if the pay wall's gating of
+  poll features starts to matter.
+  ```
 - **`## Corpus`** (recommended). Pointers: the paths whose shape new
   code should copy; the paths that are legacy, to read and not copy;
   a few merged pull requests that show how work is done here; the
@@ -178,10 +208,11 @@ hyphens, and nothing else. Case-insensitive filesystems fold
 that loads on the author's laptop would break on a learner's machine;
 the validator rejects the file name rather than the link.
 
-The directory is flat, and every entry in it that does not begin with
-a dot is a lesson: a `README.md` is a lesson whose slug fails the
-rule, a `drafts/` directory is an error. Entries beginning with a dot
-are ignored, so the directory can be opened as an Obsidian vault.
+Every `.md` file in the directory is a lesson, so a `README.md` is a
+lesson whose slug fails the rule. Every directory in it is a lesson's
+task directory and must match a lesson's slug (below); a `drafts/`
+directory is an error. Entries beginning with a dot are ignored, so
+the directory can be opened as an Obsidian vault.
 
 ### Frontmatter fields
 
@@ -228,17 +259,29 @@ against and shows the learner. The rubric is the author's; the tutor
 does not add to it. The heading's presence is the second body
 convention the scripts check.
 
-## `tasks/<slug>.md` (optional)
+## `lessons/<slug>/<task-slug>.md` (optional)
 
-A task the author wrote by hand for a lesson, used by the `next` skill
-in preference to generating one. The file name is the lesson's slug.
-It carries the author's half of a task's fields, in the same
+A lesson and a task are different layers. The lesson is the node on
+the map: what to learn, why it matters here, where to look, the
+rubric; it is what a course is made of and what a profile marks
+satisfied. A task is one concrete piece of work that demonstrates a
+lesson: a brief or a situation, a starting state, a verifier, a held
+reference. Normally the `next` skill builds a task just in time from
+the lesson's pointers and the repository's history. An author who
+would rather choose the exercise by hand writes it here, in a
+directory beside the lesson file that shares the lesson's slug, one
+file per task with its own slug (same rule as a lesson's). A lesson
+may have several; `next` picks among them, or generates when there
+are none. The tutor still proves a hand-written task both ways before
+serving it.
+
+A task file carries the author's half of a task's fields, in the same
 frontmatter subset: `mode`, `scope`, `scaffold`, `setup`, `verify`,
 `held`, `held-verify`, `expect-fail-on-base`, and `fix` (the sha the
 task is built from), then a `## Brief` or `## Situation` body and a
 `## Source`. The fields are defined in [`profile.md`](profile.md) §
-`task.md`, since that is where the tutor's copy of them lives. The
-tutor still proves a hand-written task both ways before serving it.
+`task.md`, since that is where the tutor's copy of them lives; the
+lesson is the parent directory, so there is no `lesson` field.
 
 ## What `rolling-check-map` checks
 
@@ -256,12 +299,14 @@ file and the field, so a map is fixed in one pass.
 - Every entry under `destructive` names an operation key.
 - No unknown top-level field.
 - The body has `## Regions` with at least one bullet opening with a
-  bold slug, and `## Suggested course`.
+  bold slug, and `## Suggested courses` (or `## Suggested course`)
+  with at least one `###` heading under it.
 
 `lessons/`:
 
-- The directory exists and every non-dot entry is a regular file
-  ending in `.md` whose stem is a valid slug.
+- The directory exists; every non-dot entry is either a regular file
+  ending in `.md` whose stem is a valid slug, or a directory whose
+  name is the slug of a lesson file beside it.
 - Each file has a frontmatter block with `title`, `region`, and
   `depth`; `region` names a region from `map.md`; `depth` is one of
   the three; `mode`, if present, is one of the two; `test`, if
@@ -271,12 +316,14 @@ file and the field, so a map is fixed in one pass.
   cycle (reported once, naming the lessons on it).
 - The body contains a `## Rubric` heading.
 
-`tasks/`, if present:
+`lessons/<slug>/`, for each that exists:
 
-- Each file's stem names a lesson; the frontmatter's fields are from
-  the task list above; `verify` and `held-verify` lines name command
-  keys; `setup` lines name operation keys; `fix`, if present, is a
-  hex string of 7 to 40 characters.
+- Every non-dot entry is a regular file ending in `.md` whose stem is
+  a valid slug; the frontmatter's fields are from the task list above;
+  `verify` and `held-verify` lines name command keys; `setup` lines
+  name operation keys; `fix`, if present, is a hex string of 7 to 40
+  characters; the body has `## Brief` or `## Situation`, and
+  `## Source`.
 
 Not checked, on purpose: whether a path in the prose exists, whether
 a sha is in history, whether the rubric is any good. Those are the

@@ -101,7 +101,7 @@ before any script parses either. Branch `p1a.2/specs`; depends on
 `test: held | shown` field), `docs/profile.md` specifies the learner's
 directory and every file in it with the mutation rules of § 4, each
 lists the validator's checks so 1a.3 implements a list, and the
-spike's Rallly map conforms after at most the `test:` field is added.
+spike's Rallly map conforms after `test:` and a `###` course heading are added.
 PR #4.
 
 ---
