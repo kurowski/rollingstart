@@ -92,7 +92,7 @@ sub-scope. PR #3.
 
 ---
 
-### 1a.2 — The formats: `docs/map.md` and `docs/profile.md` [PENDING]
+### 1a.2 — The formats: `docs/map.md` and `docs/profile.md` [COMPLETE]
 
 The two specs, from `docs/plan.md` § 4 and the spike's drafts, written
 before any script parses either. Branch `p1a.2/specs`; depends on
