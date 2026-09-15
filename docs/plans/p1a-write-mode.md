@@ -143,7 +143,7 @@ was the right language, and it was not: the toolkit was rewritten in
 Python from the contract (the lines a skill reads, the specs' check
 lists, the exit conventions) rather than translated, with the same
 scenarios as tests (1a.3b). The bash version is in the history as the
-record of what the reviews found.
+record of what the reviews found. PR #6.
 
 ---
 
