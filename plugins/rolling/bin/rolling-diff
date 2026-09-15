@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# What the learner changed: the working tree against the open task's base
+# commit, unstaged and untracked included. Nothing has to be committed or
+# staged for the tutor to see the work, and nothing is excluded: the tree
+# holds only the author's map and the learner's work, and a change to
+# either is a change.
+#
+# base: comes from task.md and must be a commit sha, not a ref: a moving
+# base would make the diff empty the moment anything was committed. Output
+# is capped (ROLLING_DIFF_MAX_LINES, default 3000) so a stray binary cannot
+# swamp the transcript. Always exits 0 and fails safe in words: this runs
+# inline in the done skill, through rolling-report.
+set -u
+here=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=../lib/common.sh
+. "$here/../lib/common.sh"
+
+cap=${ROLLING_DIFF_MAX_LINES:-3000}
+top=$(rolling_toplevel) || { echo "DIFF: not captured (not inside a git repository)"; exit 0; }
+learner=$(rolling_learner_dir "$top") || { echo "DIFF: not captured ($rolling_no_data_msg)"; exit 0; }
+held_finish_pending "$learner" "$top" || { echo "DIFF: not captured (a previous held-test revert could not be finished; see above)"; exit 0; }
+task="$learner/task.md"
+[ -f "$task" ] || { echo "DIFF: not captured (no open task)"; exit 0; }
+fm_has "$task" || { echo "DIFF: not captured (task.md has no frontmatter)"; exit 0; }
+base=$(fm_scalar "$task" base)
+[ -n "$base" ] || { echo "DIFF: not captured (the open task has no base: line)"; exit 0; }
+hex_ok "$base" || { echo "DIFF: not captured (base '$base' is not a commit sha; use the full sha, not a ref)"; exit 0; }
+git -C "$top" cat-file -e "$base^{commit}" 2>/dev/null || { echo "DIFF: not captured (base $base is not a commit in this repository)"; exit 0; }
+
+cd "$top" || { echo "DIFF: not captured (cannot enter $top)"; exit 0; }
+g() { git --no-pager -c color.ui=false -c core.quotePath=false "$@"; }
+tmp=$(mktemp "${TMPDIR:-/tmp}/rolling-diff.XXXXXX") || { echo "DIFF: not captured (mktemp failed)"; exit 0; }
+trap 'rm -f "$tmp"' EXIT
+
+{
+  echo "## Base: $base ($(g log -1 --format=%s "$base"))"
+  head=$(git rev-parse HEAD)
+  if [ "$head" = "$(git rev-parse "$base")" ]; then echo "## HEAD: $(git rev-parse --short HEAD)"
+  else echo "## HEAD: $(git rev-parse --short HEAD)  (HEAD has moved since the task began; the diff is still against base)"; fi
+  echo
+  echo "## Changed files"
+  g diff --stat "$base" -- . | sed 's/^/  /'
+  echo "## New files (untracked)"
+  g ls-files --others --exclude-standard | sed 's/^/  /'
+  echo
+  echo "## Diff"
+  g diff "$base" -- .
+  g ls-files -z --others --exclude-standard | tr '\0' '\n' | while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    # --no-index exits 1 when the files differ, which they always do here.
+    g diff --no-index --no-prefix -- /dev/null "$f" 2>&1 || true
+  done
+} > "$tmp" 2>&1
+
+lines=$(wc -l < "$tmp" | tr -d ' ')
+if [ "$lines" -gt "$cap" ]; then
+  head -n "$cap" "$tmp"
+  echo
+  echo "DIFF: truncated at $cap of $lines lines (set ROLLING_DIFF_MAX_LINES to raise)"
+else
+  cat "$tmp"
+fi
+exit 0

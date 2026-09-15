@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Check the learner's profile.md for shape, never content: the list in
+# docs/profile.md under "What rolling-check-profile and rolling-check-task
+# check". Every fault on its own line. Exits 1 on any fault, 0 on none;
+# a missing profile is a fault too, since the caller asked. Run as an
+# action.
+set -u
+here=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=../lib/common.sh
+. "$here/../lib/common.sh"
+
+top=$(rolling_toplevel) || { echo "not inside a git repository"; exit 2; }
+learner=$(rolling_learner_dir "$top") || { echo "$rolling_no_data_msg"; exit 2; }
+p="$learner/profile.md"
+[ -f "$p" ] || { echo "$p: does not exist (no profile; /rolling:start has not run)"; exit 1; }
+map="$(rolling_map_dir "$top")/map.md"
+faults=0
+fault() { echo "$1"; faults=$((faults + 1)); }
+
+grep -q '^# Profile[[:space:]]*$' "$p" || fault "$p: no '# Profile' title"
+order=$(grep -n '^## ' "$p" | sed 's/^[0-9]*:## //; s/[[:space:]]*$//' | tr '\n' '|')
+case "$order" in
+  "Background|Destination|Why|Satisfied|") ;;
+  *) fault "$p: headings must be exactly ## Background, ## Destination, ## Why, ## Satisfied in that order (found: ${order%|})" ;;
+esac
+
+section() { awk -v h="## $1" '{ sub(/[[:space:]]+$/, "") } $0 == h { s = 1; next } /^## / { s = 0 } s && NF { print }' "$p"; }
+
+regions=""; [ -f "$map" ] && regions=$(map_regions "$map")
+seen=""
+while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  if [[ $line =~ ^([a-z0-9]+(-[a-z0-9]+)*):[[:space:]]*(orientation|working|deep)[[:space:]]*$ ]]; then
+    r=${BASH_REMATCH[1]}
+    tr ' ' '\n' <<< "$seen" | grep -qx "$r" && fault "$p: destination lists '$r' twice"
+    seen="$seen $r"
+    if [ -n "$regions" ] && ! printf '%s\n' "$regions" | grep -qx "$r"; then
+      echo "$p: warning: destination region '$r' is not in the map's ## Regions"
+    fi
+  else
+    fault "$p: destination line is not '<region>: <orientation|working|deep>': $line"
+  fi
+done <<< "$(section Destination)"
+
+while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  [[ $line =~ ^-\ [a-z0-9]+(-[a-z0-9]+)*\ \([0-9]{4}-[0-9]{2}-[0-9]{2}\)[[:space:]]*$ ]] || fault "$p: satisfied line is not '- <slug> (<YYYY-MM-DD>)': $line"
+done <<< "$(section Satisfied)"
+
+if [ "$faults" -eq 0 ]; then echo "profile ok: $p"; exit 0; fi
+echo "$faults fault(s) in $p"
+exit 1

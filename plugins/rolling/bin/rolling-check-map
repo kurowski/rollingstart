@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+# Check a map's shape, never its content: exactly the list in docs/map.md
+# under "What rolling-check-map checks". Every fault is printed, one per
+# line, with the file and the field, so a map is fixed in one pass. Exits
+# 1 on any fault, 0 on none. Run as an action.
+#
+#   rolling-check-map [map-directory]     default: <repo>/.rolling
+set -u
+here=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=../lib/common.sh
+. "$here/../lib/common.sh"
+
+dir=${1:-}
+if [ -z "$dir" ]; then
+  top=$(rolling_toplevel) || { echo "not inside a git repository and no directory given"; exit 2; }
+  dir=$(rolling_map_dir "$top")
+fi
+dir=${dir%/}
+faults=0
+fault() { echo "$1"; faults=$((faults + 1)); }
+
+# ---- map.md
+map="$dir/map.md"
+if [ ! -f "$map" ]; then
+  fault "$map: does not exist"
+else
+  if ! fm_has "$map"; then
+    fault "$map: no frontmatter block (a --- line first, another closing it)"
+  else
+    for k in $(fm_keys "$map"); do
+      case $k in name|mode|commands|operations|destructive) ;; *) fault "$map: unknown field '$k'" ;; esac
+    done
+    [ -n "$(fm_scalar "$map" name)" ] || fault "$map: name is missing"
+    mode=$(fm_scalar "$map" mode)
+    case $mode in
+      write|direct) ;;
+      '') fault "$map: mode is missing (write or direct)" ;;
+      *) fault "$map: mode '$mode' is not write or direct" ;;
+    esac
+    cmds=$(fm_map "$map" commands)
+    if [ -z "$cmds" ]; then
+      fault "$map: commands is missing or empty"
+    else
+      while IFS=$'\t' read -r k v; do
+        key_ok "$k" || fault "$map: commands key '$k' is not [a-z0-9-]+"
+        [ -n "$v" ] || fault "$map: commands.$k has no command"
+        [ -z "$v" ] || command_takes_args "$v" || fault "$map: commands.$k ends in an operator (; & | > < \\) or contains '#', so arguments could not be appended safely"
+      done <<< "$cmds"
+    fi
+    ops=$(fm_map "$map" operations)
+    if [ -n "$ops" ]; then
+      while IFS=$'\t' read -r k v; do
+        key_ok "$k" || fault "$map: operations key '$k' is not [a-z0-9-]+"
+        [ -n "$v" ] || fault "$map: operations.$k has no command"
+      done <<< "$ops"
+    fi
+    for d in $(fm_list "$map" destructive); do
+      printf '%s\n' "$ops" | awk -F '\t' '{ print $1 }' | grep -qx "$d" || fault "$map: destructive names '$d', which is not an operation"
+    done
+  fi
+  regions=$(map_regions "$map")
+  if ! body_has_h2 "$map" Regions; then fault "$map: no ## Regions heading"
+  elif [ -z "$regions" ]; then fault "$map: ## Regions has no bullet opening with a bold slug (- **slug** ...)"; fi
+  if ! grep -q '^## Suggested courses\{0,1\}[[:space:]]*$' "$map"; then fault "$map: no ## Suggested courses heading"
+  elif [ -z "$(map_courses "$map")" ]; then fault "$map: ## Suggested courses has no ### course heading under it"; fi
+fi
+
+# ---- lessons/
+ldir="$dir/lessons"
+lesson_slugs=""
+if [ ! -d "$ldir" ]; then
+  fault "$ldir: does not exist"
+else
+  for e in "$ldir"/*; do
+    [ -e "$e" ] || continue
+    n=$(basename "$e")
+    case $n in .*) continue ;; esac
+    if [ -d "$e" ]; then
+      [ -f "$ldir/$n.md" ] || fault "$ldir/$n/: a directory in lessons/ must match a lesson file beside it ($n.md)"
+      continue
+    fi
+    case $n in
+      *.md) s=${n%.md}; if slug_ok "$s"; then lesson_slugs="$lesson_slugs $s"; else fault "$e: '$s' is not a slug (lowercase kebab-case)"; fi ;;
+      *) fault "$e: not a lesson file (every file in lessons/ ends in .md)" ;;
+    esac
+  done
+fi
+
+has_lesson() { tr ' ' '\n' <<< "$lesson_slugs" | grep -qx "$1"; }
+
+edges=""
+for s in $lesson_slugs; do
+  f="$ldir/$s.md"
+  if ! fm_has "$f"; then fault "$f: no frontmatter block"; continue; fi
+  for k in $(fm_keys "$f"); do
+    case $k in title|region|depth|mode|requires|assumes|test) ;; *) fault "$f: unknown field '$k'" ;; esac
+  done
+  [ -n "$(fm_scalar "$f" title)" ] || fault "$f: title is missing"
+  r=$(fm_scalar "$f" region)
+  if [ -z "$r" ]; then fault "$f: region is missing"
+  elif [ -n "$regions" ] && ! printf '%s\n' "$regions" | grep -qx "$r"; then fault "$f: region '$r' is not in the map's ## Regions"; fi
+  d=$(fm_scalar "$f" depth)
+  case $d in orientation|working|deep) ;; '') fault "$f: depth is missing" ;; *) fault "$f: depth '$d' is not orientation, working, or deep" ;; esac
+  m=$(fm_scalar "$f" mode); case $m in ''|write|direct) ;; *) fault "$f: mode '$m' is not write or direct" ;; esac
+  t=$(fm_scalar "$f" test); case $t in ''|held|shown) ;; *) fault "$f: test '$t' is not held or shown" ;; esac
+  seen=""
+  for q in $(fm_list "$f" requires); do
+    [ "$q" != "$s" ] || fault "$f: requires itself"
+    has_lesson "$q" || fault "$f: requires '$q', which is not a lesson"
+    tr ' ' '\n' <<< "$seen" | grep -qx "$q" && fault "$f: requires '$q' twice"
+    seen="$seen $q"
+    edges="$edges$s $q
+"
+  done
+  body_has_h2 "$f" Rubric || fault "$f: no ## Rubric heading"
+done
+
+# A cycle in requires: reported once, naming the edge that closes it.
+# Depth-first walk; a node met again while still on the stack is a cycle.
+if [ -n "$edges" ]; then
+  cyc=$(printf '%s' "$edges" | awk '
+    { adj[$1] = adj[$1] " " $2; nodes[$1] = 1; nodes[$2] = 1 }
+    function visit(n,   i, m, k, arr) {
+      state[n] = 1
+      k = split(adj[n], arr, " ")
+      for (i = 1; i <= k; i++) {
+        m = arr[i]; if (m == "") continue
+        if (state[m] == 1) { print n " -> " m; exit }
+        if (state[m] == 0) visit(m)
+      }
+      state[n] = 2
+    }
+    END { for (n in nodes) if (state[n] == 0) visit(n) }')
+  [ -z "$cyc" ] || fault "$ldir: requires has a cycle, closed by $cyc"
+fi
+
+# ---- lessons/<slug>/ task files
+for s in $lesson_slugs; do
+  td="$ldir/$s"
+  [ -d "$td" ] || continue
+  for e in "$td"/*; do
+    [ -e "$e" ] || continue
+    n=$(basename "$e")
+    case $n in .*) continue ;; esac
+    if [ -d "$e" ]; then fault "$e: a task directory holds task files, not directories"; continue; fi
+    case $n in *.md) ;; *) fault "$e: not a task file (ends in .md)"; continue ;; esac
+    ts=${n%.md}; slug_ok "$ts" || fault "$e: '$ts' is not a slug"
+    if ! fm_has "$e"; then fault "$e: no frontmatter block"; continue; fi
+    for k in $(fm_keys "$e"); do
+      case $k in mode|scope|scaffold|setup|verify|held|held-verify|expect-fail-on-base|fix) ;; *) fault "$e: unknown field '$k'" ;; esac
+    done
+    m=$(fm_scalar "$e" mode); case $m in ''|write|direct) ;; *) fault "$e: mode '$m' is not write or direct" ;; esac
+    for kind in verify held-verify; do
+      while IFS= read -r line; do
+        [ -n "$line" ] || continue
+        key=${line%% *}
+        cmd=$(fm_map_get "$map" commands "$key")
+        if [ -z "$cmd" ]; then fault "$e: $kind names '$key', which is not a command in the map"
+        elif ! command_takes_args "$cmd"; then fault "$e: $kind names '$key', whose command in the map ends in an operator or contains '#'"; fi
+        args=""; [ "$line" != "$key" ] && args=${line#* }
+        args_safe "$args" || fault "$e: $kind line '$line' carries a shell metacharacter, quote, or glob"
+      done <<< "$(fm_values "$e" "$kind")"
+    done
+    while IFS= read -r op; do
+      [ -n "$op" ] || continue
+      [ -n "$(fm_map_get "$map" operations "$op")" ] || fault "$e: setup names '$op', which is not an operation in the map"
+    done <<< "$(fm_values "$e" setup)"
+    fx=$(fm_scalar "$e" fix); [ -z "$fx" ] || hex_ok "$fx" || fault "$e: fix '$fx' is not 7 to 40 hex characters"
+    body_has_h2 "$e" Brief || body_has_h2 "$e" Situation || fault "$e: no ## Brief or ## Situation heading"
+    body_has_h2 "$e" Source || fault "$e: no ## Source heading"
+  done
+done
+
+if [ "$faults" -eq 0 ]; then
+  n=$(tr ' ' '\n' <<< "$lesson_slugs" | grep -c . || true)
+  echo "map ok: $dir ($n lessons, $(printf '%s\n' "$regions" | grep -c . || true) regions, $(map_courses "$map" | grep -c . || true) courses)"
+  exit 0
+fi
+echo "$faults fault(s) in $dir"
+exit 1

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Close the open task: remove task.md, reference.md, and held/ from the
+# learner's directory, and nothing else. profile.md, evidence/, tasks/,
+# and sessions/ stay. Run by the done skill once a lesson is satisfied, so
+# the skill never needs a broad rm in its grants. Always exits 0.
+set -u
+here=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=../lib/common.sh
+. "$here/../lib/common.sh"
+
+top=$(rolling_toplevel) || { echo "not inside a git repository; nothing closed"; exit 0; }
+learner=$(rolling_learner_dir "$top") || { echo "$rolling_no_data_msg; nothing closed"; exit 0; }
+[ -d "$learner" ] || { echo "no learner directory; nothing closed"; exit 0; }
+held_finish_pending "$learner" "$top" || echo "note: a held-test revert is still pending; task files removed anyway"
+for f in task.md reference.md; do
+  [ -f "$learner/$f" ] && rm -f "$learner/$f" && echo "removed $f"
+done
+[ -d "$learner/held" ] && rm -rf "$learner/held" && echo "removed held/"
+echo "task closed; profile.md, evidence/, tasks/, sessions/ kept"
+exit 0

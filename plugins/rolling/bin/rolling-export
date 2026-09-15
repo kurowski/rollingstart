@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Copy the learner's directory for this repository to a place the learner
+# chooses. The plugin's data directory is deleted when the plugin is
+# uninstalled from its last scope, profile and evidence with it; this is
+# the way out. Refuses to overwrite. Run as an action, so it exits
+# non-zero on refusal.
+#
+#   rolling-export <destination-directory>
+set -u
+here=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=../lib/common.sh
+. "$here/../lib/common.sh"
+
+dest=${1:-}
+[ -n "$dest" ] || { echo "usage: rolling-export <destination-directory>"; exit 2; }
+top=$(rolling_toplevel) || { echo "not inside a git repository"; exit 1; }
+learner=$(rolling_learner_dir "$top") || { echo "$rolling_no_data_msg"; exit 1; }
+[ -d "$learner" ] || { echo "nothing to export: no learner directory for $top"; exit 1; }
+[ ! -e "$dest" ] || { echo "refusing to overwrite $dest; choose a path that does not exist"; exit 1; }
+mkdir -p "$(dirname "$dest")" 2>/dev/null || { echo "cannot create the parent of $dest"; exit 1; }
+cp -R "$learner" "$dest" || { echo "copy failed"; exit 1; }
+echo "exported $learner"
+echo "      to $dest"
+(cd "$dest" && find . -type f | sed 's|^\./|  |' | sort)
+exit 0
