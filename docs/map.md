@@ -38,9 +38,9 @@ line. A map is a key on its own line followed by two-space-indented
 `key: value` lines. A list is either `[a, b, c]` on the key's line or
 `- a` lines indented two spaces beneath it. Nothing nests deeper, no
 value is quoted unless it has to be, and no line carries a trailing
-`# comment` (the scripts strip one from a command, so it cannot
-swallow arguments, but write none). Anything the subset cannot express
-belongs in the body.
+`# comment`: in a command it would swallow the arguments the toolkit
+appends, so the validator rejects it there, and elsewhere it is simply
+not parsed. Anything the subset cannot express belongs in the body.
 
 ## `map.md`
 
@@ -293,7 +293,9 @@ file and the field, so a map is fixed in one pass.
 - The file exists and has a frontmatter block.
 - `name` and `mode` are present; `mode` is `write` or `direct`.
 - `commands` is present and non-empty; every key matches `[a-z0-9-]+`
-  and every value is non-empty.
+  and every value is non-empty, contains no `#`, and does not end in
+  an operator (`;`, `&`, `|`, `>`, `<`, `\`), since the toolkit appends
+  a task's arguments after it and they must stay arguments.
 - Every key under `operations` matches the same rule, with a non-empty
   value.
 - Every entry under `destructive` names an operation key.

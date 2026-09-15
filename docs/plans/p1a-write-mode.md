@@ -43,9 +43,9 @@ file.
 |---|---|---|
 | The process is a page, not a system | `docs/workflow.md`; the checkpoint plan is the tracker; issues are a backlog; decisions go to `docs/plan.md` § 10 | The predecessor's milestones, boards, sub-issues, ADRs, and workflow skills were built for a team on a large Go system. This is a few thousand lines of shell and Node and a body of prose whose test is a run. The first version of this branch carried the whole apparatus across; the second cut it, and the history shows both. |
 | Toolkit executables are prefixed `rolling-` | `rolling-verify`, `rolling-diff`, `rolling-begin-task`, … | `bin/` is on the Bash tool's PATH for the whole session, shared with the target repo's own tools. A bare `verify` or `diff` collides with something eventually; the prefix also makes `allowed-tools` grants readable (`Bash(rolling-show *)`). |
-| The state directory is resolved one way, everywhere | `$ROLLING_DATA` if set, else `${CLAUDE_PLUGIN_DATA}`, then `/repos/<encoded toplevel>/` under it; encoding is the one Claude Code uses for its own project directories (every non-alphanumeric byte → `-`) | One resolver in one place, used by scripts, hooks, and tests alike. `ROLLING_DATA` exists so tests run in a temporary directory and never touch a real data directory. Whether `CLAUDE_PLUGIN_DATA` reaches a `bin/` script as an environment variable is a mechanism to confirm (below). |
+| The state directory is resolved one way, everywhere | `$ROLLING_DATA/repos/<encoded toplevel>/`, and nothing else; the plugin's SessionStart hook exports `ROLLING_DATA` from `${CLAUDE_PLUGIN_DATA}` through Claude Code's session environment file; encoding is the one Claude Code uses for its own project directories (every non-alphanumeric byte → `-`) | One resolver in one place, used by scripts, hooks, and tests alike. The Bash tool never sees `CLAUDE_PLUGIN_DATA` (mechanism table), so a fallback to it would never fire; the hook is the only route. Tests set `ROLLING_DATA` to a temporary directory and never touch a real one. |
 | Nothing is excluded from the diff | `rolling-diff` shows the working tree against `base`, every path | The spike excluded `.rolling/` and `.claude/` because the profile and the scripts lived there. Now the tree holds only the author's map and the learner's work; a learner who edits a lesson file has made a change the tutor should see. |
-| Diff first, then verify; the held test is applied inside verify | `done` runs `rolling-diff`, then `rolling-verify`; verify applies held tests, runs, reverts, restoring a learner file at the same path | The diff must not contain the held test and the tree must not keep it (§ 4). Doing the apply/revert inside one script, with a trap, is the only way to make "never lingers" a property rather than a hope. |
+| Diff first, then verify; the held test is applied inside verify, and both run from one script | `done` runs one inline command, `rolling-report`, which captures the diff and then runs `rolling-verify`; verify applies held tests, runs, reverts, restoring a learner file at the same path | The diff must not contain the held test and the tree must not keep it (§ 4). A skill's inline commands start in parallel (mechanism table), so the sequence has to live inside one script; doing the apply/revert under a trap is the only way to make "never lingers" a property rather than a hope. |
 | The skill writes `task.md`; scripts print what it needs and a validator checks the result | `rolling-begin-task` prints `branch:`, `base:`, `return-to:`, `held:` lines; the model writes the file in the documented shape; `rolling-check-task` rejects a malformed one before anything reads it | Mixed ownership of one file (script writes the top, model appends the rest) is how fields drift. One writer, one checker. `rolling-diff` and `rolling-verify` also fail safe on a bad file and say why. |
 | `lesson` is the one skill the model may invoke | `disable-model-invocation: true` on `start`, `next`, `done`; not on `lesson` | `next` has to hand off to `lesson` (§ 5) and a skill reaches another only through the Skill tool. `lesson` only ever re-presents the open task, or says there is none, so an unprompted invocation is harmless; the other three do things. |
 | The session stamp is written by a script, not by the model | Every learner-side skill runs `` !`rolling-claim-session ${CLAUDE_SESSION_ID}` `` inline | The stamp is what P1b's hooks use to tell the tutor from the coding session; a value the model might forget to copy is not a stamp. Inline substitution of the session id is documented; a script call is the deterministic way to persist it. |
@@ -64,13 +64,13 @@ recorded here.
 
 | Mechanism | Sub-scope | Result |
 |---|---|---|
-| `CLAUDE_PLUGIN_DATA` reaches a `bin/` script as an environment variable when the Bash tool runs it, and `${CLAUDE_PLUGIN_DATA}` is substituted in a skill's inline command and in a `hooks.json` command | 1a.3 | |
-| A plugin's `bin/` is on the Bash tool's PATH in a session where the plugin is enabled through a local marketplace, and stays so across `/clear` | 1a.3 | |
-| `claude plugin validate` accepts the marketplace root and each plugin directory, and its exit status is usable as a gate | 1a.3 | |
-| `${CLAUDE_SESSION_ID}` is substituted inside a skill's inline `` !`…` `` command, and the same session's PreToolUse hook receives the same id in `session_id` | 1a.4 | |
-| A plugin's `hooks.json` PreToolUse handler fires in the tutor's session for Edit and Write, receives `tool_input.file_path`, and its `deny` is honoured in `auto` mode | 1a.4 | |
-| The `Skill` tool can invoke a plugin skill that does not disable model invocation, from inside another skill's turn | 1a.5 | |
-| Inline commands in one skill run in document order (so `rolling-diff` completes before `rolling-verify` starts) | 1a.5 | |
+| `CLAUDE_PLUGIN_DATA` reaches a `bin/` script as an environment variable when the Bash tool runs it, and `${CLAUDE_PLUGIN_DATA}` is substituted in a skill's inline command and in a `hooks.json` command | 1a.3 | **Partly** (2026-09-15, 2.1.270, `--plugin-dir`). Not in the Bash tool's environment, for inline or model-run commands. Substituted in a skill's inline command and in a `hooks.json` command; a hook's process also has it in its environment, with `CLAUDE_PLUGIN_ROOT`. Path observed: `~/.claude/plugins/data/<plugin>-<marketplace>/`, `inline` as the marketplace for `--plugin-dir`; created on first session. **And confirmed:** a SessionStart hook can append `export VAR=…` to the file named by `CLAUDE_ENV_FILE`, and every later Bash command in the session sees it, inline commands included. That is the resolver: the hook exports `ROLLING_DATA`. |
+| A plugin's `bin/` is on the Bash tool's PATH in a session where the plugin is enabled through a local marketplace, and stays so across `/clear` | 1a.3 | **Yes** for `--plugin-dir` (a bare name resolved to the plugin's `bin/`, from an inline command and from a model-run one). A marketplace install and `/clear` are checked when 1a.6's runner exists. |
+| `claude plugin validate` accepts the marketplace root and each plugin directory, and its exit status is usable as a gate | 1a.3 | **Yes.** Exit 0 with warnings printed; `--strict` turns warnings into exit 1 for CI; `--json` available. Warns on a missing marketplace description and plugin author. |
+| `${CLAUDE_SESSION_ID}` is substituted inside a skill's inline `` !`…` `` command, and the same session's PreToolUse hook receives the same id in `session_id` | 1a.4 | **Yes** (seen while confirming 1a.3's rows): the substituted value, the hook's `session_id`, the Bash tool's `CLAUDE_CODE_SESSION_ID`, and the print-mode result's `session_id` were one string. One caveat: a Claude session started from inside another's Bash tool once inherited the outer `CLAUDE_CODE_SESSION_ID`, so the skills use the substitution, never the variable. |
+| A plugin's `hooks.json` PreToolUse handler fires in the tutor's session for Edit and Write, receives `tool_input.file_path`, and its `deny` is honoured in `auto` mode | 1a.4 | Fires for Bash under `--plugin-dir` (seen). Edit and Write, `file_path`, and `deny` under `auto`: 1a.4. |
+| The `Skill` tool can invoke a plugin skill that does not disable model invocation, from inside another skill's turn | 1a.5 | From a prompt, yes (seen). From inside another skill's turn: 1a.5. Also seen: a skill's inline command goes through permissions like any Bash call, so an inline `sh -c …` with no matching grant is refused and the skill fails; every inline command must be a single `bin/` invocation the skill's `allowed-tools` names. |
+| Inline commands in one skill run in document order (so `rolling-diff` completes before `rolling-verify` starts) | 1a.5 | **No.** They start together: three inline commands, one sleeping two seconds, all began within a millisecond. Anything that must be sequenced runs inside one script; `done` gets a single inline `rolling-report` that captures the diff and then runs the verifier. |
 
 ## Sub-scopes
 
@@ -106,80 +106,37 @@ PR #4.
 
 ---
 
-### 1a.3 — The marketplace, the plugin skeleton, and the toolkit [PENDING]
+### 1a.3 — The marketplace, the plugin skeleton, and the toolkit [COMPLETE]
 
-The repository becomes a marketplace with one plugin, `rolling`, whose
+The repository is a marketplace with one plugin, `rolling`, whose
 `bin/` holds every script the skills and hooks call, each tested
-against a scratch repository, with CI running the gate. Branch
-`p1a.3/toolkit`; depends on 1a.2. Done when the gate is green in CI
-and a scratch repository run through begin-task → edit → diff →
-verify (with one held test) → end-task leaves the tree exactly as the
-learner left it, the held test in no diff and no commit, and the
-learner back on their branch.
-
-Contracts drafted in advance (to become the scripts' header comments):
-
-- `.claude-plugin/marketplace.json` lists `rolling`;
-  `plugins/rolling/.claude-plugin/plugin.json` names it, versions it,
-  and declares no dependencies. `claude plugin validate` passes on
-  both.
-- One resolver for the learner's directory, per the key decision
-  above, shared by every script and by the hook handler; the
-  mechanism rows for `CLAUDE_PLUGIN_DATA` and `bin/` on PATH are
-  confirmed and recorded before anything depends on them.
-- `rolling-show <what>` prints one piece of context for a skill's
-  inline command and always exits 0, reporting absence in words:
-  `map`; `lessons`, the index, one frontmatter block per slug, which
-  is what `start` lays the course out from and `next` chooses from;
-  `lesson <slug>`, one lesson in full, and `lesson` with no slug, the
-  open task's; `profile`; `task`; `corpus`; `tree`; `state-dir`. Plural
-  is the list, singular is the item, so no skill takes every lesson
-  body into context to pick one.
-- `rolling-claim-session <id>` records the id as `tutor-session` in
-  the open task, or in the learner's directory when no task is open;
-  always exits 0.
-- `rolling-begin-task <lesson> --fix <sha> [--held <path>…] [--shown <path>…] | --here`
-  cuts `rolling/<lesson>-<stamp>` from the fix's parent (or here),
-  brings `--shown` paths forward and commits, copies `--held` paths
-  from the fix into the learner's directory under `held/` and does
-  not put them in the tree, refuses a dirty tree, a root commit, a
-  merge commit, or a path the fix did not touch, and prints `branch:`,
-  `base:`, `return-to:` (ref and sha), and `held:` lines. Exits
-  non-zero on refusal (it is run as an action, not inline).
-- `rolling-end-task` refuses unless HEAD is the task branch, commits
-  whatever is uncommitted with the documented message, keeps the
-  branch, and returns to the ref if it still resolves, else to the sha
-  with a note.
-- `rolling-diff` prints the working tree against `base`, untracked
-  files included, nothing excluded, capped, always exit 0, and fails
-  safe in words on a missing or malformed task.
-- `rolling-verify` runs the task's `verify:` lines against the map's
-  `commands:` with the spike's argument rules (words only; any
-  metacharacter or glob rejected; `</dev/null`), then for each `held`
-  path sets aside any learner file at that path, applies the held
-  copy, runs the task's held-test command, reverts, restores the
-  learner's file, under a trap so an interrupt restores too; prints
-  one line per command and a `VERIFIER:` summary with the held
-  results labelled as held; always exits 0.
-- `rolling-check-map [dir]`, `rolling-check-profile`, and
-  `rolling-check-task` implement exactly the checks the specs list and
-  report every fault, one per line, with the file and field; exit
-  non-zero on faults, since they are run as actions.
-- `rolling-close-task` removes `task.md`, `reference.md`, and `held/`
-  and nothing else.
-- `rolling-export <dir>` copies the learner's directory for this
-  repository to `<dir>`, refusing to overwrite, and prints what it
-  wrote; because uninstalling the plugin deletes the data directory
-  (§ 8).
-- Every script is bash 3.2 or later, `shellcheck --shell=bash` clean,
-  calls only `git` and a POSIX userland, builds any command line from
-  a task file as an array, and has a test under `plugins/rolling/tests/`
-  that builds a scratch repository in a temporary directory with
-  `ROLLING_DATA` pointed at another one; `tests/run.sh` runs them all
-  and exits non-zero on any failure.
-- `.github/workflows/ci.yml` runs `shellcheck`, `tests/run.sh`, and
-  `claude plugin validate` on every PR and on `main`, each as its own
-  step.
+against a scratch repository, with CI running the gate on Linux and on
+macOS's bash 3.2. Branch `p1a.3/toolkit`; depends on 1a.2. Done: the
+gate is green, and the scratch-repository loop (begin-task → edit →
+diff → verify with a held test → end-task) is a test that leaves the
+tree as the learner left it, the held test in no diff and no commit,
+and the learner back on their branch. The contracts drafted here
+became the scripts' header comments; the table in
+[`plugins/rolling/README.md`](../../plugins/rolling/README.md) is the
+index. Two things the slice added to the plan's list: a SessionStart
+hook handler, because the Bash tool never sees `CLAUDE_PLUGIN_DATA`
+and the session environment file is the way to hand it on; and
+`rolling-report`, because inline commands start in parallel. The
+spike's Rallly map passes `rolling-check-map` but for the one `###`
+course heading 1a.7 adds. The pre-push review found that the held
+test's revert could lose the learner's own file on a failed restore
+and could not survive a kill the trap cannot catch (the Bash tool's
+timeout); the fix keeps the set-aside copy and a step-by-step record
+in the learner's directory, and every script that touches the tree
+finishes a pending revert before doing anything else. The both-ways
+proof now counts a line that did not run as a failure, a map command
+ending in a control operator is refused, and `--here` takes the paths
+it may commit and refuses the rest. A second round found the holes in
+those fixes (a repeated held path, a catchable signal, a failed revert
+still proving ok, redirections) and closed them; a third found the
+symbolic-link cases, and the toolkit now refuses a link anywhere in a
+held path rather than reason about it. The test file for the review
+rounds is the largest in the suite, which is the right way round.
 
 ---
 
@@ -224,8 +181,8 @@ the toolkit by name, holding the loop of `docs/plan.md` § 5 and the
 coaching rules the spike settled (`spike/claude/skills/`, corrected
 per `spike/NOTES.md`), with none of the spike's fourth-wall slips.
 `lesson` is the one skill the model may invoke; `done` runs
-`rolling-claim-session`, `rolling-diff`, `rolling-verify` inline, in
-that order, before it speaks. Branch `p1a.5/skills`; depends on 1a.3
+`rolling-claim-session` and `rolling-report` (diff, then verifier) inline,
+before it speaks. Branch `p1a.5/skills`; depends on 1a.3
 and 1a.4. Done when `claude plugin validate` is green, no skill grants
 a map command or names a script, a task file, or a profile file to
 the learner, the mechanism rows assigned to 1a.5 are recorded, and
