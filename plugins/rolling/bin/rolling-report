@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# The done skill's one inline command. A skill's inline commands all start
+# together, so anything that must be sequenced runs inside one script:
+# first the diff, the working tree as the learner left it, and only then
+# the verifier, which applies and reverts the held test. Prints both,
+# under headings the skill refers to. Always exits 0.
+set -u
+here=$(cd "$(dirname "$0")" && pwd)
+echo "## The change (working tree against the task's base)"
+echo
+"$here/rolling-diff"
+echo
+echo "## Verifier"
+echo
+"$here/rolling-verify"
+exit 0

@@ -22,12 +22,16 @@ prints it, encoded the way Claude Code encodes its own project
 directories: every byte that is not a letter or a digit becomes `-`.
 `/home/pat/rallly` is `-home-pat-rallly`.
 
-Every script and hook handler resolves the directory through one
-rule: `ROLLING_DATA`, if set, replaces `${CLAUDE_PLUGIN_DATA}`. Tests
-set it to a temporary directory so nothing they do touches a real
-one. Nothing in the repository points at this directory, and no file
-in it is ever needed by the repository's tooling; that is the point
-of its location.
+The scripts never see `CLAUDE_PLUGIN_DATA` themselves: Claude Code
+substitutes it into hook commands and skill text but does not put it
+in the Bash tool's environment. So the plugin's SessionStart hook,
+which does receive it, exports it as `ROLLING_DATA` through Claude
+Code's session environment file, and every script and hook handler
+resolves the directory from `ROLLING_DATA` alone. Tests set it to a
+temporary directory so nothing they do touches a real one; a script
+run where it is unset says so and stops. Nothing in the repository
+points at this directory, and no file in it is ever needed by the
+repository's tooling; that is the point of its location.
 
 ```
 <learner's directory>/
@@ -36,6 +40,8 @@ of its location.
   task.md                  # the open task, if any
   reference.md             # the held reference solution for the open task
   held/<path>              # the held test files for the open task
+  held-aside/<path>        # your file set aside while the held test runs (normally absent)
+  held-aside.pending       # the record of that run, kept only if it was interrupted
   sessions/<session id>.log  # a direct lesson's coding sessions (P1b)
   tasks/<lesson>/<stamp>.md  # tasks the tutor built and kept for reuse
   evidence/<lesson>.md     # feedback, observations, interventions, appended
@@ -216,7 +222,7 @@ Named to the learner as "a reference exists and I am holding it",
 never by path; a coding session in a `direct` lesson is denied the
 whole directory (P1b).
 
-## `held/`
+## `held/`, `held-aside/`, `held-aside.pending`
 
 The held test files, at their repository-relative paths, copied from
 the fix by `rolling-begin-task`. They are applied to the tree only
@@ -224,6 +230,18 @@ while `rolling-verify` runs the `held-verify` lines, after the diff
 has been captured, and reverted before it returns, with any learner
 file at the same path set aside for the run and restored. Removed with
 the task.
+
+While the held test is applied, the learner's set-aside file lives at
+`held-aside/<path>` and `held-aside.pending` records each step
+(`aside <path>`, `applied <path>`), so that a kill no trap can catch
+(the Bash tool's timeout ends a command with SIGKILL) leaves a record
+rather than a held test in the tree. Every script that touches the
+tree finishes a pending revert first and says so; a restore that
+fails keeps both files and names them, and never deletes the learner's
+copy. In normal operation neither exists between runs. A held path
+is applied only through plain files and directories: a symbolic link
+anywhere in it, at the fix or in the tree, is refused, and two held
+paths that turn out to be one file are refused too.
 
 ## `sessions/<session id>.log` (P1b)
 
@@ -318,8 +336,8 @@ the field.
   title.
 - Every non-blank line under `## Destination` is `<slug>: <depth>`
   with a valid slug and one of the three depths; no region twice.
-  Whether the slug names a region in the map is checked when a map is
-  at hand and reported as a warning otherwise.
+  When a map is at hand, a slug that names no region in it is reported
+  as a warning, not a fault; without a map it is not checked.
 - Every non-blank line under `## Satisfied` is `- <slug> (<YYYY-MM-DD>)`.
 
 `task.md`:

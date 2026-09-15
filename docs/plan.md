@@ -600,7 +600,7 @@ the baseline of every `direct` lesson. *Exit:* a `direct` lesson on
 Rallly at each rung that a strong engineer finds fair.
 
 **P5 — Release.** A colleague onboarding onto something real, the
-authoring guide covering both homes for a map, managed-settings install
+authoring guide covering both places a map can come from, managed-settings install
 notes, and the question of whether the Rallly example ships a
 `.devcontainer/` so anyone can run it contained the standard way. The
 three targets above have been in use since P1; whether this repository

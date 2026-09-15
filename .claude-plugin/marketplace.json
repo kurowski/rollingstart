@@ -1,0 +1,14 @@
+{
+  "name": "rollingstart",
+  "description": "Rolling Start: a Claude Code native codebase tutor. An author describes the landscape, the learner picks the destination, the tutor points the way.",
+  "owner": { "name": "Brandt Kurowski", "url": "https://github.com/kurowski" },
+  "plugins": [
+    {
+      "name": "rolling",
+      "source": "./plugins/rolling",
+      "description": "The learner's plugin: the tutor's skills, its hooks, and the toolkit they call.",
+      "version": "0.1.0",
+      "category": "learning"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# SessionStart hook handler. Claude Code substitutes ${CLAUDE_PLUGIN_DATA}
+# into the hook command in hooks.json, and this hands it to every later
+# Bash command in the session (inline skill commands included) by
+# appending an export to the session environment file Claude Code names in
+# CLAUDE_ENV_FILE and sources before each command. The Bash tool's own
+# environment never has CLAUDE_PLUGIN_DATA, so this is how the toolkit
+# learns where the learner's directory is. Exits 0 whatever happens: a
+# hook that fails blocks nothing here but would print noise.
+#
+#   rolling-session-start <data-dir>
+set -u
+cat >/dev/null 2>&1   # the event JSON on stdin; not needed
+data=${1:-}
+if [ -n "$data" ] && [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+  line=$(printf 'export ROLLING_DATA=%q' "$data")
+  # SessionStart also fires on resume, clear, and compact; one line is enough.
+  if ! grep -qxF -- "$line" "$CLAUDE_ENV_FILE" 2>/dev/null; then
+    printf '%s\n' "$line" >> "$CLAUDE_ENV_FILE" 2>/dev/null
+  fi
+fi
+exit 0

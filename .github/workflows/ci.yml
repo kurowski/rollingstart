@@ -1,0 +1,74 @@
+# The gate, as CI: shellcheck over every shell script, the toolkit's
+# tests against scratch repositories, and the plugin manifest validator.
+# Each is its own step so a red run says which one failed. The macOS leg
+# runs the tests under /bin/bash, which is bash 3.2 and will stay so; a
+# bashism from a newer bash fails there and nowhere else, which is the
+# point of the leg.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # Pinned to the version the gate runs locally; apt's is older and
+      # judges style notes differently, which is not what a gate is for.
+      - name: Install shellcheck 0.11.0
+        run: |
+          set -eu
+          curl -sSL -o sc.tar.xz https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz
+          tar -xJf sc.tar.xz
+          sudo install -m 755 shellcheck-v0.11.0/shellcheck /usr/local/bin/shellcheck
+          shellcheck --version
+      - name: shellcheck
+        run: |
+          set -eu
+          # Shell files only: a Node hook handler in bin/ would not be one.
+          files=$(git ls-files -z 'plugins/*/bin/*' 'plugins/*/lib/*.sh' 'plugins/*/tests/*.sh' | xargs -0 -r grep -l -e '^#!/usr/bin/env bash' -e '^# shellcheck shell=bash')
+          [ -n "$files" ] || { echo "no shell files found"; exit 1; }
+          echo "$files"
+          # shellcheck reads .shellcheckrc at the repository root.
+          # shellcheck disable=SC2086
+          shellcheck $files
+
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Put the system bash first on macOS (bash 3.2)
+        if: runner.os == 'macOS'
+        run: |
+          echo "/bin" >> "$GITHUB_PATH"
+          /bin/bash --version | head -n 1
+      - name: Which bash the scripts get
+        run: |
+          which bash
+          bash --version | head -n 1
+      - name: Toolkit tests
+        run: plugins/rolling/tests/run.sh
+
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install -g @anthropic-ai/claude-code
+      - run: claude --version
+      - name: Validate the marketplace manifest
+        run: claude plugin validate --strict .
+      - name: Validate the rolling plugin
+        run: claude plugin validate --strict plugins/rolling
