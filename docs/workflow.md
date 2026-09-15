@@ -19,7 +19,7 @@ demonstrating.
 |---|---|
 | [`docs/plan.md`](plan.md) | Design and decision record. Decisions made after it go in § 10, dated. |
 | [`docs/map.md`](map.md), [`docs/profile.md`](profile.md) | The formats: what the author writes, what the tutor writes (P1a.2) |
-| [`docs/plans/`](plans/) | One plan per checkpoint (P1a, P1b, …): its sub-scopes, a paragraph each, are the tracker, marked `[PENDING]` → `[COMPLETE]` as they merge, and it ends with a retrospective. Detail lives in the artifact a sub-scope describes, not in the plan. |
+| [`docs/plans/`](plans/) | One plan per checkpoint (P1a, P1b, …): its sub-scopes, a paragraph each, are the tracker; each PR flips its own to `[COMPLETE]`, and the plan ends with a retrospective. Detail lives in the artifact a sub-scope describes, not in the plan. |
 | [`spike/NOTES.md`](../spike/NOTES.md) | What P0 found, as it happened; the register a retrospective is written in |
 
 GitHub carries the PRs. Issues are a backlog, not a tracker: file one
@@ -54,9 +54,9 @@ the spike's version and what `spike/NOTES.md` says went wrong with it.
    written up in the plan.
 7. **PR.** Summary of what and why, a test plan, `Closes #N` if an
    issue exists. The maintainer merges, with a merge commit, never a
-   squash; the branch's own commits are the history. Flip the
-   sub-scope to `[COMPLETE]` in the next PR that touches the plan, or
-   directly on `main` on the maintainer's say-so.
+   squash; the branch's own commits are the history. The PR flips
+   its own sub-scope to `[COMPLETE]` and records its number there:
+   the merge is what makes that true.
 
 A change that would be too large for one review (it crosses layers, or
 runs past a few hundred lines) is a base-chained stack: each slice

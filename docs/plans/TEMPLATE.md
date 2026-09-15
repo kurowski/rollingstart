@@ -1,8 +1,8 @@
 # P{N}{x}: {Title}
 
 > The plan's entry is [`docs/plan.md`](../plan.md) § 7, P{N}{x}. This
-> file is the tracker for the checkpoint: sub-scopes flip from
-> `[PENDING]` to `[COMPLETE]` as their PRs merge, and a retrospective
+> file is the tracker for the checkpoint: each PR flips its own
+> sub-scope from `[PENDING]` to `[COMPLETE]`, and a retrospective
 > is appended when the checkpoint ends.
 
 ## Context

@@ -1,8 +1,8 @@
 # P1a: `write` mode, in-repo map
 
 > The plan's entry is [`docs/plan.md`](../plan.md) § 7, P1a. This
-> file is the tracker for the checkpoint: sub-scopes flip from
-> `[PENDING]` to `[COMPLETE]` as their PRs merge, and a retrospective
+> file is the tracker for the checkpoint: each PR flips its own
+> sub-scope from `[PENDING]` to `[COMPLETE]`, and a retrospective
 > is appended when the checkpoint ends.
 
 ## Context
@@ -82,7 +82,7 @@ below, 1a.3 and 1a.4, carry their scripts' contracts because they were
 drafted before the scripts; each slice's PR replaces its contract with
 a pointer when it lands.
 
-### 1a.1 — The repository learns how work happens here [PENDING]
+### 1a.1 — The repository learns how work happens here [COMPLETE]
 
 `CLAUDE.md`, `REVIEW.md`, and `docs/workflow.md` for a plugin
 repository, and this plan. Branch `p1a.1/process`; depends on
