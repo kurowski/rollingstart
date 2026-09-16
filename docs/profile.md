@@ -170,14 +170,26 @@ Fields, all in the frontmatter subset `map.md` defines:
 - **`fix`** (optional). The commit the task was built from, when it
   was built from one.
 - **`scope`** (one or more). Paths or globs the change is expected to
-  touch. In a `write` task the tutor is denied Edit and Write inside
-  them by the hook in `hooks.json`; the learner's own edits are theirs.
-  Globs are `*`, `**`, `?`; a bare directory matches everything
-  beneath it. Paths from the model are untrusted input everywhere the
-  toolkit reads them.
+  touch. In a `write` task the tutor is denied Edit, Write, MultiEdit,
+  and NotebookEdit inside them by the hook in `hooks.json`; the
+  learner's own edits are theirs.
+  Globs are `*`, `**`, `?`: `*` and `?` stay within one path segment,
+  and a segment that is exactly `**` spans any number of segments,
+  zero included (elsewhere `**` is `*`, as in gitignore); a bare
+  directory matches everything beneath it. A path is judged as
+  written and with every symbolic link resolved, and either inside
+  the scope counts; on a case-folding filesystem the comparison folds
+  case. The validator faults a scope that is not a plain
+  repository-relative path; the guard, which may see a task nothing
+  validated, guards nothing for `/etc`, `..`, or `.`, and reads
+  `./src/` as `src`. Paths from the model are untrusted input
+  everywhere the toolkit reads them.
 - **`scaffold`** (optional, one or more). Paths inside the scope where
   the tutor may write, leaving `TODO(human)` markers the way the
-  built-in Learning output style does.
+  built-in Learning output style does. A scaffold names files exactly,
+  as a path or a glob; a bare directory names nothing beneath it,
+  since that would exempt the scope, so a directory of new files is
+  spelled `dir/**`.
 - **`setup`** (optional, one or more). Operation keys from the map,
   run by the tutor when the task starts, a destructive one only after
   the learner says yes to that run. Nothing runs them again at `done`;

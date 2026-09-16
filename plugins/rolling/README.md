@@ -41,6 +41,7 @@ first finishes any held-test revert a killed run left behind.
 | Script | Run by | What |
 |---|---|---|
 | `rolling-session-start` | the SessionStart hook | Exports `ROLLING_DATA` (this plugin's data directory) into the session's environment, so every later command can find the learner's directory. |
+| `rolling-guard` | the PreToolUse hook | The `write`-mode scope guard: denies the tutor an edit inside the open task's scope. |
 | `rolling-show <what>` | skills, inline | One piece of context: `map`, `lessons` (the index), `lesson [slug]`, `profile`, `task`, `corpus`, `tree`, `state-dir`. Always exits 0. |
 | `rolling-claim-session <id>` | skills, inline | Records the session as the tutor's, in the open task or the `session` file. |
 | `rolling-report` | `done`, inline | The diff, then the verifier, in that order, from one command. |
@@ -83,5 +84,20 @@ docker run --rm -v "$PWD/plugins:/w/plugins:ro" -w /w python:3.9-alpine sh -c '
 
 ## Hooks
 
-`hooks/hooks.json` registers the SessionStart handler above. The
-`write`-mode scope guard joins it in P1a.4.
+`hooks/hooks.json` registers two handlers, both Python in `bin/`:
+
+- **SessionStart** runs `rolling-session-start`, which exports the
+  plugin's data directory into the session's environment (above).
+- **PreToolUse** on Edit, Write, MultiEdit, and NotebookEdit runs
+  `rolling-guard`, the `write`-mode scope guard: while a `write` task
+  is open and the session is the tutor's, an edit inside the task's
+  `scope:` is denied with a reason, unless the path is one the task
+  marks `scaffold:`. The repository is found from the edited path,
+  never from the session's working directory, which follows every
+  `cd`; the path is judged as written and with every symbolic link
+  resolved, so a checkout reached through a link (on a Mac, anything
+  under the temporary directory) and a link pointing into the scope
+  are both caught. Any other session, mode, path, or
+  state is allowed, including anything the handler cannot make sense of; the
+  rule that must hold when the learner asks nicely is held by this
+  hook, not by prose, and it holds in every permission mode.

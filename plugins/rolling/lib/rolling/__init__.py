@@ -8,7 +8,8 @@ about any particular codebase; the map knows everything about one.
 Modules: rules (what a slug, an argument, a path may be), frontmatter
 (the flat subset docs/map.md defines), model (the map, lessons, task,
 and learner's directory as objects), validate (the three checkers,
-returning faults), paths (where the map and the learner's directory
+returning faults), guard (the write-mode scope guard, a PreToolUse
+hook handler), paths (where the map and the learner's directory
 are), repo (git behind a small wrapper), heldtest (the held test's
 apply and revert, with the record that survives a kill), verifier (a
 structured report and its rendering), diff, tasks (begin, end, close,
@@ -18,4 +19,4 @@ dispatch to).
 
 from __future__ import annotations
 
-__all__ = ["rules", "frontmatter", "model", "validate", "paths", "repo", "heldtest", "verifier", "diff", "tasks", "session", "cli"]
+__all__ = ["rules", "frontmatter", "model", "validate", "guard", "paths", "repo", "heldtest", "verifier", "diff", "tasks", "session", "cli"]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -105,6 +106,41 @@ class RulesTest(unittest.TestCase):
             self.assertTrue(rules.command_takes_args(ok), ok)
         for bad in ("echo x;", "echo x; ", "echo x &", "echo x |", "echo x ||", "echo x && ", "sh args.sh >", "cmd <", "cmd\\", "sh args.sh;#x", "sh x # note", "", "   ", "cmd\t;"):
             self.assertFalse(rules.command_takes_args(bad), repr(bad))
+
+    def test_scopes(self):
+        inside = rules.inside_scope
+        self.assertTrue(inside("src/greet.sh", "src/greet.sh"))
+        self.assertFalse(inside("src/greet.sh.bak", "src/greet.sh"), "a file scope is not a prefix")
+        self.assertTrue(inside("tests/deep/x.sh", "tests"))
+        self.assertFalse(inside("testsx/x.sh", "tests"))
+        self.assertTrue(inside("src/a.sh", "src/*.sh"))
+        self.assertFalse(inside("src/deep/a.sh", "src/*.sh"), "* stays within a segment")
+        self.assertTrue(inside("docs/a/b/c.md", "docs/**"))
+        self.assertTrue(inside("docs", "docs/**"), "** spans zero segments")
+        self.assertTrue(inside("README.md", "**/*.md"))
+        self.assertTrue(inside("a/b/README.md", "**/*.md"))
+        self.assertTrue(inside("packages/web/src/x.ts", "packages/*/src"), "beneath a directory the glob names")
+        self.assertTrue(inside("SRC/Greet.sh", "src", fold_case=True))
+        self.assertFalse(inside("SRC/Greet.sh", "src"))
+        self.assertTrue(inside("src/me\u017fsage.txt", "src/message.txt", fold_case=True), "casefold, not lower: a Mac folds the long s")
+        self.assertTrue(inside("src/a\nb", "src"), "a newline is one more character")
+        self.assertTrue(inside("src/xa", "src/**a"), "** inside a segment is *")
+        self.assertFalse(inside("src/d/xa", "src/**a"))
+        self.assertTrue(inside("a/x/y/b/c", "a/**/b"))
+        self.assertFalse(inside("a/x/y/c", "a/**/b"))
+        self.assertTrue(inside("x/anything", "**"))
+        self.assertTrue(inside("s/a.sh", "s/?.sh"))
+        self.assertFalse(inside("s/ab.sh", "s/?.sh"))
+        t = time.monotonic()
+        self.assertFalse(inside("src/" + "a" * 60 + "b", "src/" + "**a" * 20), "a pathological glob, with a long partial match")
+        self.assertLess(time.monotonic() - t, 1.0)
+        self.assertFalse(rules.names_path("tests/x", "tests"), "a name is exact")
+        self.assertTrue(rules.names_path("tests/x.sh", "tests/*.sh"))
+        self.assertTrue(rules.names_path("tests/new/a", "tests/new/**"))
+        self.assertEqual(rules.normalize_scope("./src/"), "src")
+        self.assertEqual(rules.normalize_scope("a//b"), "a/b")
+        for bad in ("/etc", "..", ".", "", "a/../b"):
+            self.assertEqual(rules.normalize_scope(bad), "", bad)
 
     def test_symlink_components(self):
         with tempfile.TemporaryDirectory() as d:
