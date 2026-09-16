@@ -13,8 +13,15 @@ both are present, arrive in P1c.
 
 The skills are `/rolling:start` for intake, `/rolling:next` for the
 next task, `/rolling:lesson` to be re-briefed, and `/rolling:done` when
-you think you are done. They arrive in P1a.5; what is here now is the
-toolkit they call and the one hook they need.
+you think you are done. `start`, `next`, and `done` are yours to type;
+`lesson` is the one the tutor may invoke itself, since it only ever
+re-presents the open task. Each skill declares the toolkit commands
+it needs and nothing wider: no map command, no package manager, no
+git that changes the tree. The checks a lesson asks of you are the
+repository's own commands, exactly as the map declares them. Those
+grants hold for the turn a skill runs in; in a later turn of the same
+conversation the tutor's own record-keeping commands ask you once
+each, and the tutor says so.
 
 Everything the tutor knows about you lives outside the repository, in
 this plugin's data directory, keyed by the repository
