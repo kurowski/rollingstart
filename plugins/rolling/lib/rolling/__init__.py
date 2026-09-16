@@ -19,4 +19,4 @@ dispatch to).
 
 from __future__ import annotations
 
-__all__ = ["rules", "frontmatter", "model", "validate", "guard", "paths", "repo", "heldtest", "verifier", "diff", "tasks", "session", "cli"]
+__all__ = ["rules", "frontmatter", "model", "validate", "guard", "paths", "repo", "heldtest", "reference", "verifier", "writes", "diff", "tasks", "session", "cli"]

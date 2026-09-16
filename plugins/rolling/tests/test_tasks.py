@@ -27,6 +27,27 @@ class BeginFromFixTest(WorldTest):
         self.assertNotIn(w.fix, w.git("log", "--format=%H"), "the fix is not in the branch's history")
         self.assertEqual(w.git("rev-parse", "HEAD^"), w.pre)
 
+    def test_the_map_as_of_now_comes_along(self):
+        """A fix older than the map: the branch is cut from before the map
+        existed, and the task must still have it, as it is now."""
+        w = self.w
+        w.write(".rolling/lessons/newer.md", "---\ntitle: Newer\nregion: greeting\ndepth: working\n---\n\nx\n\n## Rubric\n\ny\n")
+        w.git("rm", "-q", ".rolling/lessons/setup.md")
+        w.git("add", "-A")
+        w.git("commit", "-q", "-m", "the map moved on")
+        branch, base = w.begin("greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh")
+        self.assertTrue((w.top / ".rolling/lessons/newer.md").is_file(), "a lesson added after the fix is on the branch")
+        self.assertFalse((w.top / ".rolling/lessons/setup.md").exists(), "a lesson removed after the fix is gone")
+        self.assertClean()
+        self.assertEqual(w.git("rev-parse", "HEAD^"), w.pre)
+        self.assertIn("newer.md", w.git("show", "--stat", "--format=", base), "the map is in the starting-state commit, so never in the diff")
+        self.assertIn("the map as of the commit the task began from", w.git("log", "-1", "--format=%B"))
+        w.held_task(branch, base)
+        out = self.assertRuns("diff")
+        self.assertIn("## Diff", out)
+        self.assertNotIn("newer.md", out)
+        self.assertNotIn("setup.md", out)
+
     def test_shown_test_is_present_and_failing(self):
         w = self.w
         out = self.assertRuns("begin-task", "setup", "--fix", w.fix, "--shown", "tests/greet.test.sh")

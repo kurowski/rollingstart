@@ -15,7 +15,7 @@ import time
 from dataclasses import dataclass, field
 from typing import List
 
-from . import rules
+from . import paths, rules
 from .model import Learner, Task
 from .repo import Repo
 
@@ -72,11 +72,17 @@ class Tasks:
             if repo.mode_at(fix, p) not in ("100644", "100755"):
                 raise Refused(f"{p} is not a regular file at {fix} (a directory, a symbolic link, or a file the fix deleted cannot be held or shown)")
         branch, return_to = self._branch_for(lesson), self._return_to()
+        origin = repo.rev_parse("HEAD")
         self._empty_held()
         repo.switch_new(branch, f"{fix}^")
         if shown:
             repo.checkout_paths(fix, shown)
+        # The map as it is now, not as it was (or was not) before the fix:
+        # a task cut from before the map was committed would otherwise
+        # lose it. In the starting-state commit, so never in the diff.
+        carried = self._carry_map(origin)
         note = ", with that commit's test brought forward so it is present and failing" if shown else ""
+        note += ", and the map as of the commit the task began from" if carried else ""
         repo.commit(f"rolling: starting state for {lesson}\n\nThe code as it was before {repo.short(fix)}{note}. A Rolling\nStart task; the branch is throwaway.", allow_empty=True)
         # The held copies, written only once the branch exists into the
         # directory _common_checks just emptied.
@@ -119,6 +125,16 @@ class Tasks:
         else:
             note = "note: nothing to commit; the starting state is the current commit"
         return Begun(branch, repo.rev_parse("HEAD"), return_to, [], note)
+
+    def _carry_map(self, origin: str) -> bool:
+        """Put .rolling as of ORIGIN into the tree and index, replacing
+        whatever the branch point had there. False when ORIGIN has none."""
+        repo = self.repo
+        if not repo.ok("cat-file", "-e", f"{origin}:{paths.MAP_DIR}"):
+            return False
+        repo.run("rm", "-r", "-q", "--ignore-unmatch", "--", paths.MAP_DIR, check=False)
+        repo.checkout_paths(origin, [paths.MAP_DIR])
+        return True
 
     def _common_checks(self, lesson: str) -> None:
         if not rules.is_slug(lesson):
@@ -196,9 +212,9 @@ class Tasks:
     # ---- close
 
     def close(self) -> List[str]:
-        """Remove task.md, reference.md, and held/, and nothing else."""
+        """Remove task.md, reference.md, reference.patch, and held/, and nothing else."""
         out: List[str] = []
-        for f in (self.learner.task_file, self.learner.reference):
+        for f in (self.learner.task_file, self.learner.reference, self.learner.patch):
             if f.is_file():
                 f.unlink()
                 out.append(f"removed {f.name}")

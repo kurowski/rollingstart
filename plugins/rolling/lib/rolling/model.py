@@ -194,6 +194,21 @@ class Learner:
         return self.dir / "reference.md"
 
     @property
+    def patch(self) -> Path:
+        return self.dir / "reference.patch"
+
+    @property
+    def applied_patch(self) -> Path:
+        """The copy of the reference a proof applied, present only while
+        it is in the tree (or after a kill, until repaired)."""
+        return self.dir / ".reference.applied.patch"
+
+    @property
+    def applied_at(self) -> Path:
+        """The commit that copy was applied on, beside it."""
+        return self.dir / ".reference.applied.at"
+
+    @property
     def held(self) -> Path:
         return self.dir / "held"
 
@@ -204,6 +219,14 @@ class Learner:
     @property
     def pending(self) -> Path:
         return self.dir / "held-aside.pending"
+
+    @property
+    def evidence(self) -> Path:
+        return self.dir / "evidence"
+
+    @property
+    def tasks(self) -> Path:
+        return self.dir / "tasks"
 
     def has_task(self) -> bool:
         return self.task_file.is_file()

@@ -40,8 +40,11 @@ def toplevel(cwd: Optional[Path] = None) -> Optional[Path]:
     return Path(out.stdout.strip())
 
 
+MAP_DIR = ".rolling"   # the one place the map's name in the tree is spelled
+
+
 def map_dir(top: Path) -> Path:
-    return top / ".rolling"
+    return top / MAP_DIR
 
 
 def encode(path: str) -> str:

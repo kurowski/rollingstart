@@ -9,10 +9,13 @@ arguments, never re-parsed: subprocess gets a list. A command that
 cannot take arguments, or a line whose arguments are not words, is
 rejected, not run.
 
-The both-ways proof (--on-base) reads the same report differently: the
+The both-ways proof reads the same report differently. --on-base: the
 lines named by expect-fail-on-base must fail, everything else must
 pass, every line must actually have run, and the revert must have
-succeeded. Anything less is PROOF: not ok.
+succeeded. --on-reference: with the reference applied around the whole
+run (reference.py), every line must pass, the held test included, and
+the reference must have come back out leaving the tree clean. Anything
+less is PROOF: not ok.
 """
 
 from __future__ import annotations
@@ -25,8 +28,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Iterator, List, Optional, Tuple
 
-from . import heldtest, rules
+from . import heldtest, reference, rules
 from .model import Learner, Map, Task
+from .repo import GitError, Repo
 
 
 class Kind(Enum):
@@ -74,6 +78,8 @@ class Report:
     interrupted: bool = False
     proof_gaps: List[str] = field(default_factory=list)  # expect-fail entries that never ran
     not_run: str = ""                                    # why nothing ran at all
+    on_reference: bool = False
+    reference_out: bool = True                           # reversed, and the tree clean afterwards
 
     def count(self, kind: Kind, outcome: Outcome) -> int:
         return sum(1 for r in self.lines if r.kind is kind and r.outcome is outcome)
@@ -88,7 +94,13 @@ class Report:
             return False
         if self.revert is not None and (not self.revert.ok or self.revert.incomplete):
             return False
+        if not self.reference_out:
+            return False
         return True
+
+    @property
+    def proving(self) -> bool:
+        return self.on_base or self.on_reference
 
     def summary(self) -> str:
         s = (f"VERIFIER: {self.count(Kind.VERIFY, Outcome.PASS)} passed, "
@@ -105,7 +117,7 @@ class Report:
     def render(self) -> List[str]:
         if self.not_run:
             out = [f"VERIFIER: not run ({self.not_run})"]
-            if self.on_base:
+            if self.proving:
                 out.append("PROOF: not ok (the verifier did not run)")
             return out
         out: List[str] = []
@@ -114,7 +126,7 @@ class Report:
         out += self.notes
         if self.interrupted:
             out.append("VERIFIER: interrupted before the report was complete; run it again")
-            if self.on_base:
+            if self.proving:
                 out.append("PROOF: not ok (interrupted)")
             return out
         out += [f"PROOF GAP: expected to fail but never ran: {e}" for e in self.proof_gaps]
@@ -122,7 +134,12 @@ class Report:
         if self.on_base:
             out.append("PROOF: ok (on the starting state, every expected failure failed, everything else passed, every line ran, and the held test was reverted)"
                        if self.proof_ok else
-                       "PROOF: not ok (see UNEXPECTED-PASS, FAIL, UNKNOWN, REJECTED, REVERT FAILED, or PROOF GAP above; do not serve this task)")
+                       "PROOF: not ok (see UNEXPECTED-PASS, FAIL, UNKNOWN, REJECTED, HELD not run, REVERT FAILED, or PROOF GAP above; do not serve this task)")
+        if self.on_reference:
+            held = " and the held test" if self.had_held else ""
+            out.append(f"PROOF: ok (with the reference applied, every line passed, and the reference{held} came back out leaving the tree clean)"
+                       if self.proof_ok else
+                       "PROOF: not ok (see FAIL, UNKNOWN, REJECTED, HELD not run, REVERT FAILED, or REFERENCE above; do not serve this task)")
         return out
 
 
@@ -174,13 +191,14 @@ def run_declared(top: Path, command: str, words: List[str]) -> Tuple[int, str]:
 
 
 class Verifier:
-    def __init__(self, top: Path, learner: Learner, the_map: Map, task: Task, on_base: bool = False):
+    def __init__(self, top: Path, learner: Learner, the_map: Map, task: Task, on_base: bool = False, on_reference: bool = False):
         self.top = top
         self.learner = learner
         self.map = the_map
         self.task = task
         self.on_base = on_base
-        self.report = Report(on_base=on_base)
+        self.on_reference = on_reference
+        self.report = Report(on_base=on_base, on_reference=on_reference)
         self._held: Optional[heldtest.HeldTest] = None
 
     def run(self) -> Report:
@@ -189,28 +207,67 @@ class Verifier:
         if not t.verify and not t.held_verify:
             rep.not_run = "the open task declares no verify: or held-verify: lines"
             return rep
+        if self.on_reference:
+            return self._run_on_reference()
         try:
             with interruptible():
-                for line in t.verify:
-                    rep.lines.append(self._run_line(Kind.VERIFY, line))
-                self._run_held()
+                self._run_lines()
         except Interrupted:
-            rep.interrupted = True
-            ht = self._held
-            if ht is not None and ht.result is not None and ht.result.had_record:
-                # The with-block already reverted, aloud; say why first.
-                rep.notes.append("HELD interrupted; reverting")
-                rep.notes += ht.result.lines
-                rep.revert = ht.result
-            else:
-                res = heldtest.revert(self.learner, self.top, quiet=False)
-                rep.notes += res.lines
-                rep.revert = res
+            self._interrupted()
             return rep
+        self._note_proof_gaps()
+        return rep
+
+    def _run_on_reference(self) -> Report:
+        """The forward half: the reference in the tree around the whole
+        run, taken out again whatever happens inside."""
+        rep = self.report
+        repo = Repo(self.top)
+        if self.task.fix and self.learner.patch.is_file():
+            rep.notes.append("note: reference.patch is ignored; the task names a fix, and the fix is the reference")
+        ran: Optional[reference.Applied] = None
+        try:
+            patch = reference.patch_for(repo, self.learner, self.task)
+            with interruptible():
+                with reference.applied(repo, self.learner, patch) as ran:
+                    try:
+                        self._run_lines()
+                    except Interrupted:
+                        self._interrupted()
+        except (reference.NoReference, reference.CannotApply, GitError, OSError) as e:
+            rep.not_run = str(e)
+            if ran is not None:   # the block was entered, so the reverse ran on the way out; keep its outcome
+                rep.not_run += "; " + "; ".join(ran.notes)
+            return rep
+        rep.notes += ran.notes
+        rep.reference_out = ran.clean_exit
+        return rep
+
+    def _run_lines(self) -> None:
+        rep = self.report
+        for line in self.task.verify:
+            rep.lines.append(self._run_line(Kind.VERIFY, line))
+        self._run_held()
+
+    def _note_proof_gaps(self) -> None:
+        rep, t = self.report, self.task
         if self.on_base:
             seen = {r.expect_key for r in rep.lines if r.outcome in (Outcome.EXPECTED_FAIL, Outcome.UNEXPECTED_PASS)}
             rep.proof_gaps = [e for e in t.expect_fail_on_base if e not in seen]
-        return rep
+
+    def _interrupted(self) -> None:
+        rep = self.report
+        rep.interrupted = True
+        ht = self._held
+        if ht is not None and ht.result is not None and ht.result.had_record:
+            # The with-block already reverted, aloud; say why first.
+            rep.notes.append("HELD interrupted; reverting")
+            rep.notes += ht.result.lines
+            rep.revert = ht.result
+        else:
+            res = heldtest.revert(self.learner, self.top, quiet=False)
+            rep.notes += res.lines
+            rep.revert = res
 
     def _run_held(self) -> None:
         rep, t = self.report, self.task

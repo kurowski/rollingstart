@@ -14,7 +14,7 @@ import time
 import unittest
 from pathlib import Path
 
-from support import BIN, WorldTest, is_root
+from support import BIN, GREET_TEST, WorldTest, is_root
 
 from rolling import heldtest
 from rolling.model import Map, Task
@@ -26,9 +26,176 @@ class VerifierTest(WorldTest):
         super().setUp()
         self.branch, self.base = self.w.begin("greet-politely", "--fix", self.w.fix, "--held", "tests/greet.test.sh")
 
-    def verify(self, on_base=False):
+    def verify(self, on_base=False, on_reference=False):
         w = self.w
-        return Verifier(w.top, w.learner, Map.load(w.top / ".rolling"), Task.load(w.learner.task_file), on_base=on_base).run()
+        return Verifier(w.top, w.learner, Map.load(w.top / ".rolling"), Task.load(w.learner.task_file), on_base=on_base, on_reference=on_reference).run()
+
+    def test_proof_with_the_reference_applied(self):
+        """The forward half: the fix's change goes in as a patch, every
+        line passes, the held test included, and both come back out."""
+        w = self.w
+        w.held_task(self.branch, self.base)
+        rep = self.verify(on_reference=True)
+        self.assertEqual([r.outcome for r in rep.lines], [Outcome.PASS, Outcome.PASS])
+        self.assertTrue(rep.proof_ok, rep.render())
+        self.assertEqual(rep.notes, ["REFERENCE reversed"])
+        self.assertIn("HELLO", w.read("src/greet.sh"), "the fix is back out")
+        self.assertFalse((w.top / "tests/greet.test.sh").exists(), "the held test is back out")
+        self.assertFalse((w.learner.dir / ".reference.applied.patch").exists())
+        self.assertClean()
+        out = self.assertRuns("verify", "--on-reference")
+        self.assertIn("PROOF: ok (with the reference applied", out)
+        self.assertIn("PROOF: not ok (bad arguments)", self.assertRuns("verify", "--on-base", "--on-reference"))
+
+    def test_reference_that_fails_is_still_reversed(self):
+        w = self.w
+        w.held_task(self.branch, self.base, verify=["check", "fails"])
+        rep = self.verify(on_reference=True)
+        self.assertFalse(rep.proof_ok)
+        self.assertIn("REFERENCE reversed", rep.notes)
+        self.assertIn("PROOF: not ok (see FAIL", "\n".join(rep.render()))
+        self.assertClean()
+
+    def test_reference_needs_a_clean_tree_and_something_to_apply(self):
+        w = self.w
+        w.held_task(self.branch, self.base)
+        w.write("src/greet.sh", w.read("src/greet.sh") + "# learner\n")
+        rep = self.verify(on_reference=True)
+        self.assertIn("not clean", rep.not_run)
+        self.assertEqual(self.assertRuns("verify", "--on-reference").strip().split("\n")[-1], "PROOF: not ok (the verifier did not run)")
+        w.git("checkout", "--", "src/greet.sh")
+        w.held_task(self.branch, self.base, fix="")
+        rep = self.verify(on_reference=True)
+        self.assertIn("no fix: line and no reference patch", rep.not_run)
+        self.assertRuns("write", "patch", stdin="not a patch\n")
+        rep = self.verify(on_reference=True)
+        self.assertIn("does not apply", rep.not_run)
+        self.assertFalse((w.learner.dir / ".reference.applied.patch").exists())
+        self.assertClean()
+
+    def test_a_check_that_dirties_the_tree_fails_the_proof(self):
+        w = self.w
+        w.add_command("junk", "sh -c 'echo x > junk.txt'")
+        w.git("commit", "-q", "-am", "a command that litters")
+        w.held_task(self.branch, w.git("rev-parse", "HEAD"), verify=["check", "junk"])
+        out = self.assertRuns("verify", "--on-reference")
+        self.assertIn("REFERENCE reversed, but the tree is not clean afterwards", out)
+        self.assertIn("?? junk.txt", out)
+        self.assertIn("PROOF: not ok", out)
+
+    def test_a_root_commit_fix_is_refused_in_words(self):
+        w = self.w
+        w.held_task(self.branch, self.base, fix=w.pre)
+        out = self.assertRuns("verify", "--on-reference")
+        self.assertIn("root commit", out)
+        self.assertTrue(out.strip().endswith("PROOF: not ok (the verifier did not run)"))
+        self.assertClean()
+
+    def test_a_killed_proof_is_repaired_by_the_next_command(self):
+        """SIGKILL leaves the applied copy and the reference in the tree;
+        every tree-touching command reverses it first, or refuses."""
+        w = self.w
+        w.held_task(self.branch, self.base)
+        patch = w.git("diff", "--binary", "HEAD", w.fix, "--", "src/greet.sh") + "\n"
+
+        def killed_mid_proof():   # what SIGKILL leaves: the copy, the commit it went in on, the tree patched
+            w.learner.applied_patch.write_text(patch)
+            w.learner.applied_at.write_text(w.git("rev-parse", "HEAD") + "\n")
+            w.git("apply", str(w.learner.applied_patch))
+        killed_mid_proof()
+        self.assertIn("Hello", w.read("src/greet.sh"), "the reference is in the tree, as after a kill")
+        out = self.assertRuns("diff")
+        self.assertIn("REFERENCE repaired", out)
+        self.assertNotIn("Hello", out.split("## Diff")[1], "the diff shows nothing of the reference")
+        self.assertFalse(w.learner.applied_patch.exists())
+        self.assertFalse(w.learner.applied_at.exists())
+        self.assertClean()
+        # And when it no longer reverses cleanly: refuse, naming the file.
+        killed_mid_proof()
+        w.write("src/greet.sh", w.read("src/greet.sh") + "# the learner typed here\n")
+        out = self.assertRuns("diff")
+        self.assertIn("REFERENCE STILL APPLIED", out)
+        self.assertIn("DIFF: not captured", out)
+        self.assertIn("not starting a task", self.assertRuns("begin-task", "setup", "--fix", w.fix, status=1))
+        self.assertIn("PROOF: not ok", self.assertRuns("verify", "--on-base"))
+        self.assertTrue(w.learner.applied_patch.exists(), "the record is kept until a human finishes it")
+        # And never on another commit: the record names where it went in.
+        w.git("checkout", "-q", "--", "src/greet.sh")
+        w.git("apply", str(w.learner.applied_patch))
+        w.git("stash", "-q")
+        w.git("switch", "-q", "main")
+        out = self.assertRuns("diff")
+        self.assertIn("REFERENCE STILL APPLIED", out)
+        self.assertIn("HEAD is now", out)
+        self.assertClean()
+        self.assertEqual(w.git("rev-parse", "HEAD"), w.fix, "main's committed fix was not reverted")
+        w.git("switch", "-q", self.branch)
+        w.git("stash", "pop", "-q")
+        self.assertIn("REFERENCE repaired", self.assertRuns("diff"))
+        self.assertClean()
+        # A record with no commit noted refuses too, saying so.
+        killed_mid_proof()
+        w.learner.applied_at.unlink()
+        out = self.assertRuns("diff")
+        self.assertIn("did not record", out)
+        w.git("checkout", "-q", "--", "src/greet.sh")
+        # A record that outlived its reverse is cleared, not refused.
+        self.assertIn("record cleared", self.assertRuns("diff"))
+        self.assertFalse(w.learner.applied_patch.exists())
+        self.assertIn("## Diff", self.assertRuns("diff"))
+
+    def test_a_mode_only_reference_is_still_repaired(self):
+        """A mode change applies forward and reverses in either state, so
+        the stale-record shortcut must not mistake it for already out."""
+        w = self.w
+        w.held_task(self.branch, self.base)
+        patch = "diff --git a/src/greet.sh b/src/greet.sh\nold mode 100644\nnew mode 100755\n"
+        w.learner.applied_patch.write_text(patch)
+        w.learner.applied_at.write_text(w.git("rev-parse", "HEAD") + "\n")
+        w.git("apply", str(w.learner.applied_patch))
+        self.assertTrue(os.access(w.top / "src/greet.sh", os.X_OK), "applied to the worktree")
+        out = self.assertRuns("diff")
+        self.assertIn("REFERENCE repaired", out)
+        self.assertNotIn("record cleared", out)
+        self.assertFalse(os.access(w.top / "src/greet.sh", os.X_OK), "reversed")
+        self.assertClean()
+
+    @unittest.skipIf(is_root(), "root writes anywhere")
+    def test_a_record_that_cannot_be_removed_is_said_so(self):
+        w = self.w
+        w.held_task(self.branch, self.base)
+        patch = w.git("diff", "--binary", "HEAD", w.fix, "--", "src/greet.sh") + "\n"
+        w.learner.applied_patch.write_text(patch)
+        w.learner.applied_at.write_text(w.git("rev-parse", "HEAD") + "\n")
+        w.git("apply", str(w.learner.applied_patch))
+        w.learner.dir.chmod(0o555)
+        try:
+            out = self.assertRuns("diff")
+        finally:
+            w.learner.dir.chmod(0o700)
+        self.assertIn("REFERENCE repaired, but its record could not be removed", out)
+        self.assertIn("HELLO", w.read("src/greet.sh"), "reversed all the same")
+        self.assertIn("DIFF: not captured", out)
+        self.assertIn("record cleared", self.assertRuns("diff"), "writable again: the stale record goes")
+
+    def test_a_seam_task_proves_with_a_written_patch(self):
+        """No fix: the tutor's own solution, as a patch it wrote with the pen."""
+        w = self.w
+        w.git("switch", "-q", "main")
+        w.git("branch", "-q", "-D", self.branch)
+        w.git("switch", "-q", "--detach", w.pre)
+        w.write("tests/greet.test.sh", GREET_TEST)
+        branch, base = w.begin("greet-politely", "--here", "tests/greet.test.sh")
+        w.task(lesson="greet-politely", mode="write", branch=branch, base=base, return_to=w.pre, started="2026-09-16",
+               tutor_session="s1", scope="src", verify=["check", "test tests/greet.test.sh"], expect_fail_on_base=["verify test tests/greet.test.sh"])
+        self.assertIn("PROOF: ok", self.assertRuns("verify", "--on-base"))
+        self.assertIn("no fix: line and no reference patch", self.assertRuns("verify", "--on-reference"))
+        self.assertRuns("write", "patch", stdin=w.git("diff", w.pre, w.fix, "--", "src/greet.sh") + "\n")
+        out = self.assertRuns("verify", "--on-reference")
+        self.assertIn("PROOF: ok (with the reference applied", out)
+        self.assertIn("HELLO", w.read("src/greet.sh"))
+        self.assertClean()
+        self.assertIn("removed reference.patch", self.assertRuns("close-task"))
 
     def test_proof_on_the_starting_state(self):
         self.w.held_task(self.branch, self.base)

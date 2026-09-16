@@ -224,8 +224,8 @@ class WorldTest(unittest.TestCase):
         self.w = ScratchWorld()
         self.addCleanup(self.w.cleanup)
 
-    def assertRuns(self, name: str, *args: str, status: int = 0) -> str:
-        rc, out = self.w.run(name, *args)
+    def assertRuns(self, name: str, *args: str, status: int = 0, stdin: str = "") -> str:
+        rc, out = self.w.run(name, *args, stdin=stdin)
         self.assertEqual(rc, status, f"rolling-{name} {' '.join(args)} exited {rc}:\n{out}")
         return out
 

@@ -39,6 +39,9 @@ repository's tooling; that is the point of its location.
   session                  # the tutor's session id, when no task is open
   task.md                  # the open task, if any
   reference.md             # the held reference solution for the open task
+  reference.patch          # a seam task's reference as a diff, for the forward proof
+  .reference.applied.patch # the reference while a proof has it in the tree (normally absent)
+  .reference.applied.at    # the commit it went in on, beside it
   held/<path>              # the held test files for the open task
   held-aside/<path>        # your file set aside while the held test runs (normally absent)
   held-aside.pending       # the record of that run, kept only if it was interrupted
@@ -52,7 +55,8 @@ repository's tooling; that is the point of its location.
 ## `profile.md`
 
 Written once by `/rolling:start` after intake, appended to by
-`/rolling:done`, edited otherwise only by the learner in conversation.
+`/rolling:done`, edited otherwise only by the learner in conversation;
+always through `rolling-write profile`, which checks it first.
 
 ```markdown
 # Profile
@@ -98,14 +102,25 @@ One line, the session id of the tutor's most recent session, written
 by `rolling-claim-session` from every learner-side skill when no task
 is open. While a task is open the same id lives in the task instead.
 It is how P1b's hooks tell the tutor's session from the learner's
-coding session; in P1a it is written and never read.
+coding session. In P1a one thing reads it: `rolling-write task` stamps
+it into a new task as `tutor-session`, rewriting any such line the
+text carried, since that field is what the write guard keys on. The
+pen declines to take it from the text; it is not beyond a shell's
+reach, and the checkpoint plan names that exposure.
 
 ## `task.md`
 
 The open task. Written by the `next` skill after `rolling-begin-task`
-has put the repository on the task's branch, checked by
-`rolling-check-task` before anything reads it, removed by
+has put the repository on the task's branch, through `rolling-write
+task`, which checks the file before it lands and refuses a malformed
+one with its faults, so nothing downstream ever reads one; removed by
 `rolling-close-task` when the lesson is satisfied. At most one exists.
+Every file the tutor writes goes through that pen (`rolling-write`
+for this file, the profile, and the reference; `rolling-note` for
+evidence): the data directory is under `~/.claude`, which Claude Code
+protects from the Edit and Write tools with a prompt on every call,
+and a granted script is not prompted. The pen takes a file's role,
+never a path, so the grant writes nothing else.
 
 ```markdown
 ---
@@ -223,6 +238,17 @@ scripts run. Every value is validated before it is used, and
 `rolling-verify` and `rolling-diff` fail safe, in words, on anything
 malformed rather than guessing.
 
+## `reference.patch`
+
+For a task built along a seam rather than from a fix: the tutor's
+solution as a unified diff against the starting state, written with
+`rolling-write patch`, so `rolling-verify --on-reference` can put it in
+the tree, run every check, and take it back out. A task built from a
+fix needs none; its reference is the fix's own change. The write guard
+denies the tutor's editing tools inside the scope from the moment the
+task exists, so this is the only way the tutor's own solution ever
+touches the tree, and it never stays there.
+
 ## `reference.md`
 
 The tutor's copy of the answer, held back. For a task built from a
@@ -273,8 +299,9 @@ the `next` skill keeps a task here when it proved cleanly.
 
 ## `evidence/<lesson>.md`
 
-Appended, never rewritten. One entry per event, opening with a date
-line, and the entry's kind on the next line:
+Appended by `rolling-note <lesson>`, never rewritten. One entry per
+event, opening with a date line the script adds, and the entry's kind
+on the next line, which the script requires:
 
 ```markdown
 ## 2026-09-14
@@ -334,7 +361,9 @@ examiner:
   not mean to be, and offer the course's shape back, and never edits
   the section itself.
 - **Detours** are created by the tutor and promoted by the author.
-- Nothing here is ever written into the repository's working tree.
+- Nothing here is ever written into the repository's working tree,
+  and nothing here is written by the Edit or Write tools: the pen is
+  `rolling-write` and `rolling-note`, named by role.
 
 ## What `rolling-check-profile` and `rolling-check-task` check
 

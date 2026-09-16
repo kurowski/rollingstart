@@ -46,17 +46,21 @@ first finishes any held-test revert a killed run left behind.
 | `rolling-claim-session <id>` | skills, inline | Records the session as the tutor's, in the open task or the `session` file. |
 | `rolling-report` | `done`, inline | The diff, then the verifier, in that order, from one command. |
 | `rolling-diff` | `rolling-report` | The working tree against the task's `base`, untracked included, nothing excluded, capped. |
-| `rolling-verify [--on-base]` | `rolling-report`, `next` | The task's `verify:` lines against the map's commands, then the held test applied, run, and reverted, with the learner's own file set aside in the learner's directory and a record that survives a kill. `--on-base` is the both-ways proof, and a line that did not run fails it. |
-| `rolling-begin-task <lesson> --fix <sha> [--held p]… [--shown p]… \| --here <path>…` | `next` | The throwaway branch with the starting state committed; held tests copied aside, shown tests brought forward; `--here` commits only the paths named. Refuses while a task is open. |
+| `rolling-verify [--on-base \| --on-reference]` | `rolling-report`, `next` | The task's `verify:` lines against the map's commands, then the held test applied, run, and reverted, with the learner's own file set aside in the learner's directory and a record that survives a kill. `--on-base` is the proof's first half (the expected failures fail on the starting state; a line that did not run fails it); `--on-reference` the second (the reference applied as a patch, everything passes, the patch reversed in a `finally`). The reference is the fix's own change, or for a seam task the patch the tutor wrote with `rolling-write patch`. |
+| `rolling-begin-task <lesson> --fix <sha> [--held p]… [--shown p]… \| --here <path>…` | `next` | The throwaway branch with the starting state committed; held tests copied aside, shown tests brought forward, the map carried across as it is now; `--here` commits only the paths named. Refuses while a task is open. |
 | `rolling-end-task` | `done` | Commits what the learner left on the task branch, keeps it, returns them to where they were. |
 | `rolling-check-map [dir]` | authors, `next` | The map's shape against the spec. |
 | `rolling-check-profile`, `rolling-check-task` | `start`, `next` | The learner's files' shape against the spec. |
-| `rolling-close-task` | `done` | Removes `task.md`, `reference.md`, `held/`, nothing else. |
+| `rolling-close-task` | `done` | Removes `task.md`, `reference.md`, `reference.patch`, `held/`, nothing else. |
+| `rolling-write task\|profile\|reference\|patch` | `start`, `next`, `done` | The tutor's pen: the file on standard input, checked (a task or profile with faults is refused and nothing lands), written. A task gets the tutor's session id stamped in, from the open task or the `session` file, whatever the text said. The data directory is a path Claude Code protects from Edit and Write, and a granted script is not prompted. |
+| `rolling-note <lesson>` | every skill | Appends an evidence entry, under today's date; the entry must open with its kind (`**Route.**`, `**Observation.**`, `**Intervention.**`, `**Feedback.**`). |
+| `rolling-keep-task` | `next` | Copies the open task, minus the five lines that belong to one run (`branch`, `base`, `return-to`, `started`, `tutor-session`), to `tasks/<lesson>/<stamp>.md` for a later session. |
 | `rolling-export <dir>` | the learner | Copies the learner's directory somewhere safe. |
 
 Scripts a skill runs inline always exit 0 and report in words, because
 a non-zero inline exit aborts the skill. Scripts a skill runs as an
-action (`begin-task`, `end-task`, the checks, `export`) exit non-zero
+action (`begin-task`, `end-task`, the checks, `export`, `write`,
+`note`, `keep-task`) exit non-zero
 on refusal.
 
 ## Tests
