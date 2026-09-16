@@ -31,6 +31,7 @@ from typing import List, Optional
 
 from . import frontmatter as fm, rules, session, validate
 from .model import Learner, LoadError, Map, Task
+from .repo import GitError, Repo, literal
 
 FILES = ("task", "profile", "reference", "patch")
 KINDS = ("Route", "Observation", "Intervention", "Feedback")
@@ -74,6 +75,97 @@ def write(learner: Learner, what: str, text: str, top: Path, map_dir: Path) -> L
     except OSError as e:
         raise Refused(f"the learner directory cannot be written: {e}")
     return notes + [f"wrote {dest.name}"]
+
+
+def patch_from_tree(learner: Learner, repo: Repo, paths: List[str]) -> List[str]:
+    """The reference patch taken from the tree instead of a heredoc: the
+    diff of PATHS against HEAD becomes reference.patch, and the paths
+    are put back as HEAD has them, so the solution the tutor tried out
+    in the tree before the task existed leaves no trace there. A
+    heredoc carrying code trips the Bash tool's obfuscation check
+    (braces beside quotes), and the tree is where the solution already
+    was for the checks to run.
+
+    Each path names one file, literally: no glob, no pathspec magic,
+    since git would expand either into files the tutor never named. A
+    file new to the repository is taken too (git's intent-to-add makes
+    it diff) and removed from the tree afterwards; its content is in
+    the patch. Everything refusable is checked before anything is
+    written; a restore that fails afterwards says what is still
+    changed."""
+    if not paths:
+        raise Refused("rolling-write patch --from-tree needs the paths the solution touched, one by one, after it")
+    seen: List[str] = []
+    for p in paths:
+        if not rules.is_literal_path(p):
+            raise Refused(f"{p} is not a plain repository-relative path naming one file (no leading ./ or /, no .., no //, no glob, no pathspec magic)")
+        if p in seen:
+            raise Refused(f"{p} is listed twice")
+        seen.append(p)
+        fp = repo.top / p
+        if fp.is_symlink() or fp.is_dir():
+            raise Refused(f"{p} is a directory or a link; name the files, one by one")
+    # Known to HEAD by exact name (no listing to match by eye: git quotes
+    # some names in a listing, and a quoted name matches nothing).
+    known = [p for p in paths if repo.in_tree("HEAD", p)]
+    new = [p for p in paths if p not in known]
+    for p in new:
+        if not (repo.top / p).is_file():
+            what = "a directory at HEAD; name the files, one by one" if repo.ok("cat-file", "-e", f"HEAD:{p}") else "neither in HEAD nor in the tree"
+            raise Refused(f"{p} is {what}")
+    try:
+        # Intent to add makes a new file diff. It is dropped again as soon
+        # as the diff is taken, whatever happened, and only for the files
+        # the tutor had not already staged: `add -N` stages what it can
+        # before failing, and a refusal must leave the index as it was.
+        staged = repo.staged_names(new) if new else []
+        unstaged = [p for p in new if p not in staged]
+        try:
+            if new:
+                repo.run("add", "-N", "--", *literal(new))
+            diff = repo.run_bytes("diff", "--binary", "HEAD", "--", *literal(paths))
+            stat = [l for l in repo.run("diff", "--stat", "HEAD", "--", *literal(paths)).split("\n") if l]
+        finally:
+            if unstaged:
+                repo.run("rm", "-q", "-f", "--cached", "--ignore-unmatch", "--", *literal(unstaged), check=False)
+        if not diff.strip():
+            raise Refused("nothing to take: those paths are as HEAD has them")
+        learner.dir.mkdir(parents=True, exist_ok=True)
+        tmp = learner.patch.with_name(f".{learner.patch.name}.{os.getpid()}.new")
+        tmp.write_bytes(diff)
+        os.replace(tmp, learner.patch)
+    except GitError as e:
+        raise Refused(f"git failed: {e}")
+    except OSError as e:
+        raise Refused(f"the learner directory cannot be written: {e}")
+    try:
+        # Every new file is leaving the tree now, so its index entry goes
+        # with it, the tutor's own staging included; the finally above
+        # kept that entry only because a refusal must change nothing.
+        if new:
+            repo.run("rm", "-q", "-f", "--cached", "--ignore-unmatch", "--", *literal(new), check=False)
+        for p in new:
+            (repo.top / p).unlink()
+            _prune_empty_parents(repo.top, p)
+        if known:
+            repo.checkout_paths("HEAD", known)
+    except (GitError, OSError) as e:
+        left = [p for p in repo.status_paths() if p in paths]
+        raise Refused(f"{learner.patch.name} is written, but restoring the tree failed ({e}); still changed: " + (", ".join(left) or "nothing"))
+    return [f"wrote {learner.patch.name} from the tree:"] + ["  " + l for l in stat] + ["restored " + ", ".join(paths) + " to HEAD" + (" (new files removed; their content is in the patch)" if new else "")]
+
+
+def _prune_empty_parents(top: Path, p: str) -> None:
+    """A new file's empty parent directories go with it (git tracks no
+    directory, so a pre-existing empty one loses nothing); a directory
+    that holds anything else stays, and the top is never touched."""
+    d = (top / p).parent
+    while d != top:
+        try:
+            d.rmdir()
+        except OSError:
+            return
+        d = d.parent
 
 
 def _stamped(learner: Learner, text: str) -> str:

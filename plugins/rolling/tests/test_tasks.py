@@ -67,6 +67,8 @@ class BeginFromFixTest(WorldTest):
         self.assertRuns("begin-task", "setup", "--fix", w.fix, "--held", "/etc/passwd", status=1)
         self.assertRuns("begin-task", "setup", "--fix", w.fix, "--held", "../x", status=1)
         self.assertIn("is listed twice", self.assertRuns("begin-task", "setup", "--fix", w.fix, "--held", "tests/greet.test.sh", "--shown", "tests/greet.test.sh", status=1))
+        self.assertIn("no glob, no pathspec magic", self.assertRuns("begin-task", "setup", "--fix", w.fix, "--shown", ":!tests/greet.test.sh", status=1))
+        self.assertIn("no glob, no pathspec magic", self.assertRuns("begin-task", "setup", "--here", "tests/*", status=1))
         self.assertIn("is not a regular file at", self.assertRuns("begin-task", "setup", "--fix", w.fix, "--held", "tests", status=1))
         w.git("checkout", "-q", "-b", "side")
         w.git("commit", "-q", "--allow-empty", "-m", "side")

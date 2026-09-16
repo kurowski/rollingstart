@@ -62,8 +62,8 @@ class Tasks:
             raise Refused(f"{fix} is a merge commit; pick another fix")
         seen: List[str] = []
         for p in held + shown:
-            if not rules.is_plain_relpath(p):
-                raise Refused(f"{p} is not a plain repository-relative path (no leading ./, no .., no //)")
+            if not rules.is_literal_path(p):
+                raise Refused(f"{p} is not a plain repository-relative path naming one file (no leading ./, no .., no //, no glob, no pathspec magic)")
             if p in seen:
                 raise Refused(f"{p} is listed twice")
             seen.append(p)
@@ -102,8 +102,8 @@ class Tasks:
         if not files:
             raise Refused("--here needs the paths the task adds")
         for p in files:
-            if not rules.is_plain_relpath(p):
-                raise Refused(f"{p} is not a plain repository-relative path (no leading ./, no .., no //)")
+            if not rules.is_literal_path(p):
+                raise Refused(f"{p} is not a plain repository-relative path naming one file (no leading ./, no .., no //, no glob, no pathspec magic)")
             fp = repo.top / p
             if fp.is_symlink() or not fp.is_file():
                 raise Refused(f"{p} is not a regular file in the working tree (--here takes the files the task adds, one by one, never a directory or a link)")

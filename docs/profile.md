@@ -242,7 +242,11 @@ malformed rather than guessing.
 
 For a task built along a seam rather than from a fix: the tutor's
 solution as a unified diff against the starting state, written with
-`rolling-write patch`, so `rolling-verify --on-reference` can put it in
+`rolling-write patch`, or taken from the tree where the tutor tried
+it out with `--from-tree <path>…`, which restores those paths and
+removes a new file, and the empty directories made for it, once its
+content is in the patch. Either way
+`rolling-verify --on-reference` can put it in
 the tree, run every check, and take it back out. A task built from a
 fix needs none; its reference is the fix's own change. The write guard
 denies the tutor's editing tools inside the scope from the moment the

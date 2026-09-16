@@ -62,6 +62,14 @@ def is_plain_relpath(p: str) -> bool:
     return p != "" and not p.startswith("/") and all(seg not in ("", ".", "..") for seg in p.split("/"))
 
 
+def is_literal_path(p: str) -> bool:
+    """A plain relative path naming one file: no pathspec magic (`:!x`,
+    `:(top)x`) and no `*` or `?`. Git is always handed such a path as a
+    `:(literal)` pathspec (repo.literal), so `[` is allowed: a Next.js
+    route is `[urlId].tsx`."""
+    return is_plain_relpath(p) and not p.startswith(":") and not any(c in p for c in "*?")
+
+
 def command_takes_args(cmd: str) -> bool:
     """A map command may have arguments appended after it only if it does
     not end in an operator (; & | > < \\) and contains no '#': either would

@@ -44,7 +44,7 @@ from typing import Iterator, List, Tuple
 
 from . import paths
 from .model import Learner, Task
-from .repo import GitError, Repo
+from .repo import GitError, Repo, literal
 
 
 class NoReference(Exception):
@@ -75,11 +75,11 @@ def patch_for(repo: Repo, learner: Learner, task: Task) -> bytes:
         fix = repo.rev_parse(f"{task.fix}^{{commit}}")
         if not repo.has_parent(fix):
             raise NoReference(f"fix {task.fix} is a root commit; there is no change to apply")
-        touched = [p for p in repo.run("diff", "--name-only", f"{fix}^", fix).split("\n") if p]
+        touched = repo.changed_paths(f"{fix}^", fix)   # real names, so a quoted one is compared as itself
         keep = [p for p in touched if p not in task.held and p.split("/", 1)[0] != paths.MAP_DIR]
         if not keep:
             raise NoReference(f"fix {task.fix} touches nothing but held paths and the map; there is no reference to apply")
-        patch = repo.run_bytes("diff", "--binary", "HEAD", fix, "--", *keep)
+        patch = repo.run_bytes("diff", "--binary", "HEAD", fix, "--", *literal(keep))
         if not patch.strip():
             raise NoReference(f"fix {task.fix} is already in the tree at HEAD; nothing to apply")
         return patch

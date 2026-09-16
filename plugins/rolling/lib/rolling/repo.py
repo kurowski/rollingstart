@@ -72,12 +72,30 @@ class Repo:
 
     def touched(self, sha: str, path: str) -> bool:
         """Did commit SHA change PATH (against its first parent)?"""
-        return self.run("diff", "--name-only", f"{sha}^", sha, "--", path) != ""
+        return self.run("diff", "--name-only", f"{sha}^", sha, "--", *literal([path])) != ""
+
+    def changed_paths(self, a: str, b: str) -> List[str]:
+        """The paths that differ between A and B, by their real names."""
+        out = self.run_bytes("diff", "--name-only", "-z", a, b, "--").decode("utf-8", "surrogateescape")
+        return [p for p in out.split("\0") if p]
+
+    def in_tree(self, sha: str, path: str) -> bool:
+        """Is PATH a file (a blob) at SHA: exact, by name, no pathspec at
+        all. A directory at SHA is not a file, whatever the worktree has."""
+        return self.run("cat-file", "-t", f"{sha}:{path}", check=False).strip() == "blob"
 
     def mode_at(self, sha: str, path: str) -> str:
         """The tree mode of PATH at SHA ('100644', '120000', '040000'…), or ''."""
-        out = self.run("ls-tree", sha, "--", path, check=False)
+        out = self.run("ls-tree", sha, "--", *literal([path]), check=False)
         return out.split()[0] if out else ""
+
+    def staged_names(self, paths: List[str]) -> List[str]:
+        """Which of PATHS the index holds, by their real names. No paths,
+        no answer: an empty pathspec would list the whole index."""
+        if not paths:
+            return []
+        out = self.run_bytes("ls-files", "-z", "--cached", "--", *literal(paths)).decode("utf-8", "surrogateescape")
+        return [p for p in out.split("\0") if p]
 
     def show(self, sha: str, path: str) -> bytes:
         return self.run_bytes("show", f"{sha}:{path}")
@@ -86,6 +104,22 @@ class Repo:
         """Porcelain status lines, untracked files listed one by one."""
         out = self.run("status", "--porcelain", "-uall")
         return [line for line in out.split("\n") if line]
+
+    def status_paths(self) -> List[str]:
+        """The paths status reports, by their real names (NUL-separated,
+        so a name git would otherwise quote comes back as itself)."""
+        out = self.run_bytes("status", "--porcelain", "-uall", "-z").decode("utf-8", "surrogateescape")
+        entries = out.split("\0")
+        found: List[str] = []
+        i = 0
+        while i < len(entries):
+            e = entries[i]
+            if len(e) > 3:
+                found.append(e[3:])
+                if e[0] in "RC":   # a rename or copy: the next field is the original name
+                    i += 1
+            i += 1
+        return found
 
     def status_short(self) -> List[str]:
         """Porcelain status as a person would see it (untracked directories collapsed)."""
@@ -142,16 +176,23 @@ class Repo:
         self.run("switch", "-q", "--detach", sha)
 
     def checkout_paths(self, sha: str, paths: List[str]) -> None:
-        self.run("checkout", "-q", sha, "--", *paths)
+        self.run("checkout", "-q", sha, "--", *literal(paths))
 
     def add(self, paths: Optional[List[str]] = None) -> None:
         if paths is None:
             self.run("add", "-A")
         else:
-            self.run("add", "--", *paths)
+            self.run("add", "--", *literal(paths))
 
     def commit(self, message: str, allow_empty: bool = False) -> None:
         args = ["commit", "-q", "-m", message]
         if allow_empty:
             args.append("--allow-empty")
         self.run(*args)
+
+
+def literal(paths: List[str]) -> List[str]:
+    """Paths as git pathspecs that mean exactly those names: a `*`, `?`,
+    or `[` in a filename (a Next.js route is `[urlId].tsx`) is a
+    character, not a pattern, and a leading `:` cannot start magic."""
+    return [f":(literal){p}" for p in paths]

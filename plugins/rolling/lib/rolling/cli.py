@@ -352,10 +352,20 @@ def cmd_close_task(args: List[str]) -> int:
 
 def cmd_write(args: List[str]) -> int:
     """rolling-write task|profile|reference|patch < the file. The tutor's pen:
-    the model's text, checked, into the learner's directory."""
+    the model's text, checked, into the learner's directory. Or
+    rolling-write patch --from-tree <path>..., the diff of those paths
+    against HEAD, which are then restored."""
     w = _need(locate())
     try:
-        say(*writes.write(w.learner, args[0] if args else "", writes.read_stdin(), w.top, w.map_dir))
+        if args[:2] == ["patch", "--from-tree"]:
+            # Everything after --from-tree is a path, so a path may begin with a dash.
+            if not repair_first(w):
+                raise Refused("a previous run could not be finished (see above); not touching the tree")
+            say(*writes.patch_from_tree(w.learner, w.repo, args[2:]))
+        elif any(a.startswith("--from-tree") for a in args):
+            raise Refused("that is spelled: rolling-write patch --from-tree <path>...")
+        else:
+            say(*writes.write(w.learner, args[0] if args else "", writes.read_stdin(), w.top, w.map_dir))
     except writes.Refused as e:
         raise Refused(str(e))
     return 0

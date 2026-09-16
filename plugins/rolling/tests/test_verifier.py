@@ -16,7 +16,7 @@ from pathlib import Path
 
 from support import BIN, GREET_TEST, WorldTest, is_root
 
-from rolling import heldtest
+from rolling import heldtest, reference
 from rolling.model import Map, Task
 from rolling.verifier import Kind, Outcome, Verifier
 
@@ -29,6 +29,35 @@ class VerifierTest(WorldTest):
     def verify(self, on_base=False, on_reference=False):
         w = self.w
         return Verifier(w.top, w.learner, Map.load(w.top / ".rolling"), Task.load(w.learner.task_file), on_base=on_base, on_reference=on_reference).run()
+
+    def test_a_fix_touching_odd_names_is_whole_in_the_reference(self):
+        """git quotes some names in a listing; the reference is built from
+        real names, so a quoted file is in the patch, and a held file the
+        fix also touched, whose name a bracketed sibling would match as a
+        glob, stays out of it."""
+        w = self.w
+        w.git("switch", "-q", "main")
+        w.git("branch", "-q", "-D", self.branch)
+        w.write('src/a"b.sh', "#!/bin/sh\necho one\n")
+        w.write("app/[id].tsx", "export {}\n")
+        w.write("app/i.tsx", "export {}\n")
+        w.git("add", "-A")
+        w.git("commit", "-q", "-m", "odd names")
+        w.write('src/a"b.sh', "#!/bin/sh\necho two\n")
+        w.write("app/[id].tsx", "export {}; // two\n")
+        w.write("app/i.tsx", "export {}; // HELD_ANSWER\n")
+        w.git("add", "-A")
+        w.git("commit", "-q", "-m", "fix touching odd names")
+        odd_fix = w.git("rev-parse", "HEAD")
+        branch, base = w.begin("greet-politely", "--fix", odd_fix, "--held", "app/i.tsx")
+        w.task(lesson="greet-politely", mode="write", branch=branch, base=base, return_to=f"main {odd_fix}", started="2026-09-16",
+               tutor_session="s1", scope="src", fix=odd_fix, verify=["check"], held="app/i.tsx")
+        text = reference.patch_for(w.repo, w.learner, Task.load(w.learner.task_file)).decode()
+        self.assertIn('a/src/a\\"b.sh', text, "the quoted name is in the patch")
+        self.assertIn("app/[id].tsx", text)
+        self.assertNotIn("HELD_ANSWER", text, "the held file the bracket would match as a glob is not in the reference")
+        self.assertIn("PROOF: ok", self.assertRuns("verify", "--on-reference"))
+        self.assertClean()
 
     def test_proof_with_the_reference_applied(self):
         """The forward half: the fix's change goes in as a patch, every
@@ -161,6 +190,19 @@ class VerifierTest(WorldTest):
         self.assertClean()
 
     @unittest.skipIf(is_root(), "root writes anywhere")
+    def test_a_refused_from_tree_leaves_no_intent_to_add(self):
+        w = self.w
+        w.held_task(self.branch, self.base)
+        w.write("src/helper.sh", "#!/bin/sh\n")
+        w.learner.dir.chmod(0o555)
+        try:
+            self.assertIn("cannot be written", self.assertRuns("write", "patch", "--from-tree", "src/helper.sh", status=1))
+        finally:
+            w.learner.dir.chmod(0o700)
+        self.assertEqual(w.git("status", "--porcelain").split(), ["??", "src/helper.sh"], "untracked, as before")
+        (w.top / "src/helper.sh").unlink()
+
+    @unittest.skipIf(is_root(), "root writes anywhere")
     def test_a_record_that_cannot_be_removed_is_said_so(self):
         w = self.w
         w.held_task(self.branch, self.base)
@@ -177,6 +219,80 @@ class VerifierTest(WorldTest):
         self.assertIn("HELLO", w.read("src/greet.sh"), "reversed all the same")
         self.assertIn("DIFF: not captured", out)
         self.assertIn("record cleared", self.assertRuns("diff"), "writable again: the stale record goes")
+
+    def test_a_seam_task_proves_with_a_patch_taken_from_the_tree(self):
+        """The tutor tried its solution in the tree; the pen takes the diff
+        as the patch and restores the tree, and the proof then runs."""
+        w = self.w
+        w.git("switch", "-q", "main")
+        w.git("branch", "-q", "-D", self.branch)
+        w.git("switch", "-q", "--detach", w.pre)
+        w.write("tests/greet.test.sh", GREET_TEST)
+        branch, base = w.begin("greet-politely", "--here", "tests/greet.test.sh")
+        w.task(lesson="greet-politely", mode="write", branch=branch, base=base, return_to=w.pre, started="2026-09-16",
+               tutor_session="s1", scope="src", verify=["check", "test tests/greet.test.sh"], expect_fail_on_base=["verify test tests/greet.test.sh"])
+        self.assertIn("nothing to take", self.assertRuns("write", "patch", "--from-tree", "src/greet.sh", status=1))
+        self.assertIn("needs the paths", self.assertRuns("write", "patch", "--from-tree", status=1))
+        self.assertIn("not a plain repository-relative path", self.assertRuns("write", "patch", "--from-tree", "../x", status=1))
+        for magic in (":!src/greet.sh", "src/*", "src/gree?.sh", ":(top)src/greet.sh"):
+            self.assertIn("no glob, no pathspec magic", self.assertRuns("write", "patch", "--from-tree", magic, status=1), magic)
+        self.assertIn("name the files", self.assertRuns("write", "patch", "--from-tree", "src", status=1))
+        self.assertIn("neither in HEAD nor in the tree", self.assertRuns("write", "patch", "--from-tree", "src/absent.sh", status=1))
+        self.assertIn("spelled:", self.assertRuns("write", "patch", "--from-tree=src/greet.sh", status=1))
+        self.assertIn("listed twice", self.assertRuns("write", "patch", "--from-tree", "src/greet.sh", "src/greet.sh", status=1))
+        self.assertFalse(w.learner.patch.exists(), "nothing written by any refusal")
+        # Names git quotes in a listing, and names with a bracket, are files like any other.
+        w.write('src/a"b.sh', "#!/bin/sh\necho quoted\n")
+        w.write("app/[urlId].tsx", "export {}\n")
+        w.git("add", "-A")
+        w.git("commit", "-q", "-m", "odd names")
+        w.write('src/a"b.sh', "#!/bin/sh\necho changed\n")
+        w.write("app/[urlId].tsx", "export {}; // changed\n")
+        out = self.assertRuns("write", "patch", "--from-tree", 'src/a"b.sh', "app/[urlId].tsx")
+        self.assertIn("2 files changed", out)
+        self.assertTrue((w.top / 'src/a"b.sh').is_file(), "a tracked file with a quoted name is restored, never deleted")
+        self.assertTrue((w.top / "app/[urlId].tsx").is_file())
+        self.assertClean()
+        w.git("reset", "-q", "--hard", "HEAD^")
+        # The solution: a change to a tracked file and a new file; the learner's own unnamed change stays.
+        w.write("src/greet.sh", w.read("src/greet.sh").replace("HELLO", "Hello"))
+        w.write("src/helper.sh", "#!/bin/sh\n# a new module\n")
+        w.write("check.sh", w.read("check.sh") + "# the learner's own change, unnamed\n")
+        out = self.assertRuns("write", "patch", "--from-tree", "src/greet.sh", "src/helper.sh")
+        self.assertIn("wrote reference.patch from the tree", out)
+        self.assertIn("2 files changed", out)
+        self.assertIn("new files removed", out)
+        self.assertIn("HELLO", w.read("src/greet.sh"), "the solution is out of the tree")
+        self.assertFalse((w.top / "src/helper.sh").exists())
+        self.assertIn("new file mode", w.learner.patch.read_text())
+        self.assertNotIn("src/helper.sh", w.git("ls-files", "--stage"), "no intent-to-add entry lingers")
+        self.assertEqual(w.git("status", "--porcelain").split(), ["M", "check.sh"], "the unnamed change is left alone")
+        w.git("checkout", "--", "check.sh")
+        self.assertIn("PROOF: ok (with the reference applied", self.assertRuns("verify", "--on-reference"))
+        self.assertFalse((w.top / "src/helper.sh").exists(), "the new file went in and came out with the patch")
+        self.assertClean()
+        # A new file in a new directory: the directory goes with it; an ignored sibling refuses and leaves both untracked.
+        w.write("lib/deep/new.sh", "#!/bin/sh\n")
+        w.write(".gitignore", "*.log\n")
+        w.git("add", ".gitignore")
+        w.git("commit", "-q", "-m", "ignore logs")
+        w.write("lib/out.log", "x\n")
+        self.assertRuns("write", "patch", "--from-tree", "lib/deep/new.sh", "lib/out.log", status=1)
+        self.assertNotIn("lib/", w.git("ls-files", "--stage"), "a failed intent-to-add leaves nothing in the index")
+        self.assertIn("?? lib/deep/new.sh", w.git("status", "--porcelain", "-uall"))
+        (w.top / "lib/out.log").unlink()
+        if not is_root():   # root writes anywhere, so the refusal cannot be provoked
+            w.git("add", "lib/deep/new.sh")
+            w.learner.dir.chmod(0o555)
+            try:
+                self.assertRuns("write", "patch", "--from-tree", "lib/deep/new.sh", status=1)
+            finally:
+                w.learner.dir.chmod(0o700)
+            self.assertEqual(w.git("diff", "--cached", "--name-only"), "lib/deep/new.sh", "a file the tutor had staged stays staged after a refusal")
+            w.git("reset", "-q", "--", "lib/deep/new.sh")
+        self.assertRuns("write", "patch", "--from-tree", "lib/deep/new.sh")
+        self.assertFalse((w.top / "lib").exists(), "the directories made for the new file go with it")
+        w.git("reset", "-q", "--hard", "HEAD^")
 
     def test_a_seam_task_proves_with_a_written_patch(self):
         """No fix: the tutor's own solution, as a patch it wrote with the pen."""
