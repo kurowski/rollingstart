@@ -225,7 +225,7 @@ a verifier when the environment's ignored settings file failed it
 (1a.7's map fixes that); and the transcript of a seam task shows the
 solution, since the tutor tries it in the tree, so a learner reading
 the tutor's tool calls has the answer (named as an exposure, not
-solved).
+solved). PR #9, on top of PR #8.
 ---
 
 ### 1a.6 — Running it, contained [PENDING]
