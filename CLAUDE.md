@@ -116,8 +116,10 @@ plan, and fix the real findings first. A review-round fix is a push and
 gets its own review. The reviewer's brief confines any state-changing
 experiment (a hook, a script under odd env, a git operation) to a
 scratch copy under the session's scratchpad, never the live checkout
-and never `../rallly`, and the tree is verified (status, log, local
-config) when a review returns. Prose (a skill, a spec, a map, a doc) is
+and never `../rallly`. When a review returns, first kill anything
+still running from its copy (`pkill -f review-copy`), whatever the
+reviewer says it did, then verify the tree (status, log, local
+config). Prose (a skill, a spec, a map, a doc) is
 reviewed by running it: a lesson on the Rallly clone, its transcript
 read for the failure modes the plan names, and from P2 an eval.
 
