@@ -51,10 +51,14 @@ def encode(path: str) -> str:
     )
 
 
+def learner_dir_in(data: Path, top: Path) -> Path:
+    """The learner's directory for the repository at top, under the
+    plugin's data directory: the one place this layout is spelled."""
+    return data / "repos" / encode(str(top))
+
+
 def learner_dir(top: Path) -> Optional[Path]:
     """The learner's directory for the repository at top, or None when
     ROLLING_DATA is unset; the caller says so in NO_DATA_MSG's words."""
     data = os.environ.get("ROLLING_DATA", "")
-    if not data:
-        return None
-    return Path(data) / "repos" / encode(str(top))
+    return learner_dir_in(Path(data), top) if data else None

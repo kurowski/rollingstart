@@ -68,8 +68,8 @@ recorded here.
 | `CLAUDE_PLUGIN_DATA` reaches a `bin/` script as an environment variable when the Bash tool runs it, and `${CLAUDE_PLUGIN_DATA}` is substituted in a skill's inline command and in a `hooks.json` command | 1a.3 | **Partly** (2026-09-15, 2.1.270, `--plugin-dir`). Not in the Bash tool's environment, for inline or model-run commands. Substituted in a skill's inline command and in a `hooks.json` command; a hook's process also has it in its environment, with `CLAUDE_PLUGIN_ROOT`. Path observed: `~/.claude/plugins/data/<plugin>-<marketplace>/`, `inline` as the marketplace for `--plugin-dir`; created on first session. **And confirmed:** a SessionStart hook can append `export VAR=…` to the file named by `CLAUDE_ENV_FILE`, and every later Bash command in the session sees it, inline commands included. That is the resolver: the hook exports `ROLLING_DATA`. |
 | A plugin's `bin/` is on the Bash tool's PATH in a session where the plugin is enabled through a local marketplace, and stays so across `/clear` | 1a.3 | **Yes** for `--plugin-dir` (a bare name resolved to the plugin's `bin/`, from an inline command and from a model-run one). A marketplace install and `/clear` are checked when 1a.6's runner exists. |
 | `claude plugin validate` accepts the marketplace root and each plugin directory, and its exit status is usable as a gate | 1a.3 | **Yes.** Exit 0 with warnings printed; `--strict` turns warnings into exit 1 for CI; `--json` available. Warns on a missing marketplace description and plugin author. |
-| `${CLAUDE_SESSION_ID}` is substituted inside a skill's inline `` !`…` `` command, and the same session's PreToolUse hook receives the same id in `session_id` | 1a.4 | **Yes** (seen while confirming 1a.3's rows): the substituted value, the hook's `session_id`, the Bash tool's `CLAUDE_CODE_SESSION_ID`, and the print-mode result's `session_id` were one string. One caveat: a Claude session started from inside another's Bash tool once inherited the outer `CLAUDE_CODE_SESSION_ID`, so the skills use the substitution, never the variable. |
-| A plugin's `hooks.json` PreToolUse handler fires in the tutor's session for Edit and Write, receives `tool_input.file_path`, and its `deny` is honoured in `auto` mode | 1a.4 | Fires for Bash under `--plugin-dir` (seen). Edit and Write, `file_path`, and `deny` under `auto`: 1a.4. |
+| `${CLAUDE_SESSION_ID}` is substituted inside a skill's inline `` !`…` `` command, and the same session's PreToolUse hook receives the same id in `session_id` | 1a.4 | **Yes** (seen while confirming 1a.3's rows; confirmed again by the 1a.4 probe): the substituted value, the hook's `session_id`, the Bash tool's `CLAUDE_CODE_SESSION_ID`, and the print-mode result's `session_id` were one string. One caveat: a Claude session started from inside another's Bash tool once inherited the outer `CLAUDE_CODE_SESSION_ID`, so the skills use the substitution, never the variable. |
+| A plugin's `hooks.json` PreToolUse handler fires in the tutor's session for Edit and Write, receives `tool_input.file_path`, and its `deny` is honoured in `auto` mode | 1a.4 | **Yes** (2026-09-15, `--plugin-dir`, print mode). Fires for Write with an absolute `file_path`; the input also carries `cwd`, `session_id`, `permission_mode`, `tool_use_id`, `transcript_path`. Under `--permission-mode acceptEdits`, where edits are auto-approved, the hook's `deny` held: the write outside the guarded path landed, the one inside did not, and the model reported the reason verbatim. A second probe under `--permission-mode auto` reported `permission_mode: auto` in the hook input and the deny held there too. |
 | The `Skill` tool can invoke a plugin skill that does not disable model invocation, from inside another skill's turn | 1a.5 | From a prompt, yes (seen). From inside another skill's turn: 1a.5. Also seen: a skill's inline command goes through permissions like any Bash call, so an inline `sh -c …` with no matching grant is refused and the skill fails; every inline command must be a single `bin/` invocation the skill's `allowed-tools` names. |
 | Inline commands in one skill run in document order (so `rolling-diff` completes before `rolling-verify` starts) | 1a.5 | **No.** They start together: three inline commands, one sleeping two seconds, all began within a millisecond. Anything that must be sequenced runs inside one script; `done` gets a single inline `rolling-report` that captures the diff and then runs the verifier. |
 
@@ -147,37 +147,27 @@ record of what the reviews found. PR #6.
 
 ---
 
-### 1a.4 — The `write`-mode scope guard [PENDING]
+### 1a.4 — The `write`-mode scope guard [COMPLETE]
 
 The one rule that must hold when the learner asks nicely: while a
 `write` task is open and this session is the tutor's, the tutor cannot
 edit inside the task's scope, except scaffold paths. Branch
-`p1a.4/write-guard`; depends on 1a.3. Done when, in a scratch
-repository with a `write` task open, the tutor's session is denied an
-Edit inside scope in `auto` mode and told why, allowed one outside it,
-and a test drives the handler through every case below.
-
-Contract drafted in advance (to become the handler's header comment):
-
-- `plugins/rolling/hooks/hooks.json` registers a PreToolUse handler
-  for Edit, Write, MultiEdit, and NotebookEdit that runs a handler in
-  `bin/` (Python, like the rest) and passes it the data directory.
-- The handler reads the open task; if there is none, or its mode is
-  not `write`, or the event's `session_id` differs from
-  `tutor-session`, it exits 0 with no output. Otherwise it resolves
-  the event's path against the project directory, matches it against
-  the task's `scope:` lines (globs: `*`, `**`, `?`; a bare directory
-  matches everything beneath it), exempts `scaffold:` paths, and
-  denies with a reason that names the scope and says what the tutor
-  may do instead (point, explain, scaffold with `TODO(human)`).
-- The handler never blocks the session on its own failure: malformed
-  input, an unreadable task file, or a missing data directory all
-  exit 0 silently.
-- The mechanism rows assigned to 1a.4 are confirmed and recorded
-  before the handler is written against them.
-- The test's cases: in-scope denied, scaffold allowed, out of scope
-  allowed, no task allowed, wrong session allowed, `direct` mode
-  allowed, garbage input allowed.
+`p1a.4/write-guard`; depends on 1a.3. Done: `hooks.json` registers a
+PreToolUse handler for Edit, Write, MultiEdit, and NotebookEdit,
+`rolling-guard`, which finds the repository from the edited path (the
+hook's cwd follows every `cd`, so a guard keyed on it is off after
+one), reads the open task from the data directory the hook is handed,
+denies an edit inside `scope:` unless the path is a `scaffold:` path,
+with a reason that says what the tutor may do instead, and allows
+everything else, including everything it cannot make sense of, since
+a hook that blocks a session on its own failure is worse than none.
+The path is judged as spelled and with every link resolved, and on a
+case-folding filesystem the comparison folds. Both mechanism rows
+assigned here are confirmed (table above). The tests drive the handler
+with hand-built events, the bypasses two review rounds found among
+them; an end-to-end run with the real plugin, a task open and the
+session id pinned, was denied inside the scope and allowed outside it.
+The contract is the module's docstring, `lib/rolling/guard.py`.
 
 ---
 

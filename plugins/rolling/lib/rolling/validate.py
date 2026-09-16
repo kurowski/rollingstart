@@ -370,7 +370,7 @@ def validate_task(task_path: Path, top: Path, mdir: Path, held_dir: Path) -> Lis
     for s in t.scaffold:
         if not rules.is_plain_relpath(s):
             faults.append(Fault(where, f"scaffold '{s}' is not repository-relative"))
-        elif not any(_inside(s, sc) for sc in t.scope):
+        elif not any(rules.inside_scope(s, rules.normalize_scope(sc)) for sc in t.scope if rules.normalize_scope(sc)):
             faults.append(Fault(where, f"scaffold '{s}' is not inside any scope"))
     if not t.verify:
         faults.append(Fault(where, "at least one verify: line is required"))
@@ -418,33 +418,3 @@ def _return_to_faults(where: str, rt: str, top: Path) -> List[Fault]:
         faults.append(Fault(where, f"return-to's first word '{words[0]}' is not a ref name"))
     return faults
 
-
-def _inside(path: str, scope: str) -> bool:
-    """Equal to the scope, beneath it as a directory, matching it as a
-    glob, or beneath a directory the glob names. In a scope glob `*`
-    and `?` stay within one path segment and `**` spans segments."""
-    sc = scope.rstrip("/")
-    if path == sc or path.startswith(sc + "/"):
-        return True
-    pat = _glob_regex(sc)
-    return re.match(pat + r"(/.*)?$", path) is not None
-
-
-def _glob_regex(glob: str) -> str:
-    out = []
-    i = 0
-    while i < len(glob):
-        c = glob[i]
-        if glob.startswith("**", i):
-            out.append(".*")
-            i += 2
-        elif c == "*":
-            out.append("[^/]*")
-            i += 1
-        elif c == "?":
-            out.append("[^/]")
-            i += 1
-        else:
-            out.append(re.escape(c))
-            i += 1
-    return "".join(out)
