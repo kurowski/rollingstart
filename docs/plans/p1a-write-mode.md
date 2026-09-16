@@ -167,7 +167,7 @@ assigned here are confirmed (table above). The tests drive the handler
 with hand-built events, the bypasses two review rounds found among
 them; an end-to-end run with the real plugin, a task open and the
 session id pinned, was denied inside the scope and allowed outside it.
-The contract is the module's docstring, `lib/rolling/guard.py`.
+The contract is the module's docstring, `lib/rolling/guard.py`. PR #7.
 
 ---
 
