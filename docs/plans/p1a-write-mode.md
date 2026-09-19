@@ -226,6 +226,7 @@ a verifier when the environment's ignored settings file failed it
 solution, since the tutor tries it in the tree, so a learner reading
 the tutor's tool calls has the answer (named as an exposure, not
 solved). PR #9, on top of PR #8.
+
 ---
 
 ### 1a.6 — Running it, contained [PENDING]
