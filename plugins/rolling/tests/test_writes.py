@@ -88,6 +88,10 @@ class WriteTest(WorldTest):
         w.task(lesson="greet-politely", mode="write", scope="src", verify="check")
         self.assertRuns("write", "task", stdin=bad, status=1)
         self.assertEqual(w.learner.task().scope, ["src"], "a refused rewrite leaves the open task as it was")
+        # A shown test's line spelled as held-verify, with nothing held: refused, saying which line it should be.
+        shown_as_held = TASK.format(base=w.fix).replace("verify: check", "verify: check\nheld-verify: test tests/greet.test.sh")
+        out = self.assertRuns("write", "task", stdin=shown_as_held, status=1)
+        self.assertIn("held-verify lines need a held: path", out)
 
     def test_profile_reference_and_refusals(self):
         w = self.w

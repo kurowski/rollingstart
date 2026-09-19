@@ -270,6 +270,11 @@ def _task_command_faults(where: str, t: Task, m: Optional[Map]) -> List[Fault]:
                     faults.append(Fault(where, f"{kind} names '{key}', whose command in the map ends in an operator or contains '#'"))
             if not rules.args_are_words(args):
                 faults.append(Fault(where, f"{kind} line '{line}' carries a shell metacharacter, quote, or glob"))
+    if t.held_verify and not t.held:
+        # Seen in the exit run: a shown test's line written as held-verify,
+        # which then never runs (nothing is held) and the proof reports no
+        # expected failure. The line for a test in the tree is verify.
+        faults.append(Fault(where, "held-verify lines need a held: path; a test that is in the tree (shown) goes on a verify: line"))
     for op in t.setup:
         if m is not None and op not in m.operations:
             faults.append(Fault(where, f"setup names '{op}', which is not an operation in the map"))

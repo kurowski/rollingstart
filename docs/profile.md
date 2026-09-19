@@ -218,8 +218,11 @@ Fields, all in the frontmatter subset `map.md` defines:
   test files held back from the learner, stored under `held/` with
   the same relative path. Present when the lesson's `test` is `held`
   and the task was built from a fix with a test.
-- **`held-verify`** (optional, one or more). The verifier lines that
-  need the held files in place: same shape as `verify`. `rolling-verify`
+- **`held-verify`** (optional, one or more; only with `held`). The
+  verifier lines that need the held files in place: same shape as
+  `verify`. A test that is in the tree (shown) goes on a `verify` line;
+  the validator refuses `held-verify` lines with nothing held, since
+  they would never run. `rolling-verify`
   runs them after the `verify` lines, with the held files applied, and
   reverts afterwards.
 - **`expect-fail-on-base`** (one or more, for a task to be provable).
@@ -404,7 +407,7 @@ the field.
   in the map and the rest carries no shell metacharacter or glob;
   every `setup` line names an operation key; every
   `expect-fail-on-base` line repeats a `verify` or `held-verify` line
-  verbatim.
+  verbatim; a `held-verify` line has a `held` path to go with it.
 - Every `held` path is repository-relative, contains no `..` segment,
   and has a file under `held/`; every `scaffold` path is inside some
   `scope`.
