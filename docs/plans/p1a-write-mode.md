@@ -70,7 +70,7 @@ recorded here.
 | Mechanism | Sub-scope | Result |
 |---|---|---|
 | `CLAUDE_PLUGIN_DATA` reaches a `bin/` script as an environment variable when the Bash tool runs it, and `${CLAUDE_PLUGIN_DATA}` is substituted in a skill's inline command and in a `hooks.json` command | 1a.3 | **Partly** (2026-09-15, 2.1.270, `--plugin-dir`). Not in the Bash tool's environment, for inline or model-run commands. Substituted in a skill's inline command and in a `hooks.json` command; a hook's process also has it in its environment, with `CLAUDE_PLUGIN_ROOT`. Path observed: `~/.claude/plugins/data/<plugin>-<marketplace>/`, `inline` as the marketplace for `--plugin-dir`; created on first session. **And confirmed:** a SessionStart hook can append `export VAR=…` to the file named by `CLAUDE_ENV_FILE`, and every later Bash command in the session sees it, inline commands included. That is the resolver: the hook exports `ROLLING_DATA`. |
-| A plugin's `bin/` is on the Bash tool's PATH in a session where the plugin is enabled through a local marketplace, and stays so across `/clear` | 1a.3 | **Yes** for `--plugin-dir` (a bare name resolved to the plugin's `bin/`, from an inline command and from a model-run one). A marketplace install and `/clear` are checked when 1a.6's runner exists. |
+| A plugin's `bin/` is on the Bash tool's PATH in a session where the plugin is enabled through a local marketplace, and stays so across `/clear` | 1a.3 | **Yes for both routes, and across `/clear`** (the clear checked by hand, 2026-09-19, in the runner's `tutor` session: after `/rolling:start` and `/clear`, `rolling-show map-check` ran from the Bash tool and reported the map's one fault). For `--plugin-dir`: a bare name resolved to the plugin's `bin/`, from an inline command and from a model-run one. For a marketplace install (2026-09-19, 1a.6's runner, in the container): with this repository added as a local marketplace (`source: directory`, path `/rolling`) and `rolling` installed from it, `/rolling:start`'s inline `rolling-claim-session` ran and wrote `session` under the data directory `~/.claude/plugins/data/rolling-rollingstart/repos/-work/`, before the model turn. So `bin/` resolves and the data directory is the plugin id with the marketplace name, in the home volume. Three more facts: an install copies the plugin into `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`, stamped with the repository's commit, and neither `install` nor `update` refreshes that copy while the version stands; `plugin uninstall` deletes the data directory unless `--keep-data` is given, so the runner's `up` uninstalls with `--keep-data` and reinstalls to pick up an edit; the copy is taken from the working tree, uncommitted edits included; and the marketplace source must stay reachable in every session, since Claude Code resolves an installed plugin through it at load time and reports `cache-miss` (no skills, no hooks) when the directory is gone, so the runner mounts the manifest and the plugins directory in the tutor's session too. `/clear` is checked by hand in an interactive session (the runner's `tutor`), not here. |
 | `claude plugin validate` accepts the marketplace root and each plugin directory, and its exit status is usable as a gate | 1a.3 | **Yes.** Exit 0 with warnings printed; `--strict` turns warnings into exit 1 for CI; `--json` available. Warns on a missing marketplace description and plugin author. |
 | `${CLAUDE_SESSION_ID}` is substituted inside a skill's inline `` !`…` `` command, and the same session's PreToolUse hook receives the same id in `session_id` | 1a.4 | **Yes** (seen while confirming 1a.3's rows; confirmed again by the 1a.4 probe): the substituted value, the hook's `session_id`, the Bash tool's `CLAUDE_CODE_SESSION_ID`, and the print-mode result's `session_id` were one string. One caveat: a Claude session started from inside another's Bash tool once inherited the outer `CLAUDE_CODE_SESSION_ID`, so the skills use the substitution, never the variable. |
 | A plugin's `hooks.json` PreToolUse handler fires in the tutor's session for Edit and Write, receives `tool_input.file_path`, and its `deny` is honoured in `auto` mode | 1a.4 | **Yes** (2026-09-15, `--plugin-dir`, print mode). Fires for Write with an absolute `file_path`; the input also carries `cwd`, `session_id`, `permission_mode`, `tool_use_id`, `transcript_path`. Under `--permission-mode acceptEdits`, where edits are auto-approved, the hook's `deny` held: the write outside the guarded path landed, the one inside did not, and the model reported the reason verbatim. A second probe under `--permission-mode auto` reported `permission_mode: auto` in the hook input and the deny held there too. |
@@ -232,17 +232,39 @@ solved). PR #9, on top of PR #8.
 
 ---
 
-### 1a.6 — Running it, contained [PENDING]
+### 1a.6 — Running it, contained [COMPLETE]
 
 A runner that puts the plugin, the map, and a Rallly clone together in
 the spike's container, so a lesson runs on this machine without npm
-touching the host: this repository mounted read-only and registered as
-a local marketplace, `rolling` installed from it, the map copied into
-the clone, the learner's directory in the home volume so it survives a
-rebuild. Branch `p1a.6/runner`; depends on 1a.3. Done when, from a
-fresh clone at the pin, `up`, `pnpm install` in `shell`, and `tutor`
-lead to `/rolling:start` being offered and running, and
-`spike/README.md` points at the new runner and calls its own frozen.
+touching the host: this repository's marketplace manifest and plugins
+mounted read-only and registered as a local marketplace, `rolling`
+installed from it, the map copied into the clone, the learner's
+directory in the home volume so it survives a rebuild. Branch
+`p1a.6/runner`; depends on 1a.3. Done: `runner/` at the repository
+root (`Dockerfile`, `run.sh`, `env.sh`, `README.md`), the spike's
+image plus that read-only mount under `/rolling`, narrowed so the
+plan, the map sources, and the spike stay out of the tutor's session;
+Python needs no adding, the base image ships 3.11. `up` builds the
+image, starts Rallly's stack, writes the `.env` files, removes what
+the spike's installer left in the clone, puts the map in committed on
+a local branch `rolling/map` (a task begins only from a clean tree,
+found in 1a.5), and installs the plugin from the marketplace,
+uninstalling with `--keep-data` first when it is already there, since
+the install is a copy keyed by version that nothing else refreshes and
+a plain uninstall deletes the learner's state (mechanism row above).
+`spike/README.md` calls its own runner frozen and points here.
+Verified in the container: the plugin listed and enabled at user
+scope; `/rolling:start`'s inline commands ran under the marketplace
+install and wrote the session under
+`~/.claude/plugins/data/rolling-rollingstart/`, in the home volume; a
+second `up` after an edit refreshed the copy and kept that directory.
+What the container could not do on its own: the model turn, since the
+login the spike left in its volume had expired and a login is
+interactive, and `/clear`. The maintainer did both from `runner/run.sh
+tutor` the same day: logged in, ran `/rolling:start`, ran `/clear`,
+and had the tutor run `rolling-show map-check`, which resolved and
+reported the example map's one fault, the missing course heading that
+1a.7 fixes.
 
 ---
 
