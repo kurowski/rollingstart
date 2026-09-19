@@ -66,14 +66,19 @@ def write(learner: Learner, what: str, text: str, top: Path, map_dir: Path) -> L
     try:
         learner.dir.mkdir(parents=True, exist_ok=True)
         tmp.write_text(text, encoding="utf-8", errors="surrogateescape")
-        try:
-            notes = _check(what, tmp, dest, learner, top, map_dir)
-        except Refused:
-            tmp.unlink()
-            raise
-        os.replace(tmp, dest)
     except OSError as e:
         raise Refused(f"the learner directory cannot be written: {e}")
+    try:
+        notes = _check(what, tmp, dest, learner, top, map_dir)
+        os.replace(tmp, dest)
+    except (Refused, OSError) as e:
+        # The refusal's reason is the message whatever the cleanup does;
+        # a temp file that cannot be removed is said, not left in silence.
+        try:
+            tmp.unlink()
+        except OSError as e2:
+            raise Refused(f"{e}; and the temporary copy {tmp.name} could not be removed ({e2})")
+        raise Refused(str(e) if isinstance(e, Refused) else f"the learner directory cannot be written: {e}")
     return notes + [f"wrote {dest.name}"]
 
 
@@ -90,11 +95,23 @@ def patch_from_tree(learner: Learner, repo: Repo, paths: List[str]) -> List[str]
     since git would expand either into files the tutor never named. A
     file new to the repository is taken too (git's intent-to-add makes
     it diff) and removed from the tree afterwards; its content is in
-    the patch. Everything refusable is checked before anything is
-    written; a restore that fails afterwards says what is still
+    the patch. A directory the new file was in stays, even empty: git
+    tracks no directory and shows none, and whether the tutor made it
+    or the learner's own tooling did (a logs/ an app writes to) cannot
+    be told afterwards. Everything refusable is checked before anything
+    is written; a restore that fails afterwards says what is still
     changed."""
     if not paths:
         raise Refused("rolling-write patch --from-tree needs the paths the solution touched, one by one, after it")
+    if learner.has_task():
+        # The restore below puts the named paths back as HEAD has them.
+        # With a task open those paths may hold the learner's work, and
+        # the guard that keeps the tutor's editing tools out of the scope
+        # cannot see a granted script; so the reference is taken from the
+        # tree only before the task exists, which is when a seam task's
+        # solution is tried there anyway.
+        t = learner.task()
+        raise Refused(f"a task is open ({t.lesson if t else '?'}); the reference is taken from the tree before the task begins (rolling-write patch --from-tree, then rolling-begin-task --here), never while the learner's work may be in it")
     seen: List[str] = []
     for p in paths:
         if not rules.is_literal_path(p):
@@ -146,26 +163,12 @@ def patch_from_tree(learner: Learner, repo: Repo, paths: List[str]) -> List[str]
             repo.run("rm", "-q", "-f", "--cached", "--ignore-unmatch", "--", *literal(new), check=False)
         for p in new:
             (repo.top / p).unlink()
-            _prune_empty_parents(repo.top, p)
         if known:
             repo.checkout_paths("HEAD", known)
     except (GitError, OSError) as e:
         left = [p for p in repo.status_paths() if p in paths]
         raise Refused(f"{learner.patch.name} is written, but restoring the tree failed ({e}); still changed: " + (", ".join(left) or "nothing"))
     return [f"wrote {learner.patch.name} from the tree:"] + ["  " + l for l in stat] + ["restored " + ", ".join(paths) + " to HEAD" + (" (new files removed; their content is in the patch)" if new else "")]
-
-
-def _prune_empty_parents(top: Path, p: str) -> None:
-    """A new file's empty parent directories go with it (git tracks no
-    directory, so a pre-existing empty one loses nothing); a directory
-    that holds anything else stays, and the top is never touched."""
-    d = (top / p).parent
-    while d != top:
-        try:
-            d.rmdir()
-        except OSError:
-            return
-        d = d.parent
 
 
 def _stamped(learner: Learner, text: str) -> str:
@@ -262,7 +265,12 @@ def keep_task(learner: Learner) -> str:
     text = learner.task_file.read_text(encoding="utf-8", errors="surrogateescape")
     head, fence, body = text.partition("\n---")
     kept = [l for l in head.split("\n") if l.split(":", 1)[0].strip() not in RUN_FIELDS]
-    dest = learner.tasks / task.lesson / f"{time.strftime('%Y%m%d-%H%M%S')}.md"
+    stamp = time.strftime('%Y%m%d-%H%M%S')
+    dest = learner.tasks / task.lesson / f"{stamp}.md"
+    n = 1
+    while dest.exists():   # two keeps in one second, as the branch names handle it
+        n += 1
+        dest = dest.with_name(f"{stamp}-{n}.md")
     try:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text("\n".join(kept) + fence + body, encoding="utf-8", errors="surrogateescape")

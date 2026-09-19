@@ -65,8 +65,8 @@ def is_plain_relpath(p: str) -> bool:
 def is_literal_path(p: str) -> bool:
     """A plain relative path naming one file: no pathspec magic (`:!x`,
     `:(top)x`) and no `*` or `?`. Git is always handed such a path as a
-    `:(literal)` pathspec (repo.literal), so `[` is allowed: a Next.js
-    route is `[urlId].tsx`."""
+    `:(literal)` pathspec (repo.literal), so `[` is allowed: a bracketed
+    route filename such as `[urlId].tsx`."""
     return is_plain_relpath(p) and not p.startswith(":") and not any(c in p for c in "*?")
 
 

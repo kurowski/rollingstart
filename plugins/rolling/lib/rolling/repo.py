@@ -193,6 +193,6 @@ class Repo:
 
 def literal(paths: List[str]) -> List[str]:
     """Paths as git pathspecs that mean exactly those names: a `*`, `?`,
-    or `[` in a filename (a Next.js route is `[urlId].tsx`) is a
+    or `[` in a filename (a bracketed route file, `[urlId].tsx`) is a
     character, not a pattern, and a leading `:` cannot start magic."""
     return [f":(literal){p}" for p in paths]

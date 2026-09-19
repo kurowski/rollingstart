@@ -17,7 +17,7 @@ from typing import List
 
 from . import paths, rules
 from .model import Learner, Task
-from .repo import Repo
+from .repo import Repo, literal
 
 
 class Refused(Exception):
@@ -132,7 +132,7 @@ class Tasks:
         repo = self.repo
         if not repo.ok("cat-file", "-e", f"{origin}:{paths.MAP_DIR}"):
             return False
-        repo.run("rm", "-r", "-q", "--ignore-unmatch", "--", paths.MAP_DIR, check=False)
+        repo.run("rm", "-r", "-q", "--ignore-unmatch", "--", *literal([paths.MAP_DIR]), check=False)
         repo.checkout_paths(origin, [paths.MAP_DIR])
         return True
 

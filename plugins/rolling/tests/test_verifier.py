@@ -18,7 +18,7 @@ from support import BIN, GREET_TEST, WorldTest, is_root
 
 from rolling import heldtest, reference
 from rolling.model import Map, Task
-from rolling.verifier import Kind, Outcome, Verifier
+from rolling.verifier import Kind, LineResult, Outcome, Report, Verifier
 
 
 class VerifierTest(WorldTest):
@@ -173,6 +173,29 @@ class VerifierTest(WorldTest):
         self.assertFalse(w.learner.applied_patch.exists())
         self.assertIn("## Diff", self.assertRuns("diff"))
 
+    def test_a_mode_entry_that_landed_alone_keeps_the_record(self):
+        """A patch with a mode change and a content hunk, of which only
+        the mode landed: it re-applies forward (a mode entry does, whatever
+        the mode is) and does not reverse, which used to read as "not in
+        the tree"; the dirty named path keeps the record instead."""
+        w = self.w
+        w.held_task(self.branch, self.base)
+        patch = ("diff --git a/check.sh b/check.sh\nold mode 100644\nnew mode 100755\n"
+                 + w.git("diff", "--binary", "HEAD", w.fix, "--", "src/greet.sh") + "\n")
+        w.learner.applied_patch.write_text(patch)
+        w.learner.applied_at.write_text(w.git("rev-parse", "HEAD") + "\n")
+        (w.top / "check.sh").chmod(0o755)   # the mode landed, the content did not
+        self.assertEqual(w.git("status", "--porcelain").split(), ["M", "check.sh"])
+        out = self.assertRuns("diff")
+        self.assertIn("REFERENCE record kept", out)
+        self.assertIn("check.sh changed since it went in", out)
+        self.assertIn("DIFF: not captured", out)
+        self.assertNotIn("record cleared", out)
+        self.assertTrue(w.learner.applied_patch.exists(), "the record stays while a named path is dirty")
+        (w.top / "check.sh").chmod(0o644)
+        self.assertIn("record cleared", self.assertRuns("diff"))
+        self.assertClean()
+
     def test_a_mode_only_reference_is_still_repaired(self):
         """A mode change applies forward and reverses in either state, so
         the stale-record shortcut must not mistake it for already out."""
@@ -192,7 +215,6 @@ class VerifierTest(WorldTest):
     @unittest.skipIf(is_root(), "root writes anywhere")
     def test_a_refused_from_tree_leaves_no_intent_to_add(self):
         w = self.w
-        w.held_task(self.branch, self.base)
         w.write("src/helper.sh", "#!/bin/sh\n")
         w.learner.dir.chmod(0o555)
         try:
@@ -227,10 +249,6 @@ class VerifierTest(WorldTest):
         w.git("switch", "-q", "main")
         w.git("branch", "-q", "-D", self.branch)
         w.git("switch", "-q", "--detach", w.pre)
-        w.write("tests/greet.test.sh", GREET_TEST)
-        branch, base = w.begin("greet-politely", "--here", "tests/greet.test.sh")
-        w.task(lesson="greet-politely", mode="write", branch=branch, base=base, return_to=w.pre, started="2026-09-16",
-               tutor_session="s1", scope="src", verify=["check", "test tests/greet.test.sh"], expect_fail_on_base=["verify test tests/greet.test.sh"])
         self.assertIn("nothing to take", self.assertRuns("write", "patch", "--from-tree", "src/greet.sh", status=1))
         self.assertIn("needs the paths", self.assertRuns("write", "patch", "--from-tree", status=1))
         self.assertIn("not a plain repository-relative path", self.assertRuns("write", "patch", "--from-tree", "../x", status=1))
@@ -254,7 +272,8 @@ class VerifierTest(WorldTest):
         self.assertTrue((w.top / "app/[urlId].tsx").is_file())
         self.assertClean()
         w.git("reset", "-q", "--hard", "HEAD^")
-        # The solution: a change to a tracked file and a new file; the learner's own unnamed change stays.
+        # The test that specifies the seam, then the solution: a change to a tracked file and a new file; the learner's own unnamed change stays.
+        w.write("tests/greet.test.sh", GREET_TEST)
         w.write("src/greet.sh", w.read("src/greet.sh").replace("HELLO", "Hello"))
         w.write("src/helper.sh", "#!/bin/sh\n# a new module\n")
         w.write("check.sh", w.read("check.sh") + "# the learner's own change, unnamed\n")
@@ -266,12 +285,24 @@ class VerifierTest(WorldTest):
         self.assertFalse((w.top / "src/helper.sh").exists())
         self.assertIn("new file mode", w.learner.patch.read_text())
         self.assertNotIn("src/helper.sh", w.git("ls-files", "--stage"), "no intent-to-add entry lingers")
-        self.assertEqual(w.git("status", "--porcelain").split(), ["M", "check.sh"], "the unnamed change is left alone")
+        self.assertEqual(w.git("status", "--porcelain", "-uall").split(), ["M", "check.sh", "??", "tests/greet.test.sh"], "the unnamed change and the test are left alone")
         w.git("checkout", "--", "check.sh")
+        # Then the task begins, from the test alone, and the proof runs on its branch.
+        branch, base = w.begin("greet-politely", "--here", "tests/greet.test.sh")
+        w.task(lesson="greet-politely", mode="write", branch=branch, base=base, return_to=w.pre, started="2026-09-16",
+               tutor_session="s1", scope="src", verify=["check", "test tests/greet.test.sh"], expect_fail_on_base=["verify test tests/greet.test.sh"])
         self.assertIn("PROOF: ok (with the reference applied", self.assertRuns("verify", "--on-reference"))
         self.assertFalse((w.top / "src/helper.sh").exists(), "the new file went in and came out with the patch")
         self.assertClean()
-        # A new file in a new directory: the directory goes with it; an ignored sibling refuses and leaves both untracked.
+        # With the task open the pen refuses to take from the tree: those paths may hold the learner's work.
+        w.write("src/greet.sh", w.read("src/greet.sh") + "# the learner's work\n")
+        out = self.assertRuns("write", "patch", "--from-tree", "src/greet.sh", status=1)
+        self.assertIn("a task is open (greet-politely)", out)
+        self.assertIn("the learner's work", w.read("src/greet.sh"), "nothing restored")
+        self.assertIn("new file mode", w.learner.patch.read_text(), "the reference patch is as it was")
+        w.git("checkout", "--", "src/greet.sh")
+        w.learner.task_file.unlink()
+        # A new file in a new directory: the file goes, the directory stays (it may be the learner's); an ignored sibling refuses and leaves both untracked.
         w.write("lib/deep/new.sh", "#!/bin/sh\n")
         w.write(".gitignore", "*.log\n")
         w.git("add", ".gitignore")
@@ -291,7 +322,9 @@ class VerifierTest(WorldTest):
             self.assertEqual(w.git("diff", "--cached", "--name-only"), "lib/deep/new.sh", "a file the tutor had staged stays staged after a refusal")
             w.git("reset", "-q", "--", "lib/deep/new.sh")
         self.assertRuns("write", "patch", "--from-tree", "lib/deep/new.sh")
-        self.assertFalse((w.top / "lib").exists(), "the directories made for the new file go with it")
+        self.assertFalse((w.top / "lib/deep/new.sh").exists())
+        self.assertTrue((w.top / "lib/deep").is_dir(), "the directory stays: git shows no empty directory, and it may be the learner's own")
+        self.assertClean()
         w.git("reset", "-q", "--hard", "HEAD^")
 
     def test_a_seam_task_proves_with_a_written_patch(self):
@@ -384,6 +417,58 @@ class VerifierTest(WorldTest):
         self.assertEqual(rep.proof_gaps, ["held-verify test tests/greet.test.sh"])
         self.assertIn("HELD REJECTED ../escape.sh", "\n".join(rep.notes))
         self.assertIn("PROOF GAP: expected to fail but never ran: held-verify test tests/greet.test.sh", rep.render())
+
+    def test_the_on_base_proof_needs_an_expected_failure(self):
+        """A task with no expect-fail-on-base line proves nothing: its
+        checks pass before the work is done. The script says so; the
+        skill's prose is not the only thing holding it."""
+        w = self.w
+        w.held_task(self.branch, self.base, expect_fail_on_base=[])
+        rep = self.verify(on_base=True)
+        self.assertFalse(rep.proof_ok)
+        self.assertTrue(rep.nothing_expected)
+        text = "\n".join(rep.render())
+        self.assertIn("PROOF GAP: no expect-fail-on-base line", text)
+        self.assertTrue(text.endswith("do not serve this task)"))
+        self.assertClean()
+        self.assertFalse(self.verify(on_reference=True).nothing_expected, "the forward half asks nothing of it")
+
+    @unittest.skipIf(is_root(), "root writes anywhere")
+    def test_a_write_that_fails_part_way_through_apply_keeps_the_record(self):
+        """`git apply --check` passes and then a write fails (a read-only
+        directory inside the scope): part of the reference may be in the
+        tree, so the record stays and every command refuses, loudly,
+        rather than the tutor's answer reading as the learner's work."""
+        w = self.w
+        w.git("switch", "-q", "main")
+        w.git("branch", "-q", "-D", self.branch)
+        w.git("switch", "-q", "--detach", w.pre)
+        # A solution in two files, the second in a directory that will refuse the write.
+        w.write("src/greet.sh", w.read("src/greet.sh").replace("HELLO", "Hello"))
+        w.write("zro/c.txt", "c\n")
+        self.assertRuns("write", "patch", "--from-tree", "src/greet.sh", "zro/c.txt")
+        self.assertTrue((w.top / "zro").is_dir())
+        w.write("tests/greet.test.sh", GREET_TEST)
+        branch, base = w.begin("greet-politely", "--here", "tests/greet.test.sh")
+        w.task(lesson="greet-politely", mode="write", branch=branch, base=base, return_to=w.pre, started="2026-09-16",
+               tutor_session="s1", scope="src", verify=["check"], expect_fail_on_base=["verify check"])
+        (w.top / "zro").chmod(0o555)
+        try:
+            out = self.assertRuns("verify", "--on-reference")
+        finally:
+            (w.top / "zro").chmod(0o755)
+        self.assertIn("could not be written into the tree", out)
+        self.assertIn("PROOF: not ok", out)
+        if w.git("status", "--porcelain"):   # git wrote the first file before failing on the second
+            self.assertTrue(w.learner.applied_patch.exists(), "the record is kept while the tree holds part of the reference")
+            self.assertIn("part of it is: src/greet.sh", out)
+            self.assertIn("record is kept", out)
+            self.assertIn("REFERENCE STILL APPLIED", self.assertRuns("diff"))
+        else:   # nothing landed: the record is gone and the message says so
+            self.assertFalse(w.learner.applied_patch.exists())
+            self.assertIn("nothing of it is there", out)
+        # Never does the reference sit in the tree with no record of it.
+        self.assertFalse(w.git("status", "--porcelain") and not w.learner.applied_patch.exists(), "a dirty tree with no record would read as the learner's work")
 
     def test_not_run_still_ends_with_a_proof_line(self):
         self.w.learner.task_file.unlink() if self.w.learner.task_file.exists() else None
@@ -598,6 +683,18 @@ class HeldTestRecoveryTest(WorldTest):
         self.assertEqual(w.git("log", self.branch, "--format=%H", "-S", "Hello pat", "--", "tests/greet.test.sh"), "")
         self.assertIn("learner test", w.git("show", f"{self.branch}:tests/greet.test.sh"))
         self.assertClean()
+
+
+class ReportTest(unittest.TestCase):
+    def test_a_report_that_stops_mid_run_still_shows_what_ran(self):
+        rep = Report(on_base=False, on_reference=True)
+        rep.lines.append(LineResult(Kind.VERIFY, "check", Outcome.PASS, command="sh check.sh"))
+        rep.notes.append("a note from the run")
+        rep.not_run = "git failed after the first line"
+        text = rep.render()
+        self.assertEqual(text[-2:], ["VERIFIER: not run (git failed after the first line)", "PROOF: not ok (the verifier did not run)"])
+        self.assertIn("PASS     check   (sh check.sh)", text)
+        self.assertIn("a note from the run", text)
 
 
 if __name__ == "__main__":

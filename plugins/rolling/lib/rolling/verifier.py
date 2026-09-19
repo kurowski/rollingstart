@@ -75,6 +75,7 @@ class Report:
     revert: Optional[heldtest.RevertResult] = None
     had_held: bool = False
     held_not_run: bool = False                           # the held block was declared but could not run
+    nothing_expected: bool = False                       # on base, no expect-fail-on-base line at all
     interrupted: bool = False
     proof_gaps: List[str] = field(default_factory=list)  # expect-fail entries that never ran
     not_run: str = ""                                    # why nothing ran at all
@@ -86,7 +87,7 @@ class Report:
 
     @property
     def proof_ok(self) -> bool:
-        if self.not_run or self.interrupted or self.proof_gaps:
+        if self.not_run or self.interrupted or self.proof_gaps or self.nothing_expected:
             return False
         if any(not r.ran or r.outcome in (Outcome.FAIL, Outcome.UNEXPECTED_PASS) for r in self.lines):
             return False
@@ -116,7 +117,11 @@ class Report:
 
     def render(self) -> List[str]:
         if self.not_run:
-            out = [f"VERIFIER: not run ({self.not_run})"]
+            out = []
+            for r in self.lines:   # what ran before the failure, when anything did
+                out += _render_line(r)
+            out += self.notes
+            out.append(f"VERIFIER: not run ({self.not_run})")
             if self.proving:
                 out.append("PROOF: not ok (the verifier did not run)")
             return out
@@ -130,6 +135,8 @@ class Report:
                 out.append("PROOF: not ok (interrupted)")
             return out
         out += [f"PROOF GAP: expected to fail but never ran: {e}" for e in self.proof_gaps]
+        if self.nothing_expected:
+            out.append("PROOF GAP: no expect-fail-on-base line; a task whose checks pass before the work is done teaches nothing")
         out.append(self.summary())
         if self.on_base:
             out.append("PROOF: ok (on the starting state, every expected failure failed, everything else passed, every line ran, and the held test was reverted)"
@@ -254,6 +261,7 @@ class Verifier:
         if self.on_base:
             seen = {r.expect_key for r in rep.lines if r.outcome in (Outcome.EXPECTED_FAIL, Outcome.UNEXPECTED_PASS)}
             rep.proof_gaps = [e for e in t.expect_fail_on_base if e not in seen]
+            rep.nothing_expected = not t.expect_fail_on_base
 
     def _interrupted(self) -> None:
         rep = self.report
