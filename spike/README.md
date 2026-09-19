@@ -35,6 +35,14 @@ Plan: [`docs/plan.md`](../docs/plan.md) § 7, P0.
 
 ## Setting up the Rallly copy, contained
 
+**Frozen.** This section describes the spike's own runner,
+`container/`, which installed the spike's skills and scripts into the
+clone. The plugin is run contained by [`runner/`](../runner/README.md)
+at the repository root, which registers this repository as a local
+marketplace inside the container and installs the plugin from it, and
+which removes what this section's `install.sh` put in a clone. Nothing
+below is maintained; it stays as the record of P0.
+
 Nothing from npm runs on the host. Rallly's toolchain and Claude Code
 run in a container built from `container/Dockerfile` (Node 24, the pnpm
 that Rallly's `packageManager` pins, fetched by corepack at build time,
