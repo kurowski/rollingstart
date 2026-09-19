@@ -264,7 +264,7 @@ interactive, and `/clear`. The maintainer did both from `runner/run.sh
 tutor` the same day: logged in, ran `/rolling:start`, ran `/clear`,
 and had the tutor run `rolling-show map-check`, which resolved and
 reported the example map's one fault, the missing course heading that
-1a.7 fixes.
+1a.7 fixes. PR #11.
 
 ---
 
