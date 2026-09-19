@@ -28,9 +28,16 @@ Say that you have not met yet, offer `/rolling:start`, and stop.
   destination, because everything requires them. A lesson is reachable
   when every lesson it `requires` is in the profile's Satisfied list.
   Among reachable lessons inside the destination, choose the one that
-  most advances it given the background. A lesson whose `assumes`
-  the background already covers goes faster, never skipped; one whose
-  `assumes` the background lacks gets more explanation in the brief.
+  most advances it given the background: when several are reachable,
+  prefer the one whose `assumes` the background lacks, since that is
+  where the learning is, and leave the ones the background covers for
+  later, when they go faster. A course's order is the author's
+  suggestion for the learner it describes, not a fixed sequence, so two
+  learners with the same destination and different backgrounds may well
+  get different first lessons; that is the rule working. A
+  lesson whose `assumes` the background already covers goes faster,
+  never skipped; one whose `assumes` the background lacks gets more
+  explanation in the brief.
   When nothing is reachable and unsatisfied, the destination is
   reached: say so, offer to raise a region's depth, and stop.
 - Never edit the destination. If the evidence suggests the learner is
@@ -195,7 +202,7 @@ scaffold: <a path inside the scope where you may leave TODO(human) markers; opti
 setup: <operation key from the map; optional, one per line>
 verify: <command key from the map> [arguments]
 held: <as printed, one per line; the test held back>
-held-verify: <command key> <the held test's path>
+held-verify: <command key> <the held test's path; only with a held: line above, since a shown test is in the tree and its line is a verify: line>
 expect-fail-on-base: verify <a verify line's text, verbatim>
 expect-fail-on-base: held-verify <a held-verify line's text, verbatim>
 ---

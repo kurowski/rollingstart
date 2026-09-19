@@ -529,7 +529,10 @@ draft a map for a repo the author does not know, which is P3's question.
 on its own, in this order because each rests on the one before and the
 second front-loads the mechanics the docs do not confirm.
 
-*P1a, `write` mode, in-repo map.* Marketplace + `rolling` skeleton;
+*P1a, `write` mode, in-repo map. Done* (2026-09-15 to 09-19; PRs #3
+to #15; the record and the retrospective are in
+[`docs/plans/p1a-write-mode.md`](plans/p1a-write-mode.md)). Marketplace +
+`rolling` skeleton;
 `start`, `next`, `lesson`, `done`; the storage layout of § 3 and § 4
 (state out of the tree); `begin-task`, `end-task`, `verify` with the
 held test, `diff`, and `export` in `bin/`; the profile validator; the
@@ -800,3 +803,22 @@ TOML profile decision, and the strict-frontmatter posture.
   Linux; 3.9 is the floor a Mac's tools ship. Rewritten from the
   contract, not translated, with the same scenarios as tests.
 
+
+**During P1a's exit run** (2026-09-19):
+
+- **A task is provable only with an expected failure.** `rolling-verify
+  --on-base` reports a proof gap for a task with no
+  `expect-fail-on-base` line, since checks that pass before the work is
+  done prove nothing (PR #13). So an environment lesson in an
+  environment that is already set up has nothing to prove on its own;
+  the tutor builds a smoke test along a small seam beside the setup
+  steps, which is what it did unprompted in the exit run, and the
+  Rallly map's setup lesson now says so.
+- **The route follows the background, not the course's order.** Two
+  seeded learners with the same destination and opposite backgrounds
+  got the same first lesson because the tutor read the course's listing
+  order as a sequence. The `next` skill now prefers, among reachable
+  lessons, the one whose `assumes` the background lacks, and a map's
+  course text says when its lessons are independent. A route that
+  reads as a fixed order across backgrounds is the bug `CLAUDE.md`
+  names.

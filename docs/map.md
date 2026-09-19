@@ -322,7 +322,8 @@ file and the field, so a map is fixed in one pass.
 
 - Every non-dot entry is a regular file ending in `.md` whose stem is
   a valid slug; the frontmatter's fields are from the task list above;
-  `verify` and `held-verify` lines name command keys; `setup` lines
+  `verify` and `held-verify` lines name command keys, and a
+  `held-verify` line has a `held` path to go with it; `setup` lines
   name operation keys; `fix`, if present, is a hex string of 7 to 40
   characters; the body has `## Brief` or `## Situation`, and
   `## Source`.

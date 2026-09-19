@@ -117,9 +117,12 @@ test. Everything else requires them.
 3. billing, `working`
 
 For someone who will work across the product. The three platform
-`working` lessons are each a single change with a held test; take
-`procedures-and-actions` before any poll lesson if tRPC and server
-actions are new to you. Nobody needs `deep` in the first fortnight.
+`working` lessons are independent of each other, each a single change
+with a held test: start with whichever stack is newest to you (tRPC
+and server actions, email and i18next, or the self-hosted split), and
+take `procedures-and-actions` before any poll lesson if tRPC and
+server actions are new to you. Nobody needs `deep` in the first
+fortnight.
 
 ### Product engineer
 

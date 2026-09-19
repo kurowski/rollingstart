@@ -12,7 +12,11 @@ Get Rallly's toolchain working against its services, the way
 go green. This is the one lesson where the task is the environment:
 there is no fix to revert and no test to hold or show, so the lesson
 declares neither, the tutor builds the task from this page, and the
-verifier is the map's own commands.
+verifier is the map's own commands. A task is provable only with a
+check that fails before the work is done, so in an environment that is
+already set up the tutor adds a smoke test along a small seam (a
+one-line fix with its unit test, shown), and the setup steps are
+confirmed rather than performed.
 
 In this environment the services (postgres, redis, an S3 stand-in, a
 mail catcher, all declared in `docker-compose.dev.yml`) are a
