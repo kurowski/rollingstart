@@ -40,6 +40,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Iterator, List, Tuple
 
 from . import paths
@@ -103,13 +104,35 @@ def applied(repo: Repo, learner: Learner, patch: bytes) -> Iterator[Applied]:
         copy.write_bytes(patch)
         at.write_text(repo.rev_parse("HEAD") + "\n", encoding="utf-8")
         repo.run("apply", "--check", "--", str(copy))
-        repo.run("apply", "--", str(copy))
     except (GitError, OSError) as e:
         try:
             _forget(learner)
         except OSError:
             pass   # repair clears the record when the patch never went in
         raise CannotApply(f"the reference patch does not apply to the starting state: {e}")
+    try:
+        repo.run("apply", "--", str(copy))
+    except (GitError, OSError) as e:
+        # --check passed, so this is a write that failed part-way (a
+        # read-only file inside the scope, a full disk), and git writes
+        # files one at a time: some of the reference may be in the tree.
+        # The tree was clean a moment ago, so its status says exactly
+        # whether anything landed; the record stays until it is clean
+        # again, else a half-applied answer would read as the learner's
+        # work.
+        try:
+            landed = repo.status_paths()
+            if landed and repo.ok("apply", "-R", "--", str(copy)):
+                landed = repo.status_paths()
+        except (GitError, OSError) as e2:
+            raise CannotApply(f"the reference patch could not be written into the tree ({e}) and the tree could not be read afterwards ({e2}); part of it may be there; the record is kept at {copy}, and every command refuses until the tree is put back by hand and the record is removed")
+        if not landed:
+            try:
+                _forget(learner)
+            except OSError:
+                pass
+            raise CannotApply(f"the reference patch could not be written into the tree ({e}); nothing of it is there, the tree is as it was")
+        raise CannotApply(f"the reference patch could not be written into the tree ({e}) and part of it is: {', '.join(landed)}; the record is kept at {copy}, and every command refuses until those paths are put back by hand on this commit (`git checkout -- <path>`, and remove any file the patch added) and the record is removed")
     try:
         yield result
     finally:
@@ -162,10 +185,28 @@ def repair(repo: Repo, learner: Learner) -> Tuple[List[str], bool]:
         at = ""
     # Out already? A record can outlive its reverse (a kill between the
     # reverse and the unlink, a directory that was read-only for the
-    # unlink). Applies forward and does not reverse: not in the tree. A
-    # mode-only patch does both in either state, so the reverse check
-    # is what keeps it on the applied path below.
-    if repo.ok("apply", "--check", "--", str(copy)) and not repo.ok("apply", "-R", "--check", "--", str(copy)):
+    # unlink). Applies forward and does not reverse: not in the tree,
+    # unless part of it is (a write that failed part-way left the first
+    # files in, or only a mode change landed: a mode entry re-applies
+    # forward whatever the mode is), which the paths the patch names
+    # show. A mode-only patch does both in either state, so the reverse
+    # check is what keeps it on the applied path below.
+    named = _patch_paths(repo, copy)
+    try:
+        dirty = [p for p in repo.status_paths() if p in named]
+    except (GitError, OSError) as e:
+        return [f"REFERENCE record kept: a proof left a record and the tree could not be read to tell whether the reference is in it ({e}); compare {', '.join(named) or 'the paths the patch names'} with {copy} by hand, put back what is the reference's, then remove {records}"], False
+    # What a human puts back: the paths that changed, or all the patch
+    # names when none shows as changed. A checkout discards whatever the
+    # learner typed there too, so the message says so.
+    which = ", ".join(dirty or named) or "the paths the patch names"
+    by_hand = ("put back {which} by hand on {when} (`git checkout -- <path>`, which also discards anything you typed in "
+               "those files, so save that first; and remove any file the patch added), then remove {records}")
+    forward = repo.ok("apply", "--check", "--", str(copy))
+    reverses = repo.ok("apply", "-R", "--check", "--", str(copy))
+    if forward and not reverses:
+        if dirty:
+            return [f"REFERENCE record kept: the reference as a whole is not in the tree (it would apply again), but {', '.join(dirty)} changed since it went in, which may be yours or a part of it (a mode change alone would look like this); compare with {copy}, put back what is the reference's, then remove {records}"], False
         try:
             _forget(learner)
         except OSError as e:
@@ -174,14 +215,30 @@ def repair(repo: Repo, learner: Learner) -> Tuple[List[str], bool]:
     head = repo.head() or ""
     if not at or at != head:
         where = f"on {at[:12]}" if at else "on a commit it did not record"
-        return [f"REFERENCE STILL APPLIED: a killed proof left the reference in the tree {where}, and HEAD is now {head[:12]}; `git apply -R {copy}` by hand on that commit, then remove {records}"], False
+        return [f"REFERENCE STILL APPLIED: an interrupted proof left the reference in the tree {where}, and HEAD is now {head[:12]}; " + by_hand.format(which=which, when="that commit", records=records)], False
     try:
-        repo.run("apply", "-R", "--check", "--", str(copy))
+        if not reverses:
+            raise GitError("the reverse does not apply cleanly")
         repo.run("apply", "-R", "--", str(copy))
     except (GitError, OSError) as e:
-        return [f"REFERENCE STILL APPLIED: a killed proof left the reference in the tree and it does not reverse cleanly now ({e}); `git apply -R {copy}` by hand, then remove {records}"], False
+        return [f"REFERENCE STILL APPLIED: an interrupted proof left the reference in the tree, part or whole, and it does not reverse cleanly now ({e}); " + by_hand.format(which=which, when="this commit", records=records)], False
     try:
         _forget(learner)
     except OSError as e:
         return [f"REFERENCE repaired, but its record could not be removed ({e}); remove {records}"], False
-    return ["REFERENCE repaired: reversed the reference a killed proof left in the tree"], True
+    return ["REFERENCE repaired: reversed the reference an interrupted proof left in the tree"], True
+
+
+def _patch_paths(repo: Repo, copy: Path) -> List[str]:
+    """The paths a patch names, as `git apply --numstat` lists them
+    (a rename shows its new name), or none when git cannot read it."""
+    try:
+        out = repo.run("apply", "--numstat", "-z", "--", str(copy), check=False)
+    except (GitError, OSError):
+        return []
+    found: List[str] = []
+    for entry in out.split("\0"):
+        parts = entry.split("\t", 2)
+        if len(parts) == 3 and parts[2]:
+            found.append(parts[2])
+    return found

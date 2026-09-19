@@ -228,7 +228,49 @@ a verifier when the environment's ignored settings file failed it
 (1a.7's map fixes that); and the transcript of a seam task shows the
 solution, since the tutor tries it in the tree, so a learner reading
 the tutor's tool calls has the answer (named as an exposure, not
-solved). PR #9, on top of PR #8.
+solved). PR #9, on top of PR #8. **Review round, 2026-09-19.** The
+automatic review never ran on #8 or #9 (the workflow was the
+installer's no-op until PR #12's run), so each got a local Opus review
+after the fact, in a scratch clone. Seven real findings, fixed in PR
+#13 with tests: a `git apply` that failed part-way through writing
+the reference deleted its own record, so a half-applied answer read
+as the learner's work (the record now stays, and every command
+refuses until the tree is put right); `rolling-write patch
+--from-tree` reset any named path to HEAD with a task open, a hole in
+the write guard (refused while a task is open); `next` prescribed the
+seam-task order `--here` then `--from-tree`, which `begin` always
+refuses (swapped, and the pen refuses to take from the tree once a
+task file exists);
+`--on-base` said ok for a task with no `expect-fail-on-base` line
+(a proof gap now); `done` and `start` granted the whole pen where
+they use `rolling-write profile` (narrowed to `Bash(rolling-write
+profile *)`, after a probe showed a prefix grant matches a heredoc
+invocation with nothing after the prefix: `Bash(cat profile *)` ran
+`cat profile <<'EOF'` with no denial); `next`'s task shape
+spelled the `expect-fail-on-base` line so that the pen refused it,
+twice per task in every run so far (spelled out); `done` could close a
+task without ending it and strand the learner on the branch (close
+follows end, and "no" runs neither). Smaller: the pen no longer
+removes a new file's directory, which may be the learner's; two keeps
+in one second get two files; a refused write reports its own reason;
+`lesson` is granted Edit and Write for the scaffold markers it
+allows; the plugin's prose names no framework. Still open, by
+choice: `git diff`, `git show`, and `git log` all take
+`--output=<file>`, a write the guard cannot see, and `next` grants
+all three and `done` the last two while the learner's task is open;
+a prefix grant cannot exclude a flag, so prose covers it; and
+`lesson`'s Edit and Write grant reaches every path outside the scope
+and any content at a scaffold path, since the hook holds the scope
+rule and nothing else (the plan's decision), so the `TODO(human)`-only
+rule at a scaffold path is prose too, for P2's eval to measure with
+the rest. The second
+review round found that `reference.repair` cleared a record when the
+patch re-applied forward and did not reverse, which a mode-change
+entry that landed alone satisfies (a mode entry re-applies whatever
+the mode is), so it now refuses to clear while any path the patch
+names is dirty; and that its reverse-failed message advised a
+`git apply -R` that cannot work on a half-applied tree, which now says
+what to put back.
 
 ---
 
@@ -389,7 +431,12 @@ in.
 
 - **`direct` mode**, the session log, the state-directory guard, the
   ask-before-destructive hook, the watch: P1b. The `tutor-session`
-  stamp is the only piece of it written here.
+  stamp is the only piece of it written here. One hazard for P1b's
+  design, from the review round: `lesson` is model-invocable and its
+  inline `rolling-claim-session` rewrites the stamp, so once the
+  learner's coding session has the plugin enabled it can claim the
+  tutor's role on its own initiative and move the guard off the
+  tutor. P1b decides whether `lesson` claims at all.
 - **Map plugins, the resolver, `adopt`, the Homie map**: P1c. In P1a
   the map is found at `.rolling/` in the repo root and nowhere else.
 - **`ask`, `escalate`, `second-opinion`, the citation check, detours

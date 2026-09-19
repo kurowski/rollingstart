@@ -222,10 +222,12 @@ Fields, all in the frontmatter subset `map.md` defines:
   need the held files in place: same shape as `verify`. `rolling-verify`
   runs them after the `verify` lines, with the held files applied, and
   reverts afterwards.
-- **`expect-fail-on-base`** (optional, one or more). Which `verify` or
-  `held-verify` lines must fail on the starting state, for the
-  both-ways proof: `verify <line>` or `held-verify <line>`, the line
-  verbatim.
+- **`expect-fail-on-base`** (one or more, for a task to be provable).
+  Which `verify` or `held-verify` lines must fail on the starting
+  state, for the both-ways proof: `verify <line>` or `held-verify
+  <line>`, the line verbatim. The validator lets a task omit it, but
+  `rolling-verify --on-base` then reports a proof gap and `PROOF: not
+  ok`: checks that pass before the work is done prove nothing.
 
 Then the body: **`## Brief`** for a `write` task or **`## Situation`**
 for a `direct` one (what is wrong or wanted, where to look, what done
@@ -244,8 +246,12 @@ For a task built along a seam rather than from a fix: the tutor's
 solution as a unified diff against the starting state, written with
 `rolling-write patch`, or taken from the tree where the tutor tried
 it out with `--from-tree <path>…`, which restores those paths and
-removes a new file, and the empty directories made for it, once its
-content is in the patch. Either way
+removes a new file (its directory stays: git shows no empty directory,
+and it may be the learner's own) once its content is in the patch.
+`--from-tree` runs before the task begins and refuses while one is
+open: the restore puts the named paths back as HEAD has them, and
+with a task open those paths may hold the learner's work, which the
+write guard cannot protect from a granted script. Either way
 `rolling-verify --on-reference` can put it in
 the tree, run every check, and take it back out. A task built from a
 fix needs none; its reference is the fix's own change. The write guard

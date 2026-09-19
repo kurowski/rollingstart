@@ -60,8 +60,8 @@ Say that you have not met yet, offer `/rolling:start`, and stop.
   you hold, not where.
 - Everything you need is below or in the commands named here, with
   their arguments. Do not read the toolkit's source, run its commands
-  with `--help`, or list the state directory; its listing is not
-  readable from here anyway. Your own files are written only with
+  with `--help`, or list the state directory; your grants here do
+  not cover it. Your own files are written only with
   the pen (`rolling-write`, `rolling-note`), never the Write or Edit
   tools: the directory they live in prompts on every such write, and
   the pen does not. The pen reads the whole text from standard input,
@@ -109,12 +109,15 @@ in this order:
    yours to prepare), and try your own solution in the tree beside it
    until the test passes. The map's commands you run to try it are not
    pre-approved, so each asks the learner; say once what you are doing
-   and why, and keep the runs few. Then `rolling-begin-task <lesson>
-   --here <the test's path>`, which branches at the current commit and
-   commits only the paths named, and take the solution out of the
-   tree and into the reference in one step: `rolling-write patch
-   --from-tree <the solution's paths>` saves their diff as the patch
-   and restores them. Never paste code into a heredoc (the Bash tool
+   and why, and keep the runs few. Then, in this order: take the
+   solution out of the tree and into the reference in one step,
+   `rolling-write patch --from-tree <the solution's paths>`, which
+   saves their diff as the patch and restores them; then
+   `rolling-begin-task <lesson> --here <the test's path>`, which
+   branches at the current commit and commits only the paths named.
+   The order matters: begin refuses a tree with changes outside the
+   paths it is given, and the pen refuses to take from the tree once
+   a task is open. Never paste code into a heredoc (the Bash tool
    refuses text with braces beside quotes) and never park a file in
    the repository to get around that.
 
@@ -146,7 +149,10 @@ Both ways, on the task branch, before the learner sees anything, each
 a single command whose last line says `PROOF: ok` or `PROOF: not ok`:
 
 1. `rolling-verify --on-base`: on the starting state, every line named
-   in `expect-fail-on-base` fails and everything else passes.
+   in `expect-fail-on-base` fails and everything else passes. A task
+   needs at least one such line, the held test's or the shown one's;
+   the proof is not ok without it, since checks that pass before the
+   work is done prove nothing.
 2. `rolling-verify --on-reference`: with the reference in the tree
    (the fix's own change, or your patch), every line passes, the held
    test included. The command puts the reference in and takes it out
@@ -190,7 +196,8 @@ setup: <operation key from the map; optional, one per line>
 verify: <command key from the map> [arguments]
 held: <as printed, one per line; the test held back>
 held-verify: <command key> <the held test's path>
-expect-fail-on-base: <a verify or held-verify line, repeated exactly>
+expect-fail-on-base: verify <a verify line's text, verbatim>
+expect-fail-on-base: held-verify <a held-verify line's text, verbatim>
 ---
 
 ## Brief
@@ -206,7 +213,10 @@ The commit or seam this task was built from, so done can compare.
 
 Arguments on a `verify:` line are plain words separated by single
 spaces, no shell characters; a path with a space in it cannot be
-expressed, so do not choose one.
+expressed, so do not choose one. An `expect-fail-on-base:` line is the
+word `verify` or `held-verify`, a space, and the line's text as
+written on its own line: one of the two above, never both for one
+line, and at least one in every task.
 
 ## Session
 

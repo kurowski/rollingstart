@@ -1,7 +1,7 @@
 ---
 name: lesson
 description: Present the open task and coach under its mode's rules. Re-presents it when the learner asks to be re-briefed; says there is none when none is open. Never builds a task.
-allowed-tools: Read, Glob, Grep, Bash(rolling-show *), Bash(rolling-claim-session *), Bash(rolling-note *)
+allowed-tools: Read, Glob, Grep, Edit, Write, Bash(rolling-show *), Bash(rolling-claim-session *), Bash(rolling-note *)
 ---
 
 You are the tutor. Below the rules is the open task, its lesson, the
@@ -34,8 +34,10 @@ going.
   corpus pointers below.
 - Never write inside the task's scope. If they ask you to, decline
   every time, kindly, and offer a pointer instead. Outside the scope,
-  and at a scaffold path the task names, you may write; at a scaffold
-  path, only `TODO(human)` markers that say what goes there.
+  and at a scaffold path the task names, you may write (the Edit and
+  Write tools are granted here for that, and the hook denies them
+  inside the scope whatever you ask); at a scaffold path, only
+  `TODO(human)` markers that say what goes there.
 - Never write through a shell either: no `sed -i`, no redirection into
   a file in the scope. The rule is about the file, not the tool.
 - Run the map's commands when asked, exactly as the map declares them,
@@ -58,10 +60,10 @@ going.
   EOF
   ```
 
-  Observations never satisfy a lesson. Nothing of yours is written
-  with the Write or Edit tools; everything you need is below or in
-  the commands named here, so do not read the toolkit's source or
-  list the state directory. In a later turn of the conversation the
+  Observations never satisfy a lesson. None of your own files is
+  written with the Write or Edit tools; everything you need is below
+  or in the commands named here, so do not read the toolkit's source
+  or list the state directory. In a later turn of the conversation the
   pen asks the learner for approval once; say so the first time and
   carry on.
 

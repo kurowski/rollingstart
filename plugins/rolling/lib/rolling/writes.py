@@ -27,7 +27,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import List, Optional
+from typing import List, NoReturn, Optional
 
 from . import frontmatter as fm, rules, session, validate
 from .model import Learner, LoadError, Map, Task
@@ -62,19 +62,34 @@ def write(learner: Learner, what: str, text: str, top: Path, map_dir: Path) -> L
     if what == "task":
         text = _stamped(learner, text)
     dest = {"task": learner.task_file, "profile": learner.profile, "reference": learner.reference, "patch": learner.patch}[what]
-    tmp = dest.with_name(f".{dest.name}.{os.getpid()}.new")
+    tmp = _tmp_for(dest)
     try:
         learner.dir.mkdir(parents=True, exist_ok=True)
         tmp.write_text(text, encoding="utf-8", errors="surrogateescape")
-        try:
-            notes = _check(what, tmp, dest, learner, top, map_dir)
-        except Refused:
-            tmp.unlink()
-            raise
+        notes = _check(what, tmp, dest, learner, top, map_dir)
         os.replace(tmp, dest)
-    except OSError as e:
-        raise Refused(f"the learner directory cannot be written: {e}")
+    except (Refused, OSError) as e:
+        _discard(tmp, e)
     return notes + [f"wrote {dest.name}"]
+
+
+def _tmp_for(dest: Path) -> Path:
+    """The temporary file a write lands in before the rename into place."""
+    return dest.with_name(f".{dest.name}.{os.getpid()}.new")
+
+
+def _discard(tmp: Path, e: Exception) -> NoReturn:
+    """A write through TMP failed with E: remove the copy, whether or
+    not it got written, and refuse with E's reason. A copy that cannot
+    be removed is said, not left in silence."""
+    reason = str(e) if isinstance(e, Refused) else f"the learner directory cannot be written: {e}"
+    try:
+        tmp.unlink()
+    except FileNotFoundError:
+        pass
+    except OSError as e2:
+        raise Refused(f"{reason}; and the temporary copy {tmp.name} could not be removed ({e2})")
+    raise Refused(reason)
 
 
 def patch_from_tree(learner: Learner, repo: Repo, paths: List[str]) -> List[str]:
@@ -90,11 +105,23 @@ def patch_from_tree(learner: Learner, repo: Repo, paths: List[str]) -> List[str]
     since git would expand either into files the tutor never named. A
     file new to the repository is taken too (git's intent-to-add makes
     it diff) and removed from the tree afterwards; its content is in
-    the patch. Everything refusable is checked before anything is
-    written; a restore that fails afterwards says what is still
+    the patch. A directory the new file was in stays, even empty: git
+    tracks no directory and shows none, and whether the tutor made it
+    or the learner's own tooling did (a logs/ an app writes to) cannot
+    be told afterwards. Everything refusable is checked before anything
+    is written; a restore that fails afterwards says what is still
     changed."""
     if not paths:
         raise Refused("rolling-write patch --from-tree needs the paths the solution touched, one by one, after it")
+    if learner.has_task():
+        # The restore below puts the named paths back as HEAD has them.
+        # With a task open those paths may hold the learner's work, and
+        # the guard that keeps the tutor's editing tools out of the scope
+        # cannot see a granted script; so the reference is taken from the
+        # tree only before the task exists, which is when a seam task's
+        # solution is tried there anyway.
+        t = learner.task()
+        raise Refused(f"a task is open ({t.lesson if t else '?'}); the reference is taken from the tree before the task begins (rolling-write patch --from-tree, then rolling-begin-task --here), never while the learner's work may be in it")
     seen: List[str] = []
     for p in paths:
         if not rules.is_literal_path(p):
@@ -130,14 +157,15 @@ def patch_from_tree(learner: Learner, repo: Repo, paths: List[str]) -> List[str]
                 repo.run("rm", "-q", "-f", "--cached", "--ignore-unmatch", "--", *literal(unstaged), check=False)
         if not diff.strip():
             raise Refused("nothing to take: those paths are as HEAD has them")
-        learner.dir.mkdir(parents=True, exist_ok=True)
-        tmp = learner.patch.with_name(f".{learner.patch.name}.{os.getpid()}.new")
-        tmp.write_bytes(diff)
-        os.replace(tmp, learner.patch)
     except GitError as e:
         raise Refused(f"git failed: {e}")
+    tmp = _tmp_for(learner.patch)
+    try:
+        learner.dir.mkdir(parents=True, exist_ok=True)
+        tmp.write_bytes(diff)
+        os.replace(tmp, learner.patch)
     except OSError as e:
-        raise Refused(f"the learner directory cannot be written: {e}")
+        _discard(tmp, e)
     try:
         # Every new file is leaving the tree now, so its index entry goes
         # with it, the tutor's own staging included; the finally above
@@ -146,26 +174,12 @@ def patch_from_tree(learner: Learner, repo: Repo, paths: List[str]) -> List[str]
             repo.run("rm", "-q", "-f", "--cached", "--ignore-unmatch", "--", *literal(new), check=False)
         for p in new:
             (repo.top / p).unlink()
-            _prune_empty_parents(repo.top, p)
         if known:
             repo.checkout_paths("HEAD", known)
     except (GitError, OSError) as e:
         left = [p for p in repo.status_paths() if p in paths]
         raise Refused(f"{learner.patch.name} is written, but restoring the tree failed ({e}); still changed: " + (", ".join(left) or "nothing"))
     return [f"wrote {learner.patch.name} from the tree:"] + ["  " + l for l in stat] + ["restored " + ", ".join(paths) + " to HEAD" + (" (new files removed; their content is in the patch)" if new else "")]
-
-
-def _prune_empty_parents(top: Path, p: str) -> None:
-    """A new file's empty parent directories go with it (git tracks no
-    directory, so a pre-existing empty one loses nothing); a directory
-    that holds anything else stays, and the top is never touched."""
-    d = (top / p).parent
-    while d != top:
-        try:
-            d.rmdir()
-        except OSError:
-            return
-        d = d.parent
 
 
 def _stamped(learner: Learner, text: str) -> str:
@@ -230,17 +244,17 @@ def note(learner: Learner, lesson: str, text: str) -> str:
     if dest.is_symlink():
         raise Refused(f"evidence/{lesson}.md is a symbolic link; nothing written")
     entry = f"## {time.strftime('%Y-%m-%d')}\n\n{body}\n"
+    # A rewrite through a temporary file and a rename, never an append
+    # through whatever the name has become: that is what keeps this
+    # module's one promise, nothing in the learner's tree.
+    tmp = _tmp_for(dest)
     try:
         learner.evidence.mkdir(parents=True, exist_ok=True)
         existing = dest.read_text(encoding="utf-8", errors="surrogateescape") if dest.is_file() else ""
-        # A rewrite through a temporary file and a rename, never an append
-        # through whatever the name has become: that is what keeps this
-        # module's one promise, nothing in the learner's tree.
-        tmp = dest.with_name(f".{dest.name}.{os.getpid()}.new")
         tmp.write_text(_joined(existing, entry), encoding="utf-8", errors="surrogateescape")
         os.replace(tmp, dest)
     except OSError as e:
-        raise Refused(f"the learner directory cannot be written: {e}")
+        _discard(tmp, e)
     return f"noted in evidence/{lesson}.md ({kind})"
 
 
@@ -262,7 +276,12 @@ def keep_task(learner: Learner) -> str:
     text = learner.task_file.read_text(encoding="utf-8", errors="surrogateescape")
     head, fence, body = text.partition("\n---")
     kept = [l for l in head.split("\n") if l.split(":", 1)[0].strip() not in RUN_FIELDS]
-    dest = learner.tasks / task.lesson / f"{time.strftime('%Y%m%d-%H%M%S')}.md"
+    stamp = time.strftime('%Y%m%d-%H%M%S')
+    dest = learner.tasks / task.lesson / f"{stamp}.md"
+    n = 1
+    while dest.exists():   # two keeps in one second, as the branch names handle it
+        n += 1
+        dest = dest.with_name(f"{stamp}-{n}.md")
     try:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text("\n".join(kept) + fence + body, encoding="utf-8", errors="surrogateescape")
