@@ -258,7 +258,12 @@ allows; the plugin's prose names no framework. Still open, by
 choice: `git diff`, `git show`, and `git log` all take
 `--output=<file>`, a write the guard cannot see, and `next` grants
 all three and `done` the last two while the learner's task is open;
-a prefix grant cannot exclude a flag, so prose covers it. The second
+a prefix grant cannot exclude a flag, so prose covers it; and
+`lesson`'s Edit and Write grant reaches every path outside the scope
+and any content at a scaffold path, since the hook holds the scope
+rule and nothing else (the plan's decision), so the `TODO(human)`-only
+rule at a scaffold path is prose too, for P2's eval to measure with
+the rest. The second
 review round found that `reference.repair` cleared a record when the
 patch re-applied forward and did not reverse, which a mode-change
 entry that landed alone satisfies (a mode entry re-applies whatever

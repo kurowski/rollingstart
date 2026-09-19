@@ -241,8 +241,16 @@ def note(learner: Learner, lesson: str, text: str) -> str:
         # module's one promise, nothing in the learner's tree.
         tmp = dest.with_name(f".{dest.name}.{os.getpid()}.new")
         tmp.write_text(_joined(existing, entry), encoding="utf-8", errors="surrogateescape")
+    except OSError as e:
+        raise Refused(f"the learner directory cannot be written: {e}")
+    try:
         os.replace(tmp, dest)
     except OSError as e:
+        # As in write(): a temporary copy that cannot be removed is said, not left in silence.
+        try:
+            tmp.unlink()
+        except OSError as e2:
+            raise Refused(f"the learner directory cannot be written: {e}; and the temporary copy {tmp.name} could not be removed ({e2})")
         raise Refused(f"the learner directory cannot be written: {e}")
     return f"noted in evidence/{lesson}.md ({kind})"
 
