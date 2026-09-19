@@ -16,12 +16,16 @@ from .model import Learner
 _SESSION_ID = re.compile(r"^[A-Za-z0-9-]+$")
 
 
+def is_session_id(s: str) -> bool:
+    return _SESSION_ID.match(s or "") is not None
+
+
 def claim(learner: Learner, session_id: str) -> str:
     """Record SESSION_ID as the tutor's: in the open task's tutor-session
     line when a task is open (added if missing; the rewrite is a
     temporary file and a rename), else in the `session` file. Returns
     the line to print; never raises."""
-    if not _SESSION_ID.match(session_id or ""):
+    if not is_session_id(session_id):
         return "SESSION: not recorded (no session id, or one with characters outside [A-Za-z0-9-])"
     try:
         learner.dir.mkdir(parents=True, exist_ok=True)
@@ -37,7 +41,7 @@ def claim(learner: Learner, session_id: str) -> str:
     if text is not None and fm.has_block(text):
         try:
             tmp = task.with_name(".task.md.tmp")
-            tmp.write_text(_stamped(text, session_id), encoding="utf-8", errors="surrogateescape")
+            tmp.write_text(stamped(text, session_id), encoding="utf-8", errors="surrogateescape")
             os.replace(tmp, task)
         except OSError:
             return f"SESSION: not recorded (could not rewrite {task})"
@@ -49,7 +53,9 @@ def claim(learner: Learner, session_id: str) -> str:
     return f"SESSION: {session_id} is the tutor (no task open)"
 
 
-def _stamped(text: str, session_id: str) -> str:
+def stamped(text: str, session_id: str) -> str:
+    """TEXT with SESSION_ID as its tutor-session line: replacing the one
+    it has, or added at the end of the frontmatter."""
     lines = text.split("\n")
     out = [lines[0]]
     seen = closed = False

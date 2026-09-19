@@ -107,6 +107,12 @@ class RulesTest(unittest.TestCase):
         for bad in ("echo x;", "echo x; ", "echo x &", "echo x |", "echo x ||", "echo x && ", "sh args.sh >", "cmd <", "cmd\\", "sh args.sh;#x", "sh x # note", "", "   ", "cmd\t;"):
             self.assertFalse(rules.command_takes_args(bad), repr(bad))
 
+    def test_literal_paths(self):
+        for ok in ("src/greet.sh", "a-b/c.d", "tests/greet.test.sh", "app/[urlId]/page.tsx"):
+            self.assertTrue(rules.is_literal_path(ok), ok)
+        for bad in (":!x", ":(top)x", "src/*", "a?b", "../x", "/x", "", "./x"):
+            self.assertFalse(rules.is_literal_path(bad), bad)
+
     def test_scopes(self):
         inside = rules.inside_scope
         self.assertTrue(inside("src/greet.sh", "src/greet.sh"))

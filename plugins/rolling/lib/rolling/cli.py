@@ -4,7 +4,8 @@ Two exit conventions. A command a skill runs inline (show,
 claim-session, session-start, diff, verify, report) always exits 0 and
 reports in words, because a non-zero inline exit aborts the skill. A
 command a skill runs as an action (begin-task, end-task, the checks,
-close-task, export) exits non-zero on refusal and says what it refused.
+close-task, export, write, note, keep-task) exits non-zero on refusal
+and says what it refused.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from . import diff as diffmod, frontmatter as fm, heldtest, paths, rules, session, validate
+from . import diff as diffmod, frontmatter as fm, heldtest, paths, reference, rules, session, validate, writes
 from .model import Learner, LoadError, Map, Task
 from .repo import GitError, Repo
 from .tasks import Refused, Tasks
@@ -60,13 +61,16 @@ def locate() -> Optional[Where]:
 
 
 def repair_first(w: Where) -> bool:
-    """Finish a held-test revert a killed run left behind, printing what
-    was done. False when a step failed and the record was kept."""
+    """Finish what a killed run left behind, printing what was done: a
+    held-test revert, and a reference a proof left applied. False when
+    a step failed and the record was kept, so the caller refuses."""
     if w.learner is None:
         return True
     res = heldtest.revert(w.learner, w.top)
     say(*res.lines)
-    return res.ok
+    lines, ok = reference.repair(w.repo, w.learner)
+    say(*lines)
+    return res.ok and ok
 
 
 # ----------------------------------------------------------- inline
@@ -172,7 +176,7 @@ def cmd_diff(args: List[str]) -> int:
         say(f"DIFF: not captured ({paths.NO_DATA_MSG})")
         return 0
     if not repair_first(w):
-        say("DIFF: not captured (a previous held-test revert could not be finished; see above)")
+        say("DIFF: not captured (a previous run could not be finished; see above)")
         return 0
     try:
         t = Task.load(w.learner.task_file)
@@ -195,8 +199,8 @@ def _diff_cap() -> int:
     return cap if cap > 0 else 3000
 
 
-def _verify(w: Optional[Where], on_base: bool) -> Report:
-    rep = Report(on_base=on_base)
+def _verify(w: Optional[Where], on_base: bool = False, on_reference: bool = False) -> Report:
+    rep = Report(on_base=on_base, on_reference=on_reference)
     if w is None:
         rep.not_run = "not inside a git repository"
         return rep
@@ -204,7 +208,7 @@ def _verify(w: Optional[Where], on_base: bool) -> Report:
         rep.not_run = paths.NO_DATA_MSG
         return rep
     if not repair_first(w):
-        rep.not_run = "a previous held-test revert could not be finished; see above"
+        rep.not_run = "a previous run could not be finished; see above"
         return rep
     try:
         t = Task.load(w.learner.task_file)
@@ -215,18 +219,22 @@ def _verify(w: Optional[Where], on_base: bool) -> Report:
     if m is None:
         rep.not_run = f"no map: {w.map_dir / 'map.md'}"
         return rep
-    return Verifier(w.top, w.learner, m, t, on_base=on_base).run()
+    return Verifier(w.top, w.learner, m, t, on_base=on_base, on_reference=on_reference).run()
 
 
 def cmd_verify(args: List[str]) -> int:
     parser = _parser("rolling-verify")
-    parser.add_argument("--on-base", action="store_true", help="the both-ways proof's first half")
+    parser.add_argument("--on-base", action="store_true", help="the both-ways proof's first half: expected failures fail on the starting state")
+    parser.add_argument("--on-reference", action="store_true", help="the second half: with the reference applied, everything passes")
     try:
         ns = parser.parse_args(args)
     except _Usage as e:
         say(str(e), "PROOF: not ok (bad arguments)")
         return 0
-    say(*_verify(locate(), on_base=ns.on_base).render())
+    if ns.on_base and ns.on_reference:
+        say("one half at a time: --on-base or --on-reference", "PROOF: not ok (bad arguments)")
+        return 0
+    say(*_verify(locate(), on_base=ns.on_base, on_reference=ns.on_reference).render())
     return 0
 
 
@@ -305,7 +313,7 @@ def cmd_begin_task(args: List[str]) -> int:
         return 2
     w = _need(locate())
     if not repair_first(w):
-        say("a previous held-test revert could not be finished (see above); not starting a task")
+        say("a previous run could not be finished (see above); not starting a task")
         return 1
     tasks = Tasks(w.repo, w.learner)
     begun = tasks.begin_here(ns.lesson, here_paths) if here_paths is not None else tasks.begin_from_fix(ns.lesson, ns.fix, ns.held, ns.shown)
@@ -316,7 +324,7 @@ def cmd_begin_task(args: List[str]) -> int:
 def cmd_end_task(args: List[str]) -> int:
     w = _need(locate())
     if not repair_first(w):
-        raise Refused("a previous held-test revert could not be finished (see above); leaving nothing")
+        raise Refused("a previous run could not be finished (see above); leaving nothing")
     try:
         t = Task.load(w.learner.task_file)
     except LoadError as e:
@@ -337,8 +345,49 @@ def cmd_close_task(args: List[str]) -> int:
         say("no learner directory; nothing closed")
         return 0
     if not repair_first(w):
-        say("note: a held-test revert is still pending; task files removed anyway")
+        say("note: a previous run could not be finished (see above; the reference may still be in the tree); task files removed anyway, the record kept")
     say(*Tasks(w.repo, w.learner).close())
+    return 0
+
+
+def cmd_write(args: List[str]) -> int:
+    """rolling-write task|profile|reference|patch < the file. The tutor's pen:
+    the model's text, checked, into the learner's directory. Or
+    rolling-write patch --from-tree <path>..., the diff of those paths
+    against HEAD, which are then restored."""
+    w = _need(locate())
+    try:
+        if args[:2] == ["patch", "--from-tree"]:
+            # Everything after --from-tree is a path, so a path may begin with a dash.
+            if not repair_first(w):
+                raise Refused("a previous run could not be finished (see above); not touching the tree")
+            say(*writes.patch_from_tree(w.learner, w.repo, args[2:]))
+        elif any(a.startswith("--from-tree") for a in args):
+            raise Refused("that is spelled: rolling-write patch --from-tree <path>...")
+        else:
+            say(*writes.write(w.learner, args[0] if args else "", writes.read_stdin(), w.top, w.map_dir))
+    except writes.Refused as e:
+        raise Refused(str(e))
+    return 0
+
+
+def cmd_note(args: List[str]) -> int:
+    """rolling-note <lesson> < the entry. Appends to evidence/<lesson>.md
+    under today's date."""
+    w = _need(locate())
+    try:
+        say(writes.note(w.learner, args[0] if args else "", writes.read_stdin()))
+    except writes.Refused as e:
+        raise Refused(str(e))
+    return 0
+
+
+def cmd_keep_task(args: List[str]) -> int:
+    w = _need(locate())
+    try:
+        say(writes.keep_task(w.learner))
+    except (writes.Refused, LoadError) as e:
+        raise Refused(str(e))
     return 0
 
 
@@ -416,6 +465,7 @@ INLINE: Dict[str, Callable[[List[str]], int]] = {
 ACTIONS: Dict[str, Callable[[List[str]], int]] = {
     "begin-task": cmd_begin_task, "end-task": cmd_end_task, "close-task": cmd_close_task,
     "export": cmd_export, "check-map": cmd_check_map, "check-profile": cmd_check_profile, "check-task": cmd_check_task,
+    "write": cmd_write, "note": cmd_note, "keep-task": cmd_keep_task,
 }
 
 
