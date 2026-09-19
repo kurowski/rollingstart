@@ -116,19 +116,15 @@ class Report:
         return s
 
     def render(self) -> List[str]:
+        out: List[str] = []
+        for r in self.lines:   # what ran, including before a failure that stopped the run
+            out += _render_line(r)
+        out += self.notes
         if self.not_run:
-            out = []
-            for r in self.lines:   # what ran before the failure, when anything did
-                out += _render_line(r)
-            out += self.notes
             out.append(f"VERIFIER: not run ({self.not_run})")
             if self.proving:
                 out.append("PROOF: not ok (the verifier did not run)")
             return out
-        out: List[str] = []
-        for r in self.lines:
-            out += _render_line(r)
-        out += self.notes
         if self.interrupted:
             out.append("VERIFIER: interrupted before the report was complete; run it again")
             if self.proving:

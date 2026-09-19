@@ -196,6 +196,24 @@ class VerifierTest(WorldTest):
         self.assertIn("record cleared", self.assertRuns("diff"))
         self.assertClean()
 
+    def test_patch_paths_name_a_rename_by_its_new_name(self):
+        """`git apply --numstat -z` lists one record per entry, a rename
+        under its new name; not `git diff --numstat -z`'s two-name form."""
+        w = self.w
+        w.git("mv", "src/greet.sh", "src/hello.sh")
+        w.write("src/hello.sh", w.read("src/hello.sh") + "# moved\n")
+        w.write("src/new.sh", "#!/bin/sh\n")
+        w.git("add", "-A")
+        patch = w.git("diff", "--cached", "-M", "--binary") + "\n"
+        w.git("reset", "-q", "--hard")
+        w.learner.dir.mkdir(parents=True, exist_ok=True)
+        w.learner.applied_patch.write_text(patch)
+        self.assertIn("rename from src/greet.sh", patch)
+        self.assertEqual(reference._patch_paths(w.repo, w.learner.applied_patch), ["src/hello.sh", "src/new.sh"])
+        w.learner.applied_patch.write_text("not a patch\n")
+        self.assertEqual(reference._patch_paths(w.repo, w.learner.applied_patch), [])
+        w.learner.applied_patch.unlink()
+
     def test_a_mode_only_reference_is_still_repaired(self):
         """A mode change applies forward and reverses in either state, so
         the stale-record shortcut must not mistake it for already out."""

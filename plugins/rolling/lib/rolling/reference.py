@@ -203,7 +203,8 @@ def repair(repo: Repo, learner: Learner) -> Tuple[List[str], bool]:
     by_hand = ("put back {which} by hand on {when} (`git checkout -- <path>`, which also discards anything you typed in "
                "those files, so save that first; and remove any file the patch added), then remove {records}")
     forward = repo.ok("apply", "--check", "--", str(copy))
-    if forward and not repo.ok("apply", "-R", "--check", "--", str(copy)):
+    reverses = repo.ok("apply", "-R", "--check", "--", str(copy))
+    if forward and not reverses:
         if dirty:
             return [f"REFERENCE record kept: the reference as a whole is not in the tree (it would apply again), but {', '.join(dirty)} changed since it went in, which may be yours or a part of it (a mode change alone would look like this); compare with {copy}, put back what is the reference's, then remove {records}"], False
         try:
@@ -216,7 +217,8 @@ def repair(repo: Repo, learner: Learner) -> Tuple[List[str], bool]:
         where = f"on {at[:12]}" if at else "on a commit it did not record"
         return [f"REFERENCE STILL APPLIED: an interrupted proof left the reference in the tree {where}, and HEAD is now {head[:12]}; " + by_hand.format(which=which, when="that commit", records=records)], False
     try:
-        repo.run("apply", "-R", "--check", "--", str(copy))
+        if not reverses:
+            raise GitError("the reverse does not apply cleanly")
         repo.run("apply", "-R", "--", str(copy))
     except (GitError, OSError) as e:
         return [f"REFERENCE STILL APPLIED: an interrupted proof left the reference in the tree, part or whole, and it does not reverse cleanly now ({e}); " + by_hand.format(which=which, when="this commit", records=records)], False

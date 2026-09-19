@@ -27,7 +27,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import List, Optional
+from typing import List, NoReturn, Optional
 
 from . import frontmatter as fm, rules, session, validate
 from .model import Learner, LoadError, Map, Task
@@ -62,24 +62,34 @@ def write(learner: Learner, what: str, text: str, top: Path, map_dir: Path) -> L
     if what == "task":
         text = _stamped(learner, text)
     dest = {"task": learner.task_file, "profile": learner.profile, "reference": learner.reference, "patch": learner.patch}[what]
-    tmp = dest.with_name(f".{dest.name}.{os.getpid()}.new")
+    tmp = _tmp_for(dest)
     try:
         learner.dir.mkdir(parents=True, exist_ok=True)
         tmp.write_text(text, encoding="utf-8", errors="surrogateescape")
-    except OSError as e:
-        raise Refused(f"the learner directory cannot be written: {e}")
-    try:
         notes = _check(what, tmp, dest, learner, top, map_dir)
         os.replace(tmp, dest)
     except (Refused, OSError) as e:
-        # The refusal's reason is the message whatever the cleanup does;
-        # a temp file that cannot be removed is said, not left in silence.
-        try:
-            tmp.unlink()
-        except OSError as e2:
-            raise Refused(f"{e}; and the temporary copy {tmp.name} could not be removed ({e2})")
-        raise Refused(str(e) if isinstance(e, Refused) else f"the learner directory cannot be written: {e}")
+        _discard(tmp, e)
     return notes + [f"wrote {dest.name}"]
+
+
+def _tmp_for(dest: Path) -> Path:
+    """The temporary file a write lands in before the rename into place."""
+    return dest.with_name(f".{dest.name}.{os.getpid()}.new")
+
+
+def _discard(tmp: Path, e: Exception) -> NoReturn:
+    """A write through TMP failed with E: remove the copy, whether or
+    not it got written, and refuse with E's reason. A copy that cannot
+    be removed is said, not left in silence."""
+    reason = str(e) if isinstance(e, Refused) else f"the learner directory cannot be written: {e}"
+    try:
+        tmp.unlink()
+    except FileNotFoundError:
+        pass
+    except OSError as e2:
+        raise Refused(f"{reason}; and the temporary copy {tmp.name} could not be removed ({e2})")
+    raise Refused(reason)
 
 
 def patch_from_tree(learner: Learner, repo: Repo, paths: List[str]) -> List[str]:
@@ -147,14 +157,15 @@ def patch_from_tree(learner: Learner, repo: Repo, paths: List[str]) -> List[str]
                 repo.run("rm", "-q", "-f", "--cached", "--ignore-unmatch", "--", *literal(unstaged), check=False)
         if not diff.strip():
             raise Refused("nothing to take: those paths are as HEAD has them")
-        learner.dir.mkdir(parents=True, exist_ok=True)
-        tmp = learner.patch.with_name(f".{learner.patch.name}.{os.getpid()}.new")
-        tmp.write_bytes(diff)
-        os.replace(tmp, learner.patch)
     except GitError as e:
         raise Refused(f"git failed: {e}")
+    tmp = _tmp_for(learner.patch)
+    try:
+        learner.dir.mkdir(parents=True, exist_ok=True)
+        tmp.write_bytes(diff)
+        os.replace(tmp, learner.patch)
     except OSError as e:
-        raise Refused(f"the learner directory cannot be written: {e}")
+        _discard(tmp, e)
     try:
         # Every new file is leaving the tree now, so its index entry goes
         # with it, the tutor's own staging included; the finally above
@@ -233,25 +244,17 @@ def note(learner: Learner, lesson: str, text: str) -> str:
     if dest.is_symlink():
         raise Refused(f"evidence/{lesson}.md is a symbolic link; nothing written")
     entry = f"## {time.strftime('%Y-%m-%d')}\n\n{body}\n"
+    # A rewrite through a temporary file and a rename, never an append
+    # through whatever the name has become: that is what keeps this
+    # module's one promise, nothing in the learner's tree.
+    tmp = _tmp_for(dest)
     try:
         learner.evidence.mkdir(parents=True, exist_ok=True)
         existing = dest.read_text(encoding="utf-8", errors="surrogateescape") if dest.is_file() else ""
-        # A rewrite through a temporary file and a rename, never an append
-        # through whatever the name has become: that is what keeps this
-        # module's one promise, nothing in the learner's tree.
-        tmp = dest.with_name(f".{dest.name}.{os.getpid()}.new")
         tmp.write_text(_joined(existing, entry), encoding="utf-8", errors="surrogateescape")
-    except OSError as e:
-        raise Refused(f"the learner directory cannot be written: {e}")
-    try:
         os.replace(tmp, dest)
     except OSError as e:
-        # As in write(): a temporary copy that cannot be removed is said, not left in silence.
-        try:
-            tmp.unlink()
-        except OSError as e2:
-            raise Refused(f"the learner directory cannot be written: {e}; and the temporary copy {tmp.name} could not be removed ({e2})")
-        raise Refused(f"the learner directory cannot be written: {e}")
+        _discard(tmp, e)
     return f"noted in evidence/{lesson}.md ({kind})"
 
 
