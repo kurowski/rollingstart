@@ -12,6 +12,16 @@ from rolling.model import Task
 
 
 class ShowTest(WorldTest):
+    def test_map_check_reports_at_exit_zero(self):
+        w = self.w
+        self.assertIn("MAP: ok", self.assertRuns("show", "map-check"))
+        w.write(".rolling/map.md", w.read(".rolling/map.md").replace("mode: write", "mode: sideways"))
+        out = self.assertRuns("show", "map-check")
+        self.assertIn("mode", out)
+        self.assertIn("MAP: 1 fault(s)", out)
+        self.assertRuns("check-map", status=1)
+        w.restore_map()
+
     def test_every_subcommand(self):
         w = self.w
         self.assertIn("name: Scratch", self.assertRuns("show", "map"))

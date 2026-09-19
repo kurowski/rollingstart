@@ -74,7 +74,8 @@ recorded here.
 | `claude plugin validate` accepts the marketplace root and each plugin directory, and its exit status is usable as a gate | 1a.3 | **Yes.** Exit 0 with warnings printed; `--strict` turns warnings into exit 1 for CI; `--json` available. Warns on a missing marketplace description and plugin author. |
 | `${CLAUDE_SESSION_ID}` is substituted inside a skill's inline `` !`…` `` command, and the same session's PreToolUse hook receives the same id in `session_id` | 1a.4 | **Yes** (seen while confirming 1a.3's rows; confirmed again by the 1a.4 probe): the substituted value, the hook's `session_id`, the Bash tool's `CLAUDE_CODE_SESSION_ID`, and the print-mode result's `session_id` were one string. One caveat: a Claude session started from inside another's Bash tool once inherited the outer `CLAUDE_CODE_SESSION_ID`, so the skills use the substitution, never the variable. |
 | A plugin's `hooks.json` PreToolUse handler fires in the tutor's session for Edit and Write, receives `tool_input.file_path`, and its `deny` is honoured in `auto` mode | 1a.4 | **Yes** (2026-09-15, `--plugin-dir`, print mode). Fires for Write with an absolute `file_path`; the input also carries `cwd`, `session_id`, `permission_mode`, `tool_use_id`, `transcript_path`. Under `--permission-mode acceptEdits`, where edits are auto-approved, the hook's `deny` held: the write outside the guarded path landed, the one inside did not, and the model reported the reason verbatim. A second probe under `--permission-mode auto` reported `permission_mode: auto` in the hook input and the deny held there too. |
-| The `Skill` tool can invoke a plugin skill that does not disable model invocation, from inside another skill's turn | 1a.5 | From a prompt, yes (seen). From inside another skill's turn: 1a.5. Also seen: a skill's inline command goes through permissions like any Bash call, so an inline `sh -c …` with no matching grant is refused and the skill fails; every inline command must be a single `bin/` invocation the skill's `allowed-tools` names. |
+| The `Skill` tool can invoke a plugin skill that does not disable model invocation, from inside another skill's turn | 1a.5 | **Yes** (2026-09-16, `--plugin-dir`, print mode): a manual-only outer skill invoked an inner one through the Skill tool and the inner's instructions ran in the same turn; the outer skill's own `allowed-tools: Skill(plugin:inner)` covered the call with no session grant, and the narrow form validates strictly. Also seen: a skill's inline command goes through permissions like any Bash call, so an inline `sh -c …` with no matching grant is refused and the skill fails; every inline command must be a single `bin/` invocation the skill's `allowed-tools` names. **Three more facts from the same probes.** A slash command in print mode (`claude -p "/rolling:next"`) does run the skill and a model turn, so end-to-end runs drive skills directly; a session is continued with `--resume`, never a reused `--session-id`. A skill's `allowed-tools` hold only for the turn the skill was invoked in: in the learner's next plain turn the same `rolling-*` commands prompt, once each, so a skill that finishes in a later turn says so and carries on. And the plugin's data directory is a protected path (see the pen decision above). |
+| A non-zero exit from a skill's inline command aborts the skill | 1a.5 | **Yes, entirely** (2026-09-19, probe): the run had zero model turns and an empty result, and the command's output arrived as a `local-command-stderr` block. So anything a skill must be able to talk about runs inline through a command that always exits 0 and reports in words (`rolling-show map-check`); the exit-1 variants are for actions and CI. Found by the GitHub review of PR #9, which read `next`'s inline `rolling-check-map` against the dispatch table. |
 | Inline commands in one skill run in document order (so `rolling-diff` completes before `rolling-verify` starts) | 1a.5 | **No.** They start together: three inline commands, one sleeping two seconds, all began within a millisecond. Anything that must be sequenced runs inside one script; `done` gets a single inline `rolling-report` that captures the diff and then runs the verifier. |
 
 ## Sub-scopes
@@ -175,21 +176,59 @@ The contract is the module's docstring, `lib/rolling/guard.py`. PR #7.
 
 ---
 
-### 1a.5 — The four skills [PENDING]
+### 1a.5 — The four skills [COMPLETE]
 
 `start`, `next`, `lesson`, and `done` as `rolling`'s skills, calling
 the toolkit by name, holding the loop of `docs/plan.md` § 5 and the
 coaching rules the spike settled (`spike/claude/skills/`, corrected
 per `spike/NOTES.md`), with none of the spike's fourth-wall slips.
 `lesson` is the one skill the model may invoke; `done` runs
-`rolling-claim-session` and `rolling-report` (diff, then verifier) inline,
-before it speaks. Branch `p1a.5/skills`; depends on 1a.3
-and 1a.4. Done when `claude plugin validate` is green, no skill grants
-a map command or names a script, a task file, or a profile file to
-the learner, the mechanism rows assigned to 1a.5 are recorded, and
-one `write` lesson has run end to end on the Rallly clone with its
-transcript read for fourth-wall slips and for the tutor writing inside
-scope, written up here.
+`rolling-claim-session` and `rolling-report` (diff, then verifier)
+inline, before it speaks. Branch `p1a.5/skills`, on top of
+`p1a.5a/toolkit-writes`; depends on 1a.3 and 1a.4. Done: `claude
+plugin validate --strict` is green; no skill grants a map command, a
+package manager, or git that changes the tree, and none names a
+script, a task file, or a profile file to the learner; the mechanism
+rows above are recorded. The first end-to-end turns found three
+mechanisms the toolkit lacked, which became the base PR of this stack
+(the pen, since the data directory is a protected path; the forward
+proof as a command, since the guard rightly denied the tutor its own
+reference; the map carried onto a task branch cut from before it
+existed). Then one `write` lesson ran end to end on the Rallly clone
+twice, in print mode with the session resumed turn by turn and the
+map's `pnpm` commands pre-approved for the run, since in print mode a
+prompt is a denial and interactively each would have asked:
+`/rolling:next` chose `poll-data-model` for a returning learner with
+polls at `working`, built a seam task (a bulk-revoke mutation beside
+its single-invite sibling), wrote the test, the task, the reference,
+and the patch through the pen (the task file refused twice for a
+malformed `expect-fail-on-base` line and the tutor corrected it),
+proved it both ways (`PROOF: ok` twice), kept the task, and handed
+off to `lesson`, whose brief opened with the mode, gave the map's
+command verbatim as what "done" means, and said a reference was held
+without naming a file. `/rolling:done` put the passing check on the
+table first, read the diff against the rubric with a path, a line,
+and a provenance per point, noticed the change was byte-identical to
+its own reference and said so, left the rubric's explain-it bullets
+to the learner, and when the learner said "I agree" without
+answering, recorded a disagreement and kept the lesson open rather
+than leaving the branch. In the first run the learner did answer and
+the tutor marked the lesson satisfied, rewrote the profile, ended
+the task (the work committed on the kept branch, the tree back where
+it was, clean) and closed it. Transcripts read for the failure modes
+the plan names: no fourth-wall slip in either (the tutor named the
+branch and the map's commands, never a file of its own); the tutor
+wrote inside the scope only before the task existed, to prepare the
+test and try its solution, which the design allows, and the guard
+denied its one attempt after. Warts recorded for the next slices: a
+`direct` opening lesson (`how-a-change-ships`) blocks a fresh Rallly
+learner until P1b, so the runs used a profile with it satisfied; the
+map's `lint` is `biome check .`, which the tutor rightly dropped from
+a verifier when the environment's ignored settings file failed it
+(1a.7's map fixes that); and the transcript of a seam task shows the
+solution, since the tutor tries it in the tree, so a learner reading
+the tutor's tool calls has the answer (named as an exposure, not
+solved). PR #9, on top of PR #8.
 
 ---
 

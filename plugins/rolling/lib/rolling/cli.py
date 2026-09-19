@@ -77,7 +77,7 @@ def repair_first(w: Where) -> bool:
 
 
 def cmd_show(args: List[str]) -> int:
-    usage = "usage: rolling-show map|lessons|lesson [slug]|profile|task|corpus|tree|state-dir"
+    usage = "usage: rolling-show map|map-check|lessons|lesson [slug]|profile|task|corpus|tree|state-dir"
     what = args[0] if args else ""
     w = locate()
     if w is None:
@@ -86,6 +86,15 @@ def cmd_show(args: List[str]) -> int:
     m = w.load_map()
     if what == "map":
         say(_file_or(w.map_dir / "map.md", f"(no map: {w.map_dir / 'map.md'} does not exist)"))
+    elif what == "map-check":
+        # The check a skill reads inline: the same faults rolling-check-map
+        # exits 1 on, reported in words at exit 0, since a non-zero inline
+        # exit aborts the skill before the tutor could say a word about them.
+        faults = validate.validate_map(w.map_dir)
+        if faults:
+            say(*map(str, faults), f"MAP: {len(faults)} fault(s) in {w.map_dir}; the author fixes the map before a task can be built")
+        else:
+            say(f"MAP: ok ({w.map_dir})")
     elif what == "lessons":
         files = m.lesson_files() if m else []
         for f in files:
