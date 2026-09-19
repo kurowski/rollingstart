@@ -268,7 +268,7 @@ reported the example map's one fault, the missing course heading that
 
 ---
 
-### 1a.7 — The Rallly map at eight to ten lessons [PENDING]
+### 1a.7 — The Rallly map at eight to ten lessons [COMPLETE]
 
 The map grows from the spike's five lessons to the set a first
 fortnight needs, every lesson with a rubric, a region, a depth, a
@@ -284,8 +284,89 @@ courses. Branch `p1a.7/rallly-map`; depends on 1a.2. Done when
 checked against `../rallly` at `aab791da`, and for each lesson with a
 source fix `rolling-begin-task --fix` succeeds on the clone with
 `rolling-verify` failing on the starting state and passing with the
-reference applied.
-
+reference applied. Done: ten lessons in `examples/rallly/.rolling/`,
+three courses (`Generalist`, `Product engineer`, `Billing engineer`)
+under `## Suggested courses` with a `###` each, the map check green.
+The five added are `procedures-and-actions` (the ladder in `trpc.ts`
+and the clients in `safe-action/server.ts`), `emails-and-i18n`,
+`flags-and-policy`, `invites-and-participants`, and `stripe-webhook`
+(`direct`, `deep`, for P1b); the house-keeping cron is a paragraph of
+`poll-lifecycle`, which already covered its three poll tasks, rather
+than a lesson of its own. One mode changed: `how-a-change-ships` is
+now `write` with `test: shown`, built from `aab791da` (#3235) with the
+one unit test the fix tightened brought forward, because as a `direct`
+opener it blocked every fresh learner until P1b (1a.5's wart) and
+because the plan wanted an early `shown` lesson where the point is the
+mechanics; `poll-lifecycle` and `billing-and-tiers` stay `direct`.
+Every path, line, sha, and PR number was read at the pin; two facts
+had moved since the spike (`vercel.json` is `apps/web/vercel.json`; the
+invite link's query key is `token`, not `invite`, since #3188) and are
+fixed, and the line numbers the old lessons cite all still hold. The
+map's commands changed from what the runs found: `lint` is `pnpm exec
+biome check` with a path appended, since `pnpm check` (`biome check
+.`) fails on the container's `.claude/settings.local.json`, which git
+ignores through the global excludes file that Biome's `useIgnoreFile`
+does not read; `typecheck-web` and `typecheck-emails` are added as the
+scoped type checks (fifteen seconds and two, in the container) so a
+verifier fits the two-minute limit; and the environment is a
+`## Environment` section. Five lessons name a fix with a unit test the
+container can run, and each was proved on the clone the way `next`
+would: a throwaway container from the runner's image with scratch
+state, `rolling-begin-task <lesson> --fix <sha>` with the test held or
+shown, a task file written through the pen, `rolling-verify --on-base`
+and `--on-reference`, then end, close, and the branch deleted, the
+clone back on `rolling/map` and clean. All five prove `PROOF: ok` both
+ways: `how-a-change-ships` (`aab791da`, shown, with `typecheck-web`,
+`lint`, `structure`), `emails-and-i18n` (`e84e55da`, held, with
+`typecheck-emails` and `lint`), `procedures-and-actions` (`9f52dbe7`,
+held), `invites-and-participants` (`3011b1ad`, held), and
+`flags-and-policy` (`d374ed48`, held), the last three with `lint` and
+`structure` only. The proofs found three things the map now says.
+A task cut from before a schema change (the participant-token
+migrations of 2026-09-04 to 09-06 sit between three of these parents
+and the pin) fails `typecheck-web` on seventy errors in files it never
+touches until the Prisma client is regenerated for that tree, so such
+a task names `regenerate-client` as its `setup:` operation when its
+checks load the real client, and its brief tells the learner to run
+it again on return, since nothing runs it at `done`; the unit tests
+run against the mocked client and passed under the stale one, which
+the automatic review on the PR was the first to point out (the three
+lessons had said otherwise, and `local-dev-setup` carried a `test:`
+field with no test to apply it to; both fixed in the review round). Even then, the pin's `node_modules` finds a handful of
+errors at a parent six lockfile commits behind (an implicit `any` in
+the private API's schemas, two in the user mutations), so
+`typecheck-web` is in a verifier only for the task cut from the pin's
+own parent; the three older tasks say so in their lessons and have the
+tutor run it on request. And a verifier line cannot carry the
+bracketed path of a Next.js route test (`[locale]`, `(space)` are
+shell metacharacters), while `--shown` can, since git is handed a
+literal pathspec: the shown test's line is `test-web
+leave-space-dialog.test.tsx`, vitest's name filter. `poll-data-model`
+keeps no fix of its own: its exemplary one (`af3d9273`) is proved by a
+Playwright spec, which this environment has no browser for, so the
+lesson tells the tutor to build along a seam, which is what 1a.5's
+runs did. The prose was reviewed by running it: a profile seeded
+in the runner's container (TypeScript and React, never tRPC, platform
+and polls at `working`, the setup lesson satisfied) and `/rolling:next`
+in print mode. The tutor chose `how-a-change-ships` as the only
+reachable lesson and said why in a route note, read the lesson, checked
+`git log` for schema changes between the fix's parent and the pin as
+the map now says to and found none, cut the branch with the test
+shown, had the task refused twice by the pen for the
+`expect-fail-on-base` line (the same stumble as 1a.5: it wrote the
+line without the `verify` prefix, then with a colon), proved it both
+ways, kept it, and handed off; the brief opened with the mode, gave the
+map's commands verbatim, said a reference was held, and named no file
+of the tutor's. One thing to watch: the brief listed the inputs the fix
+touches, read off its diff, which a learner would otherwise find with
+a grep; not the answer, but a step of it. For 1a.8: the `next` skill's
+`task.md` shape could spell the `expect-fail-on-base` form out
+(`verify <the line's text>`) so the pen stops refusing it; a task cut
+from before a schema change leaves the learner's generated client
+stale on return, and only the brief says so; and the clone carries two
+of the maintainer's own task branches from the spike's runs
+(`rolling/how-a-change-ships-20260913-*`), which are theirs to delete.
+PR #12.
 ---
 
 ### 1a.8 — The exit run, and closure [PENDING]
