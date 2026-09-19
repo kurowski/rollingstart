@@ -409,9 +409,10 @@ stale on return, and only the brief says so; and the clone carries two
 of the maintainer's own task branches from the spike's runs
 (`rolling/how-a-change-ships-20260913-*`), which are theirs to delete.
 PR #12.
+
 ---
 
-### 1a.8 — The exit run, and closure [PENDING]
+### 1a.8 — The exit run, and closure [COMPLETE]
 
 Run the checkpoint's exit criterion honestly and close it out. Branch
 `p1a.8/closure`; depends on 1a.5, 1a.6, 1a.7. Done when three `write`
@@ -425,7 +426,134 @@ shows only the learner's own work and nothing of the learner's
 directory is findable in the tree; the retrospective is appended here,
 `CLAUDE.md` § Status and `docs/plan.md` § 7 are updated, the README
 stops saying nothing is built, and every mechanism row above is filled
-in.
+in. Done: the run is written up in the retrospective below. Three
+`write` lessons ran end to end in three print-mode sessions in the
+runner's container (`local-dev-setup`, `how-a-change-ships`,
+`procedures-and-actions`), the profile carrying each into the next;
+every `done` led with the verifier, located every point, held the
+rubric's spoken parts open until the learner answered, and wrote the
+profile, ended, and closed only after the learner agreed; no transcript
+names a file of the tutor's, and the tutor wrote in the tree only
+before a task existed. The clone is clean on its map branch with
+nothing of the learner's directory in it, and the three kept branches
+hold only the learner's change. The route check is tabled in the
+retrospective: three destinations gave two different first lessons and
+one refusal (billing at `deep` has only `direct` lessons until P1b, and
+the tutor said so), and the two backgrounds with one destination
+coincided on the first run and diverged on the second, after the
+choosing rule in `next` and the map's course text were fixed. Two
+things the run found are fixed here: a shown test's line written as
+`held-verify:` with nothing held, which the pen now refuses with the
+line it should be; and the fixed-order route. One is recorded for the
+map: at a task's older parent the lesson's pointers describe the pin
+(`features/poll/invite/` did not exist in July), which the tutor
+noticed and worked around. Every mechanism row above is filled.
+PR #15.
+
+## Retrospective
+
+**Planned against delivered.** Eight sub-scopes, delivered as twelve
+PRs (#3 to #9, #11 to #13, #15; #10 was the GitHub app installer's own
+workflow) between 2026-09-15 and 09-19, plus one review round that
+was not planned: the automatic review on pull requests never ran on
+any of them until the last day, so #8 and #9 got local Opus reviews
+after the fact and their findings became PR #13. The toolkit was
+written twice, first in bash and then in Python, and the second was
+right. The map went from five lessons to ten. `direct` mode, map
+plugins, and everything else deferred stayed deferred.
+
+**The exit run, as it went.** Intake asked one question and laid out
+the three courses; the profile write on the resumed turn was refused,
+since a skill's grants hold only for its own turn (the mechanism
+table), and was pre-approved as 1a.5's runs had done. The first lesson
+was the environment, and the environment was already set up from the
+spike's days, so the tutor had a lesson with nothing to prove: the
+proof requires an expected failure (PR #13), the setup lesson declares
+no test, and `begin --here` refused with no paths. It found a seam
+instead, a one-line fix to a path helper that throws on a null, wrote
+the test and the solution before any task existed, took the solution
+out with the pen and began from the test, proved both ways, kept the
+task, and briefed it as a smoke test after the setup steps; the
+lesson now says that is what happens when the environment is already
+there. The second lesson was built from the password-manager fix with
+its test shown; the tutor wrote the test's line as `held-verify:`
+twice before getting it right, which the validator now refuses. The
+third was chosen against the background (never tRPC) with the reason
+noted; its brief pointed at a file that did not exist at the July
+parent, which the tutor caught at `done` and said so. Feedback in all
+three led with the verifier, cited a path and a line for every point,
+distinguished the rubric from taste, and found one real thing each
+time (a null claim flowing into a string type; the `CLAUDE.md`
+paragraph the fix had added; an `onSuccess` that would toast on a
+not-found result, with the repository's own precedent for branching
+on it). Nothing of the tutor's reached the tree.
+
+**Profile → route.** Seeded profiles with both
+openers satisfied, `/rolling:next` run for five turns in the
+container, enough to choose and note the route and not to finish a
+task; the lesson is the one the route note went to.
+
+| Seed | Background | Destination | First lesson, first run | After the rule change |
+|---|---|---|---|---|
+| 1 | never tRPC, Prisma, i18next | platform orientation, polls deep | `poll-data-model` (the only reachable polls lesson) | not rerun |
+| 2 | same | platform deep | `procedures-and-actions` (never tRPC; the course's advice) | not rerun |
+| 3 | same | platform, polls, billing at working | `procedures-and-actions` (same reason; four reachable) | `procedures-and-actions`, same reason |
+| 4 | same | platform orientation, billing deep | nothing: `billing-and-tiers` is `direct`, not served until P1b, and `stripe-webhook` requires it; the tutor said so and offered platform at working | not rerun |
+| 5a | fluent tRPC and Prisma, never i18next or React Email | platform working | `procedures-and-actions` ("the other two build on it, the course lists it first") | `emails-and-i18n` |
+| 5b | fluent i18next and React Email, never tRPC | platform working | `procedures-and-actions` | `procedures-and-actions` (lacks tRPC and next-safe-action) |
+
+Seeds 2 and 3 coincide by design: the same background, and both
+destinations hold platform at working. Seed 4 is the third route,
+a refusal with its reason. Seeds 5a and 5b are the fixed-order bug
+and its fix.
+
+**Decisions made on the way**, the ones worth keeping in `docs/plan.md`
+§ 10: Python 3.9 standard library, not bash (1a.3b); the pen and the
+forward proof as toolkit commands, since the data directory is a
+protected path and the guard rightly denies the tutor its own
+reference (1a.5a); the map carried onto the task branch (1a.5a); a task
+is provable only with an expected failure, so an environment lesson
+in a set-up environment is a smoke-test seam (1a.8); and the route
+follows the background, not the course's order (1a.8).
+
+**What went wrong, and the fix.** The automatic review was the
+installer's no-op template for nine PRs (read-only permissions, no
+tracking, no `--comment`, no grants); fixed on `main` in two commits
+on 2026-09-19 once the action's tracker showed the working shape. The
+held test's revert took six bash review rounds and was still wrong in
+ways the Python rewrite's tests then pinned (1a.3b). The reference
+could sit in the tree with its record deleted, and the pen could reset
+the learner's work with a task open; neither surfaced in a run, both
+in review (#13). Tasks cut from before a schema change or a dependency
+upgrade cannot carry the type check, and the map says which (1a.7).
+Two lessons claimed a setup operation the unit tests did not need,
+which the automatic review's first post caught (1a.7). The first route
+check gave two backgrounds the same lesson (1a.8, above).
+
+**Deferred, and where.** `direct` mode, so a billing-only learner has
+nothing to do until P1b. The `--output` flag on three git grants and
+the scaffold-content rule, prose-held, for P2's eval. `lesson` claiming
+the session, for P1b's design. A map pointer at an older parent, for
+the author's `verify` in P3, or a line per lesson saying what its task
+branch lacks. The type check at older parents. `reference.repair`'s
+blind spot for ignored paths.
+
+**Carry forward.** Proving every fix-backed task in a throwaway
+container before a map ships was cheap and found three facts a run
+would have found later; P1c's map-plugin work should keep a harness
+for it, perhaps as `runner/run.sh prove`. A print-mode session with
+`--resume` and pre-approved grants is a usable learner simulator; the
+route check at five turns costs a minute a seed. Reading transcripts
+for the named properties, not for tone, is what caught the stale
+pointer and the smoke-test invention.
+
+**What to change.** Run the automatic review on the first PR of a
+checkpoint and check that it posted; silence read as a clean review
+for nine PRs. Probe a Claude Code claim with a `claude -p` one-liner
+before writing it into a skill; "its listing is not readable from
+here" stood for a week unverified. Say in each lesson what its task
+branch lacks relative to the pin, since the tutor reads the lesson at
+the pin and works at the parent.
 
 ## Explicitly deferred
 
