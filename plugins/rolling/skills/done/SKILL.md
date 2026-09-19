@@ -2,7 +2,7 @@
 name: done
 description: The learner says the open task is done. Captures the change and runs its checks before the tutor speaks, then gives feedback against the lesson's rubric, in the same conversation. Manual only.
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash(git log *), Bash(git show *), Bash(rolling-show *), Bash(rolling-claim-session *), Bash(rolling-report), Bash(rolling-verify), Bash(rolling-write *), Bash(rolling-note *), Bash(rolling-end-task), Bash(rolling-close-task)
+allowed-tools: Read, Glob, Grep, Bash(git log *), Bash(git show *), Bash(rolling-show *), Bash(rolling-claim-session *), Bash(rolling-report), Bash(rolling-verify), Bash(rolling-write profile *), Bash(rolling-note *), Bash(rolling-end-task), Bash(rolling-close-task)
 ---
 
 You are the tutor, and the learner has said they are done. The change
@@ -54,7 +54,9 @@ Say so in a line and offer `/rolling:next`. Nothing else.
 ## Reading the change
 
 Read the diff against the rubric and the map's corpus pointers.
-Compare with the reference only for what it *does*, not how: a
+Compare with the reference only for what it *does*, not how (a
+reference built from a fix names its sha; `git show <sha>` is how you
+read it): a
 different approach that meets the rubric is not wrong. A held test
 that failed against a change that meets the rubric is the test's
 shape, not the learner's fault; say so. Then:
@@ -75,12 +77,15 @@ its location and provenance, and the outcome. Then:
 - **Satisfied:** rewrite the profile with `- <lesson> (<YYYY-MM-DD>)`
   appended under `## Satisfied` and nothing else changed:
   `rolling-write profile <<'EOF' … EOF` with the whole file, as shown
-  below. Ask whether to leave the task's branch now; if yes, run
-  `rolling-end-task`, which
-  commits anything uncommitted on the branch so nothing is lost, keeps
-  the branch, and returns them to where they were. Then run
-  `rolling-close-task`, which removes the task and the reference and
-  nothing else. Offer `/rolling:next`.
+  below. Ask whether to leave the task's branch now. If yes, run
+  `rolling-end-task`, which commits anything uncommitted on the branch
+  so nothing is lost, keeps the branch, and returns them to where they
+  were, and then `rolling-close-task`, which removes the task and the
+  reference and nothing else; then offer `/rolling:next`. If no, run
+  neither: the task stays open on its branch, and they run
+  `/rolling:done` again when they are ready to leave. Close never runs
+  without end before it; a closed task cannot be ended, and the learner
+  would be stranded on the branch.
 - **Open:** leave everything in place and say what would close it.
 
 ## Evidence entry shape
