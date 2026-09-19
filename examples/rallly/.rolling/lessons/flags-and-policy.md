@@ -60,12 +60,13 @@ apps/web/src/emails` and `structure`. The brief describes the symptom
 their inputs, since the held test pins them; it does not say where the
 tier rule is derived or which call sites are affected. The fix's parent
 is six days behind the map's pin and before the participant-token
-schema changes, so the task needs `regenerate-client` as a `setup:`
-operation for the tests to load the client, and the brief tells the
-learner to run `pnpm db:generate` again when they are back on their
-own branch. `typecheck-web` does not belong in the verifier at this
-parent for the same reason as in `procedures-and-actions`: the pin's
-toolchain finds a few errors in files the task never touches. `95979adf` (#3147) is the refactor
+schema changes. As in `invites-and-participants`, the unit tests run
+against the mocked client and need no `setup:` operation, and
+`typecheck-web` does not belong in the verifier: the pin's toolchain
+finds errors in files the task never touches, before and after
+`regenerate-client`. Run it for the learner on request, after the
+client is regenerated for this tree, and have them run
+`pnpm db:generate` again on return. `95979adf` (#3147) is the refactor
 that created all of this, and its `CLAUDE.md` hunk is the shortest
 statement of the rule; `1c6f5da3` (#3125) added the white-label policy
 that `spaceBrandingAllowed` reflects. A seam for a fresh task: a new

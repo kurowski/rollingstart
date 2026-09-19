@@ -67,15 +67,16 @@ imports; it does not say where the URL is composed or what the dialog
 does. At the fix's parent the path's query key was `invite`, and the
 held test expects that; `95e61636` (#3188) renamed it to `token` later,
 which is what the pin has. The parent is five days behind the pin
-and before the participant-token schema changes, so the task needs
-`regenerate-client` as a `setup:` operation for the tests to load the
-client, and the brief tells the learner to run `pnpm db:generate`
-again when they are back on their own branch. Even then
-`typecheck-web` does not belong in the verifier: the pin's toolchain
-finds a handful of errors in files the task never touches (the
-private API's schemas, the user mutations), which are the dependency
-upgrades between this parent and the pin. Run it for the learner when
-they ask and read it with that in mind.
+and before the participant-token schema changes. The unit tests do
+not mind (`apps/web/src/test/setup.ts` mocks the client), so the task
+needs no `setup:` operation, but `typecheck-web` does not belong in
+its verifier: against the pin's generated client it fails on seventy
+errors in files the task never touches, and with the client
+regenerated for this tree it still finds a handful (the private API's
+schemas, the user mutations), which are the dependency upgrades
+between this parent and the pin. Run it for the learner when they ask,
+after `regenerate-client`, and read it with that in mind; they run
+`pnpm db:generate` again when they are back on their own branch.
 A seam for a fresh task: a bulk form of `revokePollInvite` beside the
 single one, or a status the derivation does not yet distinguish.
 

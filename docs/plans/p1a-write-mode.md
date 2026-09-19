@@ -326,9 +326,13 @@ A task cut from before a schema change (the participant-token
 migrations of 2026-09-04 to 09-06 sit between three of these parents
 and the pin) fails `typecheck-web` on seventy errors in files it never
 touches until the Prisma client is regenerated for that tree, so such
-a task names `regenerate-client` as its `setup:` operation and its
-brief tells the learner to run it again on return, since nothing runs
-it at `done`. Even then, the pin's `node_modules` finds a handful of
+a task names `regenerate-client` as its `setup:` operation when its
+checks load the real client, and its brief tells the learner to run
+it again on return, since nothing runs it at `done`; the unit tests
+run against the mocked client and passed under the stale one, which
+the automatic review on the PR was the first to point out (the three
+lessons had said otherwise, and `local-dev-setup` carried a `test:`
+field with no test to apply it to; both fixed in the review round). Even then, the pin's `node_modules` finds a handful of
 errors at a parent six lockfile commits behind (an implicit `any` in
 the private API's schemas, two in the user mutations), so
 `typecheck-web` is in a verifier only for the task cut from the pin's

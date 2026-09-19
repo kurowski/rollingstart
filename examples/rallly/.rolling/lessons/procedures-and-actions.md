@@ -68,8 +68,10 @@ router entry is being retired and what the mutation is called and
 returns, since the held test pins that; it does not say how the
 action is built. The fix's parent is from July 2026, some way behind
 the map's pin, so the type check does not belong in this task's
-verifier: run `typecheck-web` for the learner when they ask, and read
-its output knowing the tree is older than the toolchain. A seam that
+verifier (the unit tests, against the mocked client, need no setup
+operation): run `typecheck-web` for the learner when they ask, after
+`regenerate-client`, and read its output knowing the tree is older
+than the toolchain. A seam that
 fits the same lesson when a fresh task is wanted: any remaining
 mutation in `trpc/routers/polls.ts` that a single owner-scoped
 `updateMany` can express, moved the same way.

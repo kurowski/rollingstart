@@ -49,8 +49,10 @@ suite; in this example's environment there is no browser, so a task
 proved here uses a unit test. `apps/web` needs `regenerate-client`
 before `typecheck-web` or any `test-*` after a schema change, and a
 task cut from before one (`packages/database/prisma/` in `git log`
-between the fix and the pin) names it as its `setup:` operation, with
-the reverse run when the learner returns.
+between the fix and the pin) names it as its `setup:` operation when
+its checks load the real client (a type check does; the unit tests,
+against the mocked client, do not), with the reverse run when the
+learner returns.
 
 Read `CLAUDE.md` at the repo root before anything else: it is the
 maintainers' own account of how work is done here, and the lessons
@@ -186,8 +188,9 @@ Legacy, read but do not copy:
 Pull requests that show how work is done here:
 
 - #3235 `aab791da` — a cross-layer fix: a constant in `packages/ui`,
-  exported, spread into eleven inputs, one unit test tightened, one
-  paragraph added to `CLAUDE.md`.
+  exported, spread into eleven inputs (ten of which had opted out of
+  one manager by hand), one unit test tightened, one paragraph added
+  to `CLAUDE.md`.
 - #3191 `af3d9273` — a ten-line fix with the integration test that
   proves it and a one-line schema comment.
 - #3180 `f58b281b` — a small feature end to end: action, mutation,
