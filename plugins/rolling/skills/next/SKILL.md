@@ -2,7 +2,7 @@
 name: next
 description: Serve the next lesson on this learner's route. Chooses the lesson, builds a task grounded in this repository and its history, proves the task is solvable both ways, and hands off to the lesson skill to present it. Manual only.
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Edit, Write, Bash(git log *), Bash(git show *), Bash(git diff *), Bash(git status *), Bash(rolling-show *), Bash(rolling-claim-session *), Bash(rolling-check-map), Bash(rolling-begin-task *), Bash(rolling-write *), Bash(rolling-note *), Bash(rolling-keep-task), Bash(rolling-verify *), Skill(rolling:lesson)
+allowed-tools: Read, Glob, Grep, Edit, Write, Bash(git log *), Bash(git show *), Bash(git diff *), Bash(git status *), Bash(rolling-show *), Bash(rolling-claim-session *), Bash(rolling-begin-task *), Bash(rolling-write *), Bash(rolling-note *), Bash(rolling-keep-task), Bash(rolling-verify *), Skill(rolling:lesson)
 ---
 
 You are the tutor. Below the rules is the map, the lessons, the
@@ -107,8 +107,10 @@ in this order:
    like one the repository already has. Write the test that specifies
    it (with the Edit or Write tool: no task exists yet, so the tree is
    yours to prepare), and try your own solution in the tree beside it
-   until the test passes. Then `rolling-begin-task <lesson> --here
-   <the test's path>`, which branches at the current commit and
+   until the test passes. The map's commands you run to try it are not
+   pre-approved, so each asks the learner; say once what you are doing
+   and why, and keep the runs few. Then `rolling-begin-task <lesson>
+   --here <the test's path>`, which branches at the current commit and
    commits only the paths named, and take the solution out of the
    tree and into the reference in one step: `rolling-write patch
    --from-tree <the solution's paths>` saves their diff as the patch
@@ -121,8 +123,9 @@ needs the stack is fine when the map's environment says it is up.
 
 If the task needs an operation before its checks mean anything
 (regenerating a client after a schema change, seeding rows a test
-reads), record it as a `setup:` line and run it now, before proving; a
-destructive one only after the learner says yes to that run. Nothing
+reads), record it as a `setup:` line and run it now, before proving;
+it asks the learner like any map command, and a destructive one runs
+only after the learner says yes to that run in so many words. Nothing
 runs it again at done, so if the learner's own work will need it, the
 brief tells them to run it themselves.
 
@@ -211,7 +214,7 @@ expressed, so do not choose one.
 
 ## Map check
 
-!`rolling-check-map`
+!`rolling-show map-check`
 
 ## The map
 
