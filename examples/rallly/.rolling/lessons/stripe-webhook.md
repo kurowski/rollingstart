@@ -62,5 +62,9 @@ new `isSelfHosted` fork in product code.
 - The review catches a non-idempotent write, a tier set outside
   `syncSpaceTier`, a throw where a no-op was wanted (or the reverse),
   and says which line and which retry semantics it would break.
-- The review says what would block a merge and what is taste, and the
-  learner can say what a 400 from this route makes Stripe do.
+- The review says what would block a merge and what is taste.
+
+## Talk through
+
+- What a 400 from this route makes Stripe do, and what a 200 on a
+  failure would cost.

@@ -69,11 +69,14 @@ and `test-web` on the test the tutor wrote.
 - The change is correct about the relations: which side owns the
   foreign key, what cascades, what is soft-deleted and what is hard.
 - Any query respects the poll's soft-delete and the invite's
-  `revokedAt` where they apply, and the learner can say which reads
-  filter on which.
+  `revokedAt` where they apply.
 - The test that proves the change is the right kind (`.test.ts` with
   the database mocked, or `.spec.ts` against the stack) and asserts
   behaviour, not the mock.
-- The learner can explain, in a sentence each, the participant token,
-  the invite-to-participant link, and why `PollActivity.type` is not an
-  enum.
+
+## Talk through
+
+- Which reads filter on the poll's soft-delete and which on the
+  invite's `revokedAt`.
+- The participant token, the invite-to-participant link, and why
+  `PollActivity.type` is not an enum.

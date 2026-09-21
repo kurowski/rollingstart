@@ -335,7 +335,7 @@ held: 1 passed.
 - apps/web/src/trpc/routers/polls/participants.ts:291 — the token is
   minted in the app, never defaulted by the database; this repo's
   convention, see the comment at poll.prisma:76. Met.
-- … Outcome: satisfied. The learner agreed.
+- … Outcome: closed by the learner. The tutor's view: met.
 ```
 
 Kinds: **Route** (why `next` chose this lesson, one line), **Observation**
@@ -343,9 +343,9 @@ Kinds: **Route** (why `next` chose this lesson, one line), **Observation**
 anything), **Intervention** (what the tutor said unprompted while
 watching a `direct` session, and why; on the tutor's ledger, not the
 learner's), **Feedback** (the verifier summary lines, every point with
-its location, rule, and provenance, and the outcome: `satisfied`, or
-`open` and what would close it, with both positions when the tutor and
-the learner disagree).
+its location, rule, and provenance, and the outcome: `closed by the
+learner` with the tutor's view, met or what it did not see, or `open`
+with what the learner chose to keep going on).
 
 ## `detours/<slug>.md` and `escalations/<stamp>.md` (P2)
 
@@ -359,11 +359,13 @@ is written in P1.
 The rules the tutor holds, rewritten for a tutor rather than an
 examiner:
 
-- A lesson is **satisfied** when the tutor, having seen the verifier
-  pass and read the change against the rubric, says so and the learner
-  agrees. `done` writes the line to `## Satisfied` then, and only then.
-  Disagreement is recorded in evidence with both positions and the
-  lesson stays open; the learner may ask for a second opinion (P2).
+- A lesson is **satisfied** when the learner says it is done, after
+  the tutor has put the verifier's result and its reading of the change
+  against the rubric on the table. `done` writes the line to
+  `## Satisfied` then, and only then. The tutor's view goes to
+  evidence, what it did not see included, and never holds the lesson
+  open; a learner who wants to keep going says so, and a learner who
+  wants a second opinion asks for one (P2).
 - **Observations** go to evidence and never satisfy anything on their
   own.
 - In a `direct` lesson, a **catch the tutor prompted** while watching
