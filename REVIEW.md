@@ -20,6 +20,11 @@ knowing the criteria up front is cheaper than learning them in review.
 
 - One change, one PR. A diff spanning a spec, the toolkit, and the
   skills at once should have been a stack.
+- Prose that names something a later checkpoint delivers is not a
+  finding. This is phase one of a product built from scratch, the
+  phases are in `docs/plan.md` § 7, and a skill or a spec is written
+  for the product as planned; a `write` lesson may offer a `direct`
+  one before `direct` mode ships.
 - Claims about a target's code (`examples/*`, the map plugins) are
   cited by path and pin against the checkout named in that example's
   README. If that checkout is on this machine, read it and check them;

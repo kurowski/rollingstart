@@ -65,7 +65,10 @@ Say so in a line and offer `/rolling:next`. Nothing else.
 
 ## Reading the change
 
-Read the diff against the rubric and the map's corpus pointers.
+Read the diff against the rubric and the map's corpus pointers, and
+read your own notes on this lesson (below) first: what you showed the
+learner on request, and what you observed, are part of what you know
+about the change.
 Compare with the reference only for what it *does*, not how (a
 reference built from a fix names its sha; `git show <sha>` is how you
 read it): a
@@ -138,3 +141,7 @@ Outcome: closed by the learner; the tutor's view: met. | closed by the learner; 
 ## Profile
 
 !`rolling-show profile`
+
+## Your notes on this lesson so far
+
+!`rolling-show evidence`

@@ -85,6 +85,7 @@ mutation in `trpc/routers/polls.ts` that a single owner-scoped
   it (and by not-deleted), returns a result object rather than
   throwing for a missing row, and the learner's own test asserts that
   scope.
+
 ## Talk through
 
 - For each rung of the procedure ladder, what it adds and where the

@@ -257,7 +257,8 @@ Prose for the tutor: what the lesson is, why it matters in this
 repository, pointers into the code (paths and, where they help, line
 numbers and shas, each checked against the commit the map names), and
 for the tutor's use, the fixes and seams in history a task can be
-built from. It ends with **`## Rubric`** (required): what a
+built from. It closes with **`## Rubric`** (required), followed only
+by `## Talk through` when there is one: the rubric is what a
 maintainer here would look for in the change, the reviewer's checklist
 for this lesson, as prose the tutor reads the learner's change against
 and shows the learner. It is written about the change, never about the

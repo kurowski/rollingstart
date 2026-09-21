@@ -88,6 +88,7 @@ single one, or a status the derivation does not yet distinguish.
 - Every string is a locale key, the menu's action reports success and
   failure the way the dialog already does, and nothing reaches into
   `@rallly/database` outside `data.ts` and `mutations.ts`.
+
 ## Talk through
 
 - What happens to an invite when its invitee responds, when the

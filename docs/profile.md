@@ -92,9 +92,9 @@ Joining the payments team; polls can wait.
   session (or a later learner reading over their shoulder) knows what
   the destination was for.
 - **`## Satisfied`**: `- <lesson slug> (<YYYY-MM-DD>)`, one per lesson,
-  appended by `done` and only by `done`, only when the tutor has seen
-  the verifier and read the change against the rubric and said the
-  rubric is met and the learner has agreed.
+  appended by `done` and only by `done`, when the learner says the
+  lesson is done, after the tutor has put the verifier's result and its
+  reading of the change against the rubric on the table.
 
 ## `session`
 
@@ -270,8 +270,9 @@ did and why, so `done` can compare what the learner did with what the
 original did without confusing the two. For a task the tutor built
 from a seam: the tutor's own solution, as a description or a diff.
 Named to the learner as "a reference exists and I am holding it",
-never by path; a coding session in a `direct` lesson is denied the
-whole directory (P1b).
+never by path, and shown when they ask, through `rolling-show
+reference`, with a note in evidence that it was; a coding session in a
+`direct` lesson is denied the whole directory (P1b).
 
 ## `held/`, `held-aside/`, `held-aside.pending`
 

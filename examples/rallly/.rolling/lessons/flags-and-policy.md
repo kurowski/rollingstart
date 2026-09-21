@@ -81,6 +81,7 @@ loader and the hook.
   `resolveSpaceTier`, so a self-hosted instance (no billing) keeps its
   branding, and the learner's own test covers the hobby, switch-off,
   and policy-off cases.
+
 ## Talk through
 
 - The difference between a capability and a policy, the file each
