@@ -56,7 +56,13 @@ jobs:
           # comments for findings, and `gh pr comment` for the summary it
           # posts when it finds none. With only the inline tool allowed, a
           # clean review was a denied call and silence on the PR (#9, #11).
-          claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr list:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh search:*)"'
+          # And the skill itself: the prompt invokes it through the Skill
+          # tool, which is a permission like any other. Without it every
+          # run was denied at its first call and either gave up behind the
+          # tracking comment's placeholder (#16's first run, three turns,
+          # seven denials) or reviewed by hand with what was left. The two
+          # git grants let the skill see the branch against main.
+          claude_args: '--allowedTools "Skill(code-review:code-review),mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr list:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh search:*),Bash(git fetch:*),Bash(git diff:*),Bash(git log:*)"'
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 
