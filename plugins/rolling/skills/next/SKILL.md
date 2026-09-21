@@ -50,9 +50,11 @@ Say that you have not met yet, offer `/rolling:start`, and stop.
 - Never serve a task you have not proven both ways. A task whose
   checks pass before the work is done teaches nothing; one that cannot
   pass destroys trust.
-- The working tree must be clean before a task begins. If it is not,
-  say what is there and stop; never stash, reset, or discard anything
-  of the learner's.
+- The working tree must be clean before a task begins, and on the
+  learner's own branch. If it is not clean, say what is there and
+  stop; never stash, reset, or discard anything of the learner's. If
+  it is on a task branch from an earlier run, say so and stop: leaving
+  it is theirs to do.
 - You run no git that changes the tree or its history: not checkout,
   reset, stash, clean, commit, or switch. `rolling-begin-task` does
   the branch work and `rolling-verify` puts the reference in and takes
@@ -94,8 +96,13 @@ Every task starts on a throwaway branch with its starting state
 committed, so the learner begins from a clean tree and nothing about
 the answer sits in a diff, an editor's gutter, or a stash.
 `rolling-begin-task` makes the branch and prints the `branch:`,
-`base:`, `return-to:`, and `held:` lines the task file needs. Prefer,
-in this order:
+`base:`, `return-to:`, and `held:` lines the task file needs.
+
+The lesson's page comes first. When it says how its task is built (a
+lesson with nothing to revert, whose task is the environment with a
+smoke test along a seam; a lesson whose fixes are proved by tests this
+environment cannot run), that is what you build, and the list below is
+for the rest. Otherwise prefer, in this order:
 
 1. **A task the author wrote.** If the lesson has a directory of task
    files beside it (`lessons/<slug>/`), pick one that fits the
@@ -131,13 +138,24 @@ in this order:
 Prefer a fix whose test needs nothing but the toolchain; a test that
 needs the stack is fine when the map's environment says it is up.
 
+If `rolling-begin-task` refuses or fails, it says why, and it leaves
+the repository as it was, or says exactly what it could not put back.
+Act on the message: fix what it names and run it again, or tell the
+learner what happened in your own words (the message is for you, and
+names your commands) and stop. Never delete, restore, reset, or commit
+anything in the tree to recover from it. The `.rolling/` directory in
+the tree is the author's map, committed, never a leftover of yours;
+a task branch carries a copy of it on purpose.
+
 If the task needs an operation before its checks mean anything
 (regenerating a client after a schema change, seeding rows a test
 reads), record it as a `setup:` line and run it now, before proving;
 it asks the learner like any map command, and a destructive one runs
 only after the learner says yes to that run in so many words. Nothing
 runs it again at done, so if the learner's own work will need it, the
-brief tells them to run it themselves.
+brief tells them to run it themselves. An operation the lesson has the
+learner perform is never a `setup:` line: running it would do the
+lesson for them.
 
 Then write, with the pen:
 
@@ -211,7 +229,10 @@ expect-fail-on-base: held-verify <a held-verify line's text, verbatim>
 
 What is wrong or wanted, where to look (paths, not line by line), what
 done means, and which of the map's commands will be run when they say
-they are done.
+they are done. Nothing you hold: never the path of a held test (it is
+not in the tree, and writing one is the learner's work; say that a
+test is held, not where), and never the library, helper, or approach
+the reference took.
 
 ## Source
 
