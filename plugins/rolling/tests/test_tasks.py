@@ -120,6 +120,266 @@ class BeginFromFixTest(WorldTest):
         self.assertTrue((w.learner.held / "-dashdir/t.sh").is_file())
 
 
+class BeginSurvivesTheEnvironmentTest(WorldTest):
+    """What the first fresh learner's run found (2026-09-21): a container
+    with no git identity, and the repository's own commit hooks, are
+    conditions the toolkit's own commits must not depend on; and a
+    commit that fails part-way must leave the repository as it was,
+    since the tutor cannot be trusted to tidy up a half-made branch."""
+
+    NO_IDENTITY = {
+        "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1",
+        "EMAIL": None, "GIT_AUTHOR_NAME": None, "GIT_AUTHOR_EMAIL": None, "GIT_COMMITTER_NAME": None, "GIT_COMMITTER_EMAIL": None,
+    }
+
+    def forget_identity(self) -> None:
+        w = self.w
+        w.git("config", "--unset", "user.email")
+        w.git("config", "--unset", "user.name")
+        w.git("config", "user.useConfigOnly", "true")   # no guessing from the hostname
+        env = {k: v for k, v in {**os.environ, **self.NO_IDENTITY}.items() if v is not None}
+        rc = subprocess.run(["git", "var", "GIT_COMMITTER_IDENT"], cwd=str(w.top), capture_output=True, env=env, check=False).returncode
+        self.assertNotEqual(rc, 0, "the scratch repository should have no identity for this test")
+
+    def test_begins_and_ends_without_a_git_identity(self):
+        w = self.w
+        self.forget_identity()
+        rc, out = w.run("begin-task", "greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh", env=self.NO_IDENTITY)
+        self.assertEqual(rc, 0, out)
+        fields = dict(l.split(": ", 1) for l in out.split("\n") if ": " in l)
+        self.assertEqual(w.git("log", "-1", "--format=%an <%ae>"), "Rolling Start <rolling@localhost>")
+        self.assertClean()
+        w.held_task(fields["branch"], fields["base"])
+        w.write("src/greet.sh", "#!/bin/sh\nprintf 'Hello %s\\n' \"$1\"\n")
+        rc, out = w.run("end-task", env=self.NO_IDENTITY)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("no git identity", out, "the learner is told their work was committed under the toolkit's name")
+        self.assertEqual(w.git("log", "-1", "--format=%an", fields["branch"]), "Rolling Start")
+        self.assertOnBranch("main")
+        self.assertClean()
+
+    def test_the_learner_identity_is_used_when_there_is_one(self):
+        w = self.w
+        branch, base = w.begin("greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh")
+        self.assertEqual(w.git("log", "-1", "--format=%an"), "Rolling Start", "the starting state is the toolkit's commit")
+        w.held_task(branch, base)
+        w.write("src/greet.sh", "#!/bin/sh\nprintf 'Hello %s\\n' \"$1\"\n")
+        out = self.assertRuns("end-task")
+        self.assertNotIn("no git identity", out)
+        self.assertEqual(w.git("log", "-1", "--format=%an <%ae>", branch), "Test <test@example.com>", "the learner's work is theirs")
+
+    def test_the_repositorys_commit_hooks_do_not_run(self):
+        w = self.w
+        hooks = w.root / "hooks"   # outside the tree (a tool's hooksPath is usually inside it, but the tree must stay clean here)
+        hooks.mkdir()
+        for name in ("pre-commit", "prepare-commit-msg", "commit-msg", "post-commit",   # --no-verify skips only two of these
+                     "post-checkout", "reference-transaction", "post-index-change"):   # and these fire on switch, add, and every ref update
+            (hooks / name).write_text("#!/bin/sh\necho HOOK RAN >&2\nexit 1\n")
+            (hooks / name).chmod(0o755)
+        w.git("config", "core.hooksPath", str(hooks))
+        w.git("config", "commit.gpgsign", "true")
+        w.git("config", "gpg.program", "/bin/false")
+        branch, base = w.begin("greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh")
+        w.held_task(branch, base)
+        w.write("src/greet.sh", "#!/bin/sh\nprintf 'Hello %s\\n' \"$1\"\n")
+        out = self.assertRuns("end-task")
+        self.assertNotIn("HOOK RAN", out)
+        self.assertOnBranch("main")
+        self.assertRuns("close-task")
+        self.assertClean()
+
+    def test_a_refused_ref_update_still_puts_the_tree_back(self):
+        """git switch -c rewrites the tree before it moves HEAD; a ref
+        update that is refused leaves the learner's branch with the
+        starting state in its tree. The undo must not wait for HEAD to
+        have moved."""
+        from rolling.repo import GitError, Repo
+        from rolling.tasks import Refused, Tasks
+        w = self.w
+        w.write(".rolling/lessons/newer.md", "---\ntitle: Newer\nregion: greeting\ndepth: working\n---\n\nx\n\n## Rubric\n\ny\n")
+        w.git("add", "-A")
+        w.git("commit", "-q", "-m", "the map moved on")
+
+        class RefusedRef(Repo):
+            def switch_new(self, branch, start=None):
+                # What a refused ref update leaves: the tree and index at the start point, HEAD unmoved.
+                self.run("read-tree", "-m", "-u", start)
+                raise GitError("cannot lock ref")
+
+        with self.assertRaises(Refused) as cm:
+            Tasks(RefusedRef(w.top), w.learner).begin_from_fix("greet-politely", w.fix, ["tests/greet.test.sh"], [])
+        self.assertIn("as it was", str(cm.exception))
+        self.assertOnBranch("main")
+        self.assertClean()
+        self.assertTrue((w.top / ".rolling/lessons/newer.md").is_file(), "the map is back in the tree")
+
+    def test_a_held_copy_that_cannot_be_written_undoes_the_begin(self):
+        from rolling.repo import Repo
+        from rolling.tasks import Refused, Tasks
+        w = self.w
+
+        class FullDisk(Repo):
+            def show(self, sha, path):
+                raise OSError(28, "No space left on device")
+
+        with self.assertRaises(Refused) as cm:
+            Tasks(FullDisk(w.top), w.learner).begin_from_fix("greet-politely", w.fix, ["tests/greet.test.sh"], [])
+        self.assertIn("nothing was begun", str(cm.exception))
+        self.assertOnBranch("main")
+        self.assertClean()
+        self.assertEqual(w.git("branch", "--list", "rolling/*"), "")
+        self.assertFalse(w.learner.held.exists())
+
+    def test_an_undo_that_cannot_finish_says_so_instead_of_claiming_success(self):
+        from rolling.repo import GitError, Repo
+        from rolling.tasks import Refused, Tasks
+        w = self.w
+
+        class Stuck(Repo):
+            def commit(self, message, allow_empty=False, as_tool=False):
+                raise GitError("commit failed on purpose")
+
+            def switch_discarding(self, ref, detach=False):
+                raise GitError("switch refused on purpose")
+
+        with self.assertRaises(Refused) as cm:
+            Tasks(Stuck(w.top), w.learner).begin_from_fix("greet-politely", w.fix, ["tests/greet.test.sh"], [])
+        msg = str(cm.exception)
+        self.assertNotIn("nothing was begun", msg)
+        self.assertIn("could not be put back", msg)
+        self.assertIn("could not put the tree back: switch refused on purpose", msg)
+        self.assertIn("never yours", msg)
+        branch = w.git("symbolic-ref", "--short", "HEAD")
+        self.assertTrue(branch.startswith("rolling/greet-politely-"), "and it is honest: the repository is still on the half-made branch")
+
+    def test_refuses_to_begin_on_a_task_branch(self):
+        w = self.w
+        w.git("switch", "-q", "-c", "rolling/greet-politely-20260921-020224")
+        out = self.assertRuns("begin-task", "setup", "--fix", w.fix, "--shown", "tests/greet.test.sh", status=1)
+        self.assertIn("task branch from an earlier run", out)
+        self.assertOnBranch("rolling/greet-politely-20260921-020224")
+        self.assertClean()
+        w.write("tests/seam.test.sh", "seam\n")
+        out = self.assertRuns("begin-task", "setup", "--here", "tests/seam.test.sh", status=1)
+        self.assertIn("task branch from an earlier run", out)
+        self.assertEqual(w.git("status", "--porcelain"), "?? tests/seam.test.sh")
+
+    def test_a_branch_named_like_the_map_branch_is_not_a_task_branch(self):
+        w = self.w
+        w.git("switch", "-q", "-c", "rolling/map")
+        branch, base = w.begin("greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh")
+        self.assertEqual(w.git("rev-parse", "HEAD^"), w.pre)
+        w.held_task(branch, base, return_to=f"rolling/map {w.fix}")
+        self.assertRuns("end-task")
+        self.assertOnBranch("rolling/map")
+
+    def test_a_committer_in_the_environment_is_not_an_identity(self):
+        """GIT_COMMITTER_* alone satisfies git's committer and not its
+        author, and a commit needs both; the fallback must see that."""
+        w = self.w
+        self.forget_identity()
+        env = dict(self.NO_IDENTITY, GIT_COMMITTER_NAME="Someone", GIT_COMMITTER_EMAIL="someone@example.com")
+        rc, out = w.run("begin-task", "greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh", env=env)
+        self.assertEqual(rc, 0, out)
+        fields = dict(l.split(": ", 1) for l in out.split("\n") if ": " in l)
+        w.held_task(fields["branch"], fields["base"])
+        w.write("src/greet.sh", "#!/bin/sh\nprintf 'Hello %s\\n' \"$1\"\n")
+        rc, out = w.run("end-task", env=env)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("no git identity", out)
+        self.assertOnBranch("main")
+
+    def test_a_failed_end_commit_keeps_the_work_unstaged_on_the_branch(self):
+        from rolling.tasks import Refused
+        w = self.w
+        branch, base = w.begin("greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh")
+        task = w.held_task(branch, base)
+        w.write("src/greet.sh", "#!/bin/sh\nprintf 'Hello %s\\n' \"$1\"\n")
+        from rolling.model import Task
+        with self.assertRaises(Refused) as cm:
+            self._failing_tasks().end(Task.load(task))
+        self.assertIn("nothing was left", str(cm.exception))
+        self.assertOnBranch(branch)
+        self.assertEqual(w.git("diff", "--name-only"), "src/greet.sh", "their work is in the tree")
+        self.assertEqual(w.git("diff", "--cached", "--name-only"), "", "and unstaged, as they left it")
+        # Staged as they had it, too: a deliberately staged hunk survives.
+        w.git("add", "src/greet.sh")
+        w.write("src/greet.sh", w.read("src/greet.sh") + "# a later edit\n")
+        with self.assertRaises(Refused):
+            self._failing_tasks().end(Task.load(task))
+        self.assertEqual(w.git("diff", "--cached", "--name-only"), "src/greet.sh", "the staged version is still staged")
+        self.assertIn("a later edit", w.read("src/greet.sh"))
+        self.assertIn("a later edit", w.git("diff"), "and the unstaged edit is still unstaged")
+        self.assertRuns("end-task")   # and a second try, with a working git, leaves normally
+        self.assertOnBranch("main")
+
+    def _failing_tasks(self):
+        """A Tasks whose commit fails, the way a full disk or a refused
+        object write would; identity and hooks are already out of the
+        picture, so this is the failure that is left."""
+        from rolling.repo import GitError, Repo
+        from rolling.tasks import Tasks
+
+        class Broken(Repo):
+            def commit(self, message, allow_empty=False, as_tool=False):
+                raise GitError("commit failed on purpose")
+
+        return Tasks(Broken(self.w.top), self.w.learner)
+
+    def test_a_failed_starting_state_commit_puts_everything_back(self):
+        from rolling.tasks import Refused
+        w = self.w
+        # A fix older than the map, so the map is carried (the case the
+        # first run hit), and a shown test the branch point lacks.
+        w.write(".rolling/lessons/newer.md", "---\ntitle: Newer\nregion: greeting\ndepth: working\n---\n\nx\n\n## Rubric\n\ny\n")
+        w.git("add", "-A")
+        w.git("commit", "-q", "-m", "the map moved on")
+        origin = w.git("rev-parse", "HEAD")
+        with self.assertRaises(Refused) as cm:
+            self._failing_tasks().begin_from_fix("greet-politely", w.fix, ["tests/greet.test.sh"], [])
+        self.assertIn("nothing was begun", str(cm.exception))
+        self.assertIn("commit failed on purpose", str(cm.exception))
+        self.assertOnBranch("main")
+        self.assertEqual(w.git("rev-parse", "HEAD"), origin)
+        self.assertClean()
+        self.assertEqual(w.git("branch", "--list", "rolling/*"), "", "the half-made branch is gone")
+        self.assertTrue((w.top / ".rolling/lessons/newer.md").is_file())
+        self.assertFalse(any(w.learner.held.rglob("*")) if w.learner.held.is_dir() else False, "nothing held for a task that never began")
+        # And the repository can begin a task right afterwards.
+        w.begin("greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh")
+
+    def test_a_failed_commit_with_a_shown_test_leaves_none_of_it_behind(self):
+        from rolling.tasks import Refused
+        w = self.w
+        with self.assertRaises(Refused):
+            self._failing_tasks().begin_from_fix("setup", w.fix, [], ["tests/greet.test.sh"])
+        self.assertOnBranch("main")
+        self.assertClean()
+        self.assertIn("HELLO", w.git("show", f"{w.pre}:src/greet.sh"))
+        self.assertNotIn("HELLO", w.read("src/greet.sh"), "the tree is main's again, not the pre-fix code the branch point had")
+
+    def test_a_failed_here_commit_leaves_the_tutors_file_in_the_tree(self):
+        from rolling.tasks import Refused
+        w = self.w
+        w.write("tests/seam.test.sh", "seam\n")
+        with self.assertRaises(Refused) as cm:
+            self._failing_tasks().begin_here("setup", ["tests/seam.test.sh"])
+        self.assertIn("nothing was begun", str(cm.exception))
+        self.assertOnBranch("main")
+        self.assertEqual(w.git("status", "--porcelain"), "?? tests/seam.test.sh", "the file the tutor prepared is still there, untracked as it was")
+        self.assertEqual(w.git("branch", "--list", "rolling/*"), "")
+
+    def test_a_failed_begin_from_a_detached_head_returns_there(self):
+        from rolling.tasks import Refused
+        w = self.w
+        w.git("switch", "-q", "--detach", w.fix)
+        with self.assertRaises(Refused):
+            self._failing_tasks().begin_from_fix("greet-politely", w.fix, ["tests/greet.test.sh"], [])
+        self.assertEqual(w.git("symbolic-ref", "-q", "--short", "HEAD"), "")
+        self.assertEqual(w.git("rev-parse", "HEAD"), w.fix)
+        self.assertClean()
+
+
 class BeginHereTest(WorldTest):
     def test_commits_only_the_named_files(self):
         w = self.w

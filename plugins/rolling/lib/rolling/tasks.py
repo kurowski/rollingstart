@@ -13,11 +13,11 @@ from __future__ import annotations
 import shutil
 import time
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 
 from . import paths, rules
 from .model import Learner, Task
-from .repo import Repo, literal
+from .repo import GitError, Repo, literal
 
 
 class Refused(Exception):
@@ -72,25 +72,35 @@ class Tasks:
             if repo.mode_at(fix, p) not in ("100644", "100755"):
                 raise Refused(f"{p} is not a regular file at {fix} (a directory, a symbolic link, or a file the fix deleted cannot be held or shown)")
         branch, return_to = self._branch_for(lesson), self._return_to()
-        origin = repo.rev_parse("HEAD")
+        origin, origin_branch = repo.rev_parse("HEAD"), repo.branch()
         self._empty_held()
-        repo.switch_new(branch, f"{fix}^")
-        if shown:
-            repo.checkout_paths(fix, shown)
-        # The map as it is now, not as it was (or was not) before the fix:
-        # a task cut from before the map was committed would otherwise
-        # lose it. In the starting-state commit, so never in the diff.
-        carried = self._carry_map(origin)
-        note = ", with that commit's test brought forward so it is present and failing" if shown else ""
-        note += ", and the map as of the commit the task began from" if carried else ""
-        repo.commit(f"rolling: starting state for {lesson}\n\nThe code as it was before {repo.short(fix)}{note}. A Rolling\nStart task; the branch is throwaway.", allow_empty=True)
-        # The held copies, written only once the branch exists into the
-        # directory _common_checks just emptied.
-        for p in held:
-            dest = self.learner.held / p
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_bytes(repo.show(fix, p))
-        return Begun(branch, repo.rev_parse("HEAD"), return_to, held)
+        try:
+            repo.switch_new(branch, f"{fix}^")
+            if shown:
+                repo.checkout_paths(fix, shown)
+            # The map as it is now, not as it was (or was not) before the fix:
+            # a task cut from before the map was committed would otherwise
+            # lose it. In the starting-state commit, so never in the diff.
+            carried = self._carry_map(origin)
+            note = ", with that commit's test brought forward so it is present and failing" if shown else ""
+            note += ", and the map as of the commit the task began from" if carried else ""
+            repo.commit(f"rolling: starting state for {lesson}\n\nThe code as it was before {repo.short(fix)}{note}. A Rolling\nStart task; the branch is throwaway.", allow_empty=True, as_tool=True)
+            # The held copies, written only once the branch exists into the
+            # directory _empty_held just emptied; still inside the undo, since
+            # a branch with its starting state and no held test is a task
+            # that cannot be proved and, being on a task branch, cannot be
+            # begun again.
+            for p in held:
+                dest = self.learner.held / p
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(repo.show(fix, p))
+            base = repo.rev_parse("HEAD")
+        except (GitError, OSError) as e:
+            # The tree was clean when this began and everything in it since
+            # is the toolkit's, so switching back discards nothing of the
+            # learner's.
+            raise Refused(self._undo_begin(branch, origin_branch, origin, str(e), discard=True, before=[]))
+        return Begun(branch, base, return_to, held)
 
     def begin_here(self, lesson: str, files: List[str]) -> Begun:
         """The task starts from the current commit plus the files the
@@ -116,15 +126,72 @@ class Tasks:
         if other:
             raise Refused("the working tree has changes outside the paths named; commit, stash, or discard them first:\n" + "\n".join(other))
         branch, return_to = self._branch_for(lesson), self._return_to()
+        origin, origin_branch = repo.rev_parse("HEAD"), repo.branch()
         self._empty_held()
-        repo.switch_new(branch)
-        repo.add(files)
         note = ""
-        if repo.staged_nonempty():
-            repo.commit(f"rolling: starting state for {lesson}\n\nThe current commit plus the files the task adds. A Rolling Start task; the\nbranch is throwaway.")
+        try:
+            repo.switch_new(branch)
+            repo.add(files)
+            if repo.staged_nonempty():
+                repo.commit(f"rolling: starting state for {lesson}\n\nThe current commit plus the files the task adds. A Rolling Start task; the\nbranch is throwaway.", as_tool=True)
+            else:
+                note = "note: nothing to commit; the starting state is the current commit"
+            base = repo.rev_parse("HEAD")
+        except GitError as e:
+            # HEAD never moved, so unstaging is enough: the files the tutor
+            # prepared stay in the tree, untracked, as they were.
+            raise Refused(self._undo_begin(branch, origin_branch, origin, str(e), discard=False, before=status))
+        return Begun(branch, base, return_to, [], note)
+
+    def _undo_begin(self, branch: str, origin_branch: Optional[str], origin: str, why: str, discard: bool, before: List[str]) -> str:
+        """Put the repository back as it was before a begin whose git
+        write failed part-way, and say where it is. Each step is its own
+        attempt, so one that fails does not stop the next, and the message
+        reports what is actually true afterwards rather than what was
+        meant: a half-made branch the tutor then "tidies" by hand is how
+        the first fresh learner lost the map from the tree (2026-09-21)."""
+        repo = self.repo
+        problems: List[str] = []
+        if discard:
+            # Whether or not HEAD moved: a switch that was refused at the
+            # ref update has already rewritten the index and tree.
+            try:
+                repo.switch_discarding(origin_branch or origin, detach=not origin_branch)
+            except GitError as e:
+                problems.append(f"could not put the tree back: {e}")
         else:
-            note = "note: nothing to commit; the starting state is the current commit"
-        return Begun(branch, repo.rev_parse("HEAD"), return_to, [], note)
+            try:
+                repo.unstage_all()
+            except GitError as e:
+                problems.append(f"could not unstage: {e}")
+            try:
+                if repo.branch() == branch:
+                    if origin_branch:
+                        repo.switch(origin_branch)
+                    else:
+                        repo.switch_detach(origin)
+            except GitError as e:
+                problems.append(f"could not switch back: {e}")
+        try:
+            if repo.branch_exists(branch) and repo.branch() != branch:
+                repo.delete_branch(branch)
+        except GitError as e:
+            problems.append(f"could not remove {branch}: {e}")
+        try:
+            if self.learner.held.is_dir():
+                shutil.rmtree(self.learner.held)
+        except OSError:
+            pass
+        where = repo.branch() or f"detached at {repo.head()}"
+        left = repo.status()
+        if left != before:   # for --here, the files the tutor prepared were there before and should still be
+            problems.append("the tree is not as it was:\n" + "\n".join(left))
+        if not problems:
+            return f"could not begin the task: {why}\nnothing was begun; the repository is on {where}, as it was"
+        return (
+            f"could not begin the task: {why}\nthe task was not begun, and the repository could not be put back: "
+            + "; ".join(problems) + f"\nit is on {where}. Say so to the learner; putting it right is theirs to do, never yours"
+        )
 
     def _carry_map(self, origin: str) -> bool:
         """Put .rolling as of ORIGIN into the tree and index, replacing
@@ -144,6 +211,15 @@ class Tasks:
         if self.learner.has_task():
             t = self.learner.task()
             raise Refused(f"a task is already open ({t.lesson if t else '?'}); run rolling-end-task and rolling-close-task first")
+        # An open task's own branch is the case above; this is a branch a
+        # failed or abandoned run left, with no task to end.
+        cur = self.repo.branch()
+        if cur and rules.is_task_branch(cur):
+            raise Refused(
+                f"the repository is on {cur}, a task branch from an earlier run; a task begins from the learner's own branch, "
+                f"never from another task's. Leaving it is the learner's to do (git switch <their branch>, then git branch -D {cur} "
+                "if nothing on it is wanted); say so and stop"
+            )
 
     def _empty_held(self) -> None:
         """Empty and recreate held/: the first write of a begin, after every
@@ -193,10 +269,25 @@ class Tasks:
         if len(words) > 2:
             raise Refused(f"task.md return-to has {len(words)} words; expected '<ref> <sha>' or a sha")
         out: List[str] = []
-        repo.add(None)
-        if repo.staged_nonempty():
-            repo.commit("rolling: the learner's work, as left\n\nCommitted on the throwaway branch when the task ended, so nothing is\nlost. Not for merging.")
-            out.append(f"committed the learner's uncommitted work on {task.branch}")
+        index = repo.index_tree()   # how they had things staged, to put back if the commit fails
+        try:
+            repo.add(None)
+            if repo.staged_nonempty():
+                as_tool = repo.commit("rolling: the learner's work, as left\n\nCommitted on the throwaway branch when the task ended, so nothing is\nlost. Not for merging.")
+                out.append(f"committed the learner's uncommitted work on {task.branch}")
+                if as_tool:
+                    out.append("note: no git identity is configured for the learner here, so that commit is under the toolkit's name (Rolling Start); their work is on the branch either way")
+        except GitError as e:
+            # Their work stays in the tree, staged as they had it; the
+            # branch is not left, since leaving would need the commit.
+            try:
+                if index:
+                    repo.restore_index(index)
+                else:
+                    repo.unstage_all()
+            except GitError:
+                pass
+            raise Refused(f"could not commit the learner's work: {e}\nnothing was left: the repository is still on {task.branch} with their work in the tree, uncommitted. Say so; fixing what stopped the commit is theirs, and rolling-end-task can be run again")
         ref, sha = task.return_ref_and_sha()
         if sha and repo.branch_exists(ref):
             repo.switch(ref)

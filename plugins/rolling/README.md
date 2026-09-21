@@ -56,7 +56,7 @@ first finishes any held-test revert a killed run left behind.
 | `rolling-report` | `done`, inline | The diff, then the verifier, in that order, from one command. |
 | `rolling-diff` | `rolling-report` | The working tree against the task's `base`, untracked included, nothing excluded, capped. |
 | `rolling-verify [--on-base \| --on-reference]` | `rolling-report`, `next` | The task's `verify:` lines against the map's commands, then the held test applied, run, and reverted, with the learner's own file set aside in the learner's directory and a record that survives a kill. `--on-base` is the proof's first half (the expected failures fail on the starting state; a line that did not run fails it); `--on-reference` the second (the reference applied as a patch, everything passes, the patch reversed in a `finally`). The reference is the fix's own change, or for a seam task the patch the tutor wrote with `rolling-write patch`. |
-| `rolling-begin-task <lesson> --fix <sha> [--held p]… [--shown p]… \| --here <path>…` | `next` | The throwaway branch with the starting state committed; held tests copied aside, shown tests brought forward, the map carried across as it is now; `--here` commits only the paths named. Refuses while a task is open. |
+| `rolling-begin-task <lesson> --fix <sha> [--held p]… [--shown p]… \| --here <path>…` | `next` | The throwaway branch with the starting state committed; held tests copied aside, shown tests brought forward, the map carried across as it is now; `--here` commits only the paths named. Refuses while a task is open, and from a task branch an earlier run left. A git write that fails part-way is undone (the branch removed, the tree back as it was) and the message says where the repository is. |
 | `rolling-end-task` | `done` | Commits what the learner left on the task branch, keeps it, returns them to where they were. |
 | `rolling-check-map [dir]` | authors, CI | The map's shape against the spec, exit 1 on a fault; `next` reads the same faults inline through `rolling-show map-check`. |
 | `rolling-check-profile`, `rolling-check-task` | authors, by hand; the pen runs the same checks as it writes | The learner's files' shape against the spec. |
@@ -65,6 +65,14 @@ first finishes any held-test revert a killed run left behind.
 | `rolling-note <lesson>` | every skill | Appends an evidence entry, under today's date; the entry must open with its kind (`**Route.**`, `**Observation.**`, `**Intervention.**`, `**Feedback.**`). |
 | `rolling-keep-task` | `next` | Copies the open task, minus the five lines that belong to one run (`branch`, `base`, `return-to`, `started`, `tutor-session`), to `tasks/<lesson>/<stamp>.md` for a later session (a second keep in the same second gets a `-2`). |
 | `rolling-export <dir>` | the learner | Copies the learner's directory somewhere safe. |
+
+The toolkit's commits (the starting state, the learner's checkpoint at
+end) run none of the repository's hooks and are never signed: they are
+bookkeeping on a throwaway branch, not a change for review, and a hook
+that fails or wants a key would strand the learner on the branch. The
+starting state is committed as Rolling Start; the learner's checkpoint
+under their own git identity, or as Rolling Start with a note when git
+has none for them, which a fresh container often has not.
 
 Scripts a skill runs inline always exit 0 and report in words, because
 a non-zero inline exit aborts the skill. Scripts a skill runs as an
