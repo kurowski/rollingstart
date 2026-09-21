@@ -126,7 +126,7 @@ never a path, so the grant writes nothing else.
 ---
 lesson: poll-data-model
 mode: write
-branch: rolling/poll-data-model-20260914-1530
+branch: rolling/poll-data-model-20260914-153000
 base: 4f1c2e9d8b7a6c5e4d3f2a1b0c9d8e7f6a5b4c3d
 return-to: main 0e9d8c7b6a5f4e3d2c1b0a9f8e7d6c5b4a3f2e1d
 started: 2026-09-14

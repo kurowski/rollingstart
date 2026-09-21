@@ -20,12 +20,20 @@ _SHA = re.compile(r"^[0-9a-f]{7,40}$")
 _DATE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 _SHELL_META = frozenset("$`;&|<>(){}\\\"'*?[")
 _TRAILING_OPERATORS = frozenset(";&|><\\")
+_TASK_BRANCH = re.compile(r"^rolling/[a-z0-9]+(-[a-z0-9]+)*-[0-9]{8}-[0-9]{6}(-[0-9]+)?$")
 
 
 def is_slug(s: str) -> bool:
     """Lowercase kebab-case: the one spelling that survives a
     case-folding filesystem."""
     return bool(_SLUG.match(s))
+
+
+def is_task_branch(name: str) -> bool:
+    """A branch rolling-begin-task cut: rolling/<lesson>-<stamp>. Not
+    every rolling/ branch: a map committed on a local rolling/map is the
+    runner's shape, and any other name is the learner's own."""
+    return _TASK_BRANCH.match(name or "") is not None
 
 
 def is_key(s: str) -> bool:

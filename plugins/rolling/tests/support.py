@@ -164,8 +164,11 @@ class ScratchWorld:
         """Run bin/rolling-NAME as a session would: a subprocess, cwd the
         repository. Returns (exit status, combined output)."""
         e = dict(os.environ)
-        if env:
-            e.update(env)
+        for k, v in (env or {}).items():   # None removes a variable
+            if v is None:
+                e.pop(k, None)
+            else:
+                e[k] = v
         res = subprocess.run([str(BIN / f"rolling-{name}"), *args], cwd=str(self.top), capture_output=True, text=True, input=stdin, env=e, check=False)
         return res.returncode, (res.stdout + res.stderr)
 
