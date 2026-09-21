@@ -54,6 +54,22 @@ git still has. This is the shape a map has in a repository whose author
 committed it, which is what the plugin expects in P1a; the map-plugin
 route arrives in P1c.
 
+Two more things `up` puts in the home volume, both found by the first
+fresh learner's run. The host's git identity, copied in, so the
+learner's commits inside are theirs; without one git refuses to commit
+at all, and the toolkit falls back to committing as Rolling Start.
+And allow rules for the toolkit's own commands in the container's user
+settings, since a skill's grants hold only for the turn it ran in and
+auto mode's classifier denied `rolling-begin-task` the moment `next`
+had to ask the learner something first. The rules are the commands the
+skills grant, plus `rolling-export`, which only ever creates a
+directory the learner names. Unlike a skill's grants they hold in
+every turn and in every session that shares the home volume, and
+`rolling-verify` and `rolling-report` run the map's declared commands
+through them; no map operation is among them, so a destructive one
+still prompts. An author inside a project would commit the same rules
+in its `.claude/settings.json`.
+
 Then, inside the container, the steps from Rallly's `CONTRIBUTING.md`
 that the `local-dev-setup` lesson is about:
 

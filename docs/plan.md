@@ -822,3 +822,33 @@ TOML profile decision, and the strict-frontmatter posture.
   course text says when its lessons are independent. A route that
   reads as a fixed order across backgrounds is the bug `CLAUDE.md`
   names.
+
+**During the first fresh learner's run** (2026-09-21, the hotfix
+before P1b; the run is written up in its PR):
+
+- **The toolkit's git runs none of the repository's hooks and signs
+  nothing.** The starting state and the learner's checkpoint are
+  bookkeeping on a throwaway branch, not changes up for review; a hook
+  that fails after a switch or wants a key would strand the learner
+  half-way, and `--no-verify` alone leaves three hooks live. The
+  starting state is committed as Rolling Start; the checkpoint under
+  the learner's identity, or the toolkit's with a note when git has
+  none for them, which a fresh container has not.
+- **A begin that fails part-way is undone, and a task never begins
+  from another task's branch.** The container had no git identity, the
+  starting-state commit failed after the branch was cut and the map
+  staged, and the tutor "tidied" the map out of the tree and began
+  again from the half-made branch. Now every git write in a begin is
+  under an undo that reports where the repository actually is, and
+  `begin-task` refuses on a `rolling/<lesson>-<stamp>` branch.
+- **The lesson's page comes before the skill's build order, and a
+  brief names nothing the tutor holds.** The setup lesson says its
+  task is the environment with a smoke test; the tutor hunted a
+  reverted fix instead, told the learner a held test "already exists"
+  at its path, named the reference's library, and ran the lesson's own
+  setup operation for them.
+- **The runner pre-approves the toolkit's commands for every turn.** A
+  skill's grants hold only for the turn it ran in, so once `next`
+  needed a reply, auto mode's classifier denied the granted command.
+  The rules are the skills' own, in the container's user settings; an
+  author inside a project would commit the same (P1c).

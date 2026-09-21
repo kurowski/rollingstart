@@ -108,7 +108,13 @@ install_map() {
     fi
   done
   rm -rf "${clone:?}/.rolling.new"
-  if [ -n "$(git -C "$clone" status --porcelain --untracked-files=all -- . ':!.rolling')" ]; then
+  # .claude/settings.local.json is Claude Code's own per-user file for the
+  # project, written by the tutor's session (disabling one of the clone's
+  # MCP servers puts it there), never the learner's work. Claude Code
+  # adds it to the global git excludes of the home it runs in, which is
+  # the container's, so the toolkit in there never sees it; the host's git
+  # does, hence the pathspec.
+  if [ -n "$(git -C "$clone" status --porcelain --untracked-files=all -- . ':!.rolling' ':!.claude/settings.local.json')" ]; then
     echo "the clone has uncommitted changes outside .rolling/; commit or stash them before up"; exit 1
   fi
   if [ -n "$(git -C "$clone" status --porcelain --untracked-files=all -- .rolling)" ] \
@@ -125,10 +131,10 @@ install_map() {
     *) echo "leaving $current for $mapbranch" ;;
   esac
   if git -C "$clone" show-ref --verify --quiet "refs/heads/$mapbranch"; then
-    git -C "$clone" switch -q "$mapbranch"
+    git -C "$clone" -c core.hooksPath=/dev/null switch -q "$mapbranch"
   else
     echo "cutting $mapbranch from the commit the clone is on"
-    git -C "$clone" switch -q -c "$mapbranch"
+    git -C "$clone" -c core.hooksPath=/dev/null switch -q -c "$mapbranch"
   fi
   # The copy lands beside the old map and swaps in, so a failed copy
   # leaves the old one in place.
@@ -139,7 +145,8 @@ install_map() {
   if git -C "$clone" diff --cached --quiet; then
     echo "map unchanged on $mapbranch"
   else
-    git -C "$clone" -c user.name="Rolling Start" -c user.email="rolling@localhost" commit -q -m "Rolling Start map (local branch, never pushed)"
+    # The clone's own hooks stay out of it, as they do for the toolkit's commits.
+    git -C "$clone" -c core.hooksPath=/dev/null -c user.name="Rolling Start" -c user.email="rolling@localhost" commit -q --no-verify -m "Rolling Start map (local branch, never pushed)"
     echo "map committed on $mapbranch"
   fi
 }
@@ -163,6 +170,71 @@ install_plugin() {
   once claude plugin install rolling@rollingstart
 }
 
+# install_identity: the host's git identity into the container's home, so
+# the learner's commits inside are theirs. Without one git refuses to
+# commit at all ("Author identity unknown"), which is what stopped the
+# first fresh learner's run part-way through beginning a task
+# (2026-09-21). The toolkit now makes its own commits as Rolling Start
+# and falls back to that name for the learner's checkpoint, so this is
+# for the learner's own commits and for the checkpoint bearing their name.
+install_identity() {
+  name=$(git config --get user.name || true); email=$(git config --get user.email || true)
+  if [ -z "$name" ] || [ -z "$email" ]; then
+    echo "note: no git identity on the host to copy in; inside the container git guesses one from the hostname where it can, and the toolkit commits under its own name where it cannot"
+    return
+  fi
+  once git config --global user.name "$name"
+  once git config --global user.email "$email"
+  echo "git identity in the container: $name <$email>"
+}
+
+# install_allow_rules: the toolkit's own commands pre-approved for every
+# turn, in the container's user settings. A skill's grants hold only for
+# the turn it ran in, so once `next` needs a reply from the learner (a
+# refusal to relay, a question), the same rolling-begin-task the skill
+# had granted is a fresh permission decision in the next turn, and in
+# auto mode the classifier denied it (the first fresh learner's run,
+# 2026-09-21). These are exactly the commands the skills grant; none of
+# them touches the learner's tree except through the task branch, and a
+# destructive map operation is not among them. An author inside a
+# project would commit the same rules in its .claude/settings.json (P1c);
+# in the runner they belong to the home volume, beside the login.
+install_allow_rules() {
+  # The file holds the rest of the user's settings (model, theme, mode), so
+  # one that cannot be parsed is left alone with a note, never replaced,
+  # and the rewrite is a rename so a kill leaves the old file whole.
+  once python3 -c '
+import json, os, sys
+p = os.path.expanduser("~/.claude/settings.json")
+try:
+    with open(p) as f:
+        d = json.load(f)
+except FileNotFoundError:
+    d = {}
+except (OSError, ValueError) as e:
+    print("note: %s could not be read (%s); leaving it alone, no allow rules written" % (p, e)); sys.exit(0)
+if not isinstance(d, dict):
+    print("note: %s is not a JSON object; leaving it alone, no allow rules written" % p); sys.exit(0)
+perms = d.get("permissions")
+if not isinstance(perms, dict):
+    perms = d["permissions"] = {}
+allow = perms.get("allow")
+if not isinstance(allow, list):
+    allow = perms["allow"] = []
+rules = ["Bash(rolling-show *)", "Bash(rolling-claim-session *)", "Bash(rolling-write *)", "Bash(rolling-note *)",
+         "Bash(rolling-begin-task *)", "Bash(rolling-verify)", "Bash(rolling-verify *)", "Bash(rolling-report)",
+         "Bash(rolling-keep-task)", "Bash(rolling-end-task)", "Bash(rolling-close-task)", "Bash(rolling-export *)"]
+added = [r for r in rules if r not in allow]
+allow.extend(added)
+os.makedirs(os.path.dirname(p), exist_ok=True)
+tmp = p + ".tmp"
+with open(tmp, "w") as f:
+    json.dump(d, f, indent=2); f.write("\n")
+os.replace(tmp, p)
+print("allow rules for the toolkit in the container: %d added, %d already there" % (len(added), len(rules) - len(added)))
+'
+}
+
 case "$cmd" in
   up)
     docker build -t "$image" "$here"
@@ -170,6 +242,8 @@ case "$cmd" in
     (cd "$clone" && sh "$here/env.sh")
     install_map
     install_plugin
+    install_identity
+    install_allow_rules
     echo
     echo "stack is up on network $network; the clone is on branch $mapbranch with the map committed."
     echo "Next, inside the container:"
