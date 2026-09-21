@@ -48,6 +48,7 @@ jobs:
           # a silent run, and off again, since the log then carries file
           # contents and tool output.
           track_progress: true
+          show_full_output: true
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
           prompt: '/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
