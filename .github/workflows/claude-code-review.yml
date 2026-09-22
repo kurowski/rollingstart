@@ -44,9 +44,9 @@ jobs:
           # subagent the action may not wait for, #1646) is visible on the
           # PR instead of a green check and silence. show_full_output puts
           # the model's tool calls in the job log, which is the only way to
-          # see which call a permission denial was; turn it on to diagnose
-          # a silent run, and off again, since the log then carries file
-          # contents and tool output.
+          # see which call a permission denial was (PR #16's silent run was
+          # seven of them), and it stays on: the log carries file contents
+          # and tool output, and this repository is public anyway.
           track_progress: true
           show_full_output: true
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
