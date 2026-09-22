@@ -126,7 +126,7 @@ that must hold even when the model is persuaded otherwise.
 | Role | Who | Claude Code mechanism |
 |---|---|---|
 | **Author** | A staff engineer who knows the codebase | Author-side skills (`/rolling-author:init`, `/rolling-author:mine`, `/rolling-author:verify`, `/rolling-author:proposals`, `/rolling-author:adopt`) that draft a **map** of the codebase from the repo and its history for the author to edit, and keep it honest afterwards. Output is committed files in the target repo, or a map plugin. The author describes; the author does not decide where any learner ends up. |
-| **Tutor** | Claude Code running the learner-side plugin | Learner-side skills: `/rolling:start` (intake), `/rolling:next` (chooses the lesson, builds the task, and hands off to) `/rolling:lesson` (presents it and holds the coaching rules), `/rolling:done`, `/rolling:ask`, `/rolling:escalate`; a small set of hooks; and a profile on disk. One conversation: the coaching and the feedback are the same voice. In a `direct` lesson it also watches the learner's coding session as it happens, from a log the plugin's hooks write. |
+| **Tutor** | Claude Code running the learner-side plugin | Learner-side skills: `/rolling:start` (intake), `/rolling:next` (chooses the lesson and hands off to) `/rolling:lesson` (the walkthrough, the offer of an exercise, and the coaching rules once one is open), `/rolling:task` (builds the exercise when the learner takes the offer), `/rolling:done`, `/rolling:ask`, `/rolling:escalate`; a small set of hooks; and a profile on disk. One conversation: the coaching and the feedback are the same voice. In a `direct` lesson it also watches the learner's coding session as it happens, from a log the plugin's hooks write. |
 | **Learner** | The engineer being onboarded | Starts from the author's suggested course at intake and bends it: drops a region, adds one, changes a depth, says why. Works in Claude Code as usual; in a `direct` lesson that means a second, ordinary Claude Code session they direct themselves. The plugin changes how the tutor's session behaves *during a lesson*, logs the coding session in a `direct` one, and does nothing else. |
 
 The tutor is one voice. What keeps it honest is not a second examiner
@@ -147,8 +147,9 @@ rollingstart/                        # the new repo
       .claude-plugin/plugin.json
       skills/
         start/SKILL.md               # intake: background, the author's course, the learner's changes → profile
-        next/SKILL.md                # route: choose the next lesson/task for this learner
-        lesson/SKILL.md              # serve a task; coach behaviour rules
+        next/SKILL.md                # route: choose the next lesson for this learner and open it
+        lesson/SKILL.md              # the walkthrough, the offer of an exercise; coach behaviour rules
+        task/SKILL.md                # build and prove the exercise, when the learner takes the offer
         done/SKILL.md                # run verifiers, capture diff, feedback against the rubric, update profile
         ask/SKILL.md                 # grounded Q&A that never solves the open task
         escalate/SKILL.md            # write an escalation with the trace attached
@@ -341,7 +342,7 @@ whatever is written, and only that. Changing the destination is an
 ordinary edit to the profile, offered whenever evidence suggests the
 learner is somewhere they did not mean to be.
 
-**Tasks** are generated just in time by the `next` skill from the node's
+**Tasks** are generated just in time by the `task` skill from the node's
 pointers and the repo's history (revert a fix and hand over the issue;
 review a merged PR; extend a feature along an existing seam), and
 self-verified before being served; `lesson` presents them. A task
@@ -419,13 +420,19 @@ learner, in conversation, never by the tutor on its own.
                   then the learner's changes to it (or none) → destination written to the profile
                 → first lesson is usually the course's opener, local-dev setup: done when the commands run green
 /rolling:next   → read map + profile → choose a reachable lesson inside the destination, skipping what
-                  the background already covers → build a task from the map and history → throwaway branch,
-                  starting state committed → prove it both ways → hand off to
+                  the background already covers → open it → hand off to
+/rolling:lesson → the walkthrough: the author's account of the lesson, read in the code with the learner,
+                  questions answered, paced by what they already know → then, always, the offer of an
+                  exercise, which they take or decline (a lesson marked exercise: none has none)
+                → taken: hand off to
+/rolling:task   → build a task from the map and history, fitting what the walkthrough turned up →
+                  throwaway branch, starting state committed → prove it both ways → hand back to
 /rolling:lesson → present it, mode first
     write:  the learner works, in their own editor; the tutor explains, points, asks; never writes
             inside the task's scope; runs the repo's checks when asked
     direct: the learner directs a coding agent in a second session; hooks log it; the tutor starts the
             watch and speaks only on an event worth a word, as an offer, in its own window
+                → declined: the lesson ends at the walkthrough, and /rolling:done records it
 /rolling:done   → run the verifier (deterministic tier: the repo's own commands), before the tutor speaks
                 → capture what changed: the working tree against the task's base commit, nothing committed
                 → the held test, if any: applied, run, reverted, now that the diff is captured; its result
@@ -877,6 +884,30 @@ before P1b; the run is written up in its PR):
   needed a reply, auto mode's classifier denied the granted command.
   The rules are the skills' own, in the container's user settings; an
   author inside a project would commit the same (P1c).
+
+**After the first fresh learner's second lesson** (2026-09-21):
+
+- **The lesson before the exercise, and the exercise on offer.** Every
+  task had opened as a challenge: `next` built and proved a task, and
+  the learner's first contact with a lesson was its homework, though
+  the author had written the lecture into the lesson body and the
+  tutor read it only as raw material for a brief. Now `next` chooses
+  and opens the lesson and hands off; `lesson` gives the walkthrough
+  (the body, read in the code, paced by the profile, questions
+  answered) and always offers the exercise once, as a colleague would;
+  the learner takes it, and a new `task` skill builds and proves it
+  then, knowing what the walkthrough turned up, or declines, and
+  `done` records a lesson closed at the walkthrough. Not a third
+  lesson mode: mode says what shape the exercise takes, and a lecture
+  is what comes before it in every lesson; an author whose lesson has
+  nothing worth exercising marks it `exercise: none`. The saving in
+  the tutor's time is real only when the offer is declined (the proof
+  and, for a seam task, the tutor's own test and solution never
+  happen); otherwise the work moves later, and the gain is that the
+  walkthrough starts within seconds and the task fits what the
+  learner said. `task` joins `lesson` as a skill the model may invoke,
+  since the yes comes in conversation; it builds nothing unless a
+  lesson is open.
 
 **During the first fresh learner's second lesson** (2026-09-21):
 

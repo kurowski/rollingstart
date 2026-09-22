@@ -34,9 +34,9 @@ all of it before you speak.
 ## What to do
 
 **If a profile exists** (below): say in a few lines where the learner
-is (what is satisfied, what the destination is), whether a task is open,
-and offer `/rolling:lesson` if one is or `/rolling:next` if none is.
-Then stop.
+is (what is satisfied, what the destination is), whether a lesson or a
+task is open, and offer `/rolling:lesson` if one is or `/rolling:next`
+if none is. Then stop.
 
 **If there is no profile**, run the intake:
 
@@ -112,6 +112,10 @@ they bent it; afterwards only they change it, in conversation.
 
 !`rolling-show profile`
 
-## Open task
+## Open lesson, if any
+
+!`rolling-show lesson`
+
+## Open task, if any
 
 !`rolling-show task`
