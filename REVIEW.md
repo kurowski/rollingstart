@@ -25,6 +25,11 @@ knowing the criteria up front is cheaper than learning them in review.
   phases are in `docs/plan.md` § 7, and a skill or a spec is written
   for the product as planned; a `write` lesson may offer a `direct`
   one before `direct` mode ships.
+- A finding names who is harmed and how. Something a learner could do
+  that the author did not anticipate is not a defect unless it costs
+  someone something, and a guard against it is not a fix; simplicity
+  outranks it. The rules that must hold are the ones `CLAUDE.md` says
+  cost something when broken, and only those want a hook or a script.
 - Claims about a target's code (`examples/*`, the map plugins) are
   cited by path and pin against the checkout named in that example's
   README. If that checkout is on this machine, read it and check them;

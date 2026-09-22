@@ -84,12 +84,18 @@ outside the working copy, so the repo's own checks never see it and a
 coding agent cannot grep its way to a reference solution.
 
 **A rule that must hold is held by a hook or a script, in every
-permission mode.** Prose in a skill is the first line; the hook in
-`hooks.json` is the one that holds when the learner asks nicely. Nothing
-may depend on the permission mode: skills declare narrow grants or none,
-never a wildcard over a package manager or git, and destructive
-operations prompt through `permissions.ask` rules first and a hook's
-`ask` second.
+permission mode.** A rule must hold when breaking it costs someone
+something: the tutor writing the learner's code, a destructive
+operation running unasked, the tutor's files landing in the tree, the
+learner's work lost. For those, prose in a skill is the first line and
+the hook in `hooks.json` is the one that holds when the learner asks
+nicely. Everything else the map or a skill says is a hint, and an
+author's declaration the learner may override (a lesson marked
+`exercise: none`, say) is one; a script that enforces a hint is code we
+do not want. Nothing may depend on the permission mode: skills declare
+narrow grants or none, never a wildcard over a package manager or git,
+and destructive operations prompt through `permissions.ask` rules first
+and a hook's `ask` second.
 
 **No fourth wall.** The checks a learner runs during a lesson are the
 repo's own commands, given verbatim as the map declares them. The tutor
