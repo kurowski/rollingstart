@@ -10,6 +10,14 @@ on:
     #   - "src/**/*.js"
     #   - "src/**/*.jsx"
 
+# One review per pull request at a time: a push while a review is still
+# running cancels that review, since it is reading a head that no longer
+# exists, and the new push gets its own. Two pushes a minute apart on
+# PR #22 ran two full reviews on one PR, one of them stale.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   claude-review:
     # Optional: Filter by PR author
