@@ -555,6 +555,74 @@ here" stood for a week unverified. Say in each lesson what its task
 branch lacks relative to the pin, since the tutor reads the lesson at
 the pin and works at the parent.
 
+### After closure (2026-09-21 to 09-22)
+
+The exit run's learner was a seeded profile driven in print mode. The
+first fresh learner, the maintainer on a new machine, found four things
+in four lessons that the exit run had not, and each became a PR before
+P1b opened.
+
+**The environment.** The container had no git identity, so the first
+`rolling-begin-task` cut the branch, staged the map, and failed on the
+commit, leaving a half-made branch; the tutor read the staged map as
+its own leftovers, deleted it, and began again from the stray branch,
+so the second task's return-to and base were both wrong; a skill's
+grants had expired by then, and auto mode's classifier denied the
+retry. The toolkit's writes were guarded by checks but not undone on
+failure, which the module's own docstring had promised. PR #16: every
+git write in a begin under an undo that reports where the repository
+actually is, no begin from a task branch an earlier run left, the
+toolkit's commits with hooks off and their own identity, `end-task`
+undoing a failed checkpoint, and the runner carrying a git identity and
+standing allow rules for the toolkit's commands into the home volume.
+Three review rounds, nineteen findings.
+
+**The posture.** The second lesson ran as an exam: the tutor refused a
+direct question to make the learner work for it, set a larger exercise
+nobody asked for, and at `done` held the lesson open on rubric items
+the learner had not asked about, one unrelated to the change. The
+satisfaction rule gave the tutor a veto, the Rallly rubrics were
+written as things the learner must recite, and the lesson skill's
+"never write in scope" had spread into never answering. PR #18: the
+learner closes a lesson and the tutor's view goes to evidence; a rubric
+is a reviewer's checklist for the change, with the spoken items moved
+to a `## Talk through` section offered once; the tutor answers what is
+asked, the reference included, through `rolling-show reference`; and
+`done` reads its own notes through `rolling-show evidence`. A
+`posture:` toggle for a classroom was considered and not built.
+
+**The order.** Every task had opened as a challenge, the homework
+without the lecture, though the author's lesson body was the lecture
+and the tutor read it only as raw material for a brief. PR #19: `next`
+chooses and opens the lesson (an open-lesson marker in the learner's
+directory), `lesson` gives the walkthrough and always offers the
+exercise once, a new `task` skill builds it on a yes, and `done` records
+a lesson closed at the walkthrough; `exercise: none` marks a lesson
+that is its walkthrough; `/rolling:cancel` stops a lesson without
+counting it (whether that is a cancel or a pause is #20). The
+maintainer's verdict on the first lesson run this way: a great intro,
+real back and forth, and the right amount of nudging. Two review
+rounds, fifteen findings, and one declined on merge: a script to
+enforce `exercise: none` would guard a hint, not a rule, and
+`CLAUDE.md` now says which rules must hold and why.
+
+**The review bot, three ways silent.** The installer's read-only
+template (found in P1a); the workflow's allowed tools lacking the
+`Skill` tool, so its own `/code-review` invocation was denied on every
+run and the review either gave up behind a placeholder or fell back to
+reviewing by hand; and a stacked PR whose workflow file lagged `main`'s,
+which the action refuses to run, green check and all. Fixed on `main`
+directly: `show_full_output` stays on, the skill and three git reads
+are allowed, and `main` is merged down a stack whenever the workflow
+changes.
+
+**Deferred into P1b's plan.** The lesson framed before its task and
+the setup lesson confirming state and using its stated verifier subset
+(from the first lesson's transcript); polls has no `orientation`
+lesson; a guard for the walkthrough's write window, which needs a
+narrower shape than denying all edits since `task` authors a seam test
+in that state; the `direct`-mode mechanism probes, built and not run.
+
 ## Explicitly deferred
 
 - **`direct` mode**, the session log, the state-directory guard, the

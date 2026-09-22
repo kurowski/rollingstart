@@ -555,8 +555,9 @@ draft a map for a repo the author does not know, which is P3's question.
 on its own, in this order because each rests on the one before and the
 second front-loads the mechanics the docs do not confirm.
 
-*P1a, `write` mode, in-repo map. Done* (2026-09-15 to 09-19; PRs #3
-to #15; the record and the retrospective are in
+*P1a, `write` mode, in-repo map. Done* (2026-09-15 to 09-19, then
+extended by the first fresh learner's runs to 09-22; PRs #3 to #19;
+the record and the retrospective are in
 [`docs/plans/p1a-write-mode.md`](plans/p1a-write-mode.md)). Marketplace +
 `rolling` skeleton;
 `start`, `next`, `lesson`, `done`; the storage layout of § 3 and § 4

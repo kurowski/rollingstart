@@ -34,8 +34,10 @@ is checked against the checkout at `aab791da` (main on 2026-09-09).
 The commands above are what a task's verifier may select, and the
 scoped ones are what a task should use. `test` runs every unit suite
 through turbo; the `test-*` commands scope to one workspace and pass a
-file path, or a fragment of one, straight to vitest (`test-web
-src/features/poll/invite/utils.test.ts`). `typecheck` runs every
+file path, or a fragment of one, straight to vitest, relative to that
+workspace, not the repository root (`test-web
+src/features/poll/invite/utils.test.ts`, never `test-web
+apps/web/src/…`). `typecheck` runs every
 workspace's `tsc`; `typecheck-web` and `typecheck-emails` run one, in
 about fifteen seconds and two. `lint` is Biome with a path appended
 (`lint apps/web/src/features/poll`); the whole-tree form developers
