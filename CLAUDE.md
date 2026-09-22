@@ -24,12 +24,12 @@ before proposing anything structural. Decisions made after it go in its
 - [x] **P0 — Spike.** `spike/`, merged as PR #1. The premise held.
 - [x] **Plan, draft 2.** PR #2.
 - [x] P1a — `write` mode, in-repo map — [`docs/plans/p1a-write-mode.md`](docs/plans/p1a-write-mode.md). PRs #3–#19.
-- [ ] P1b — `direct` mode
-- [ ] P1c — Distribution: map plugins, the resolver, `adopt`
+- [ ] P1b — Distribution: map plugins, the resolver, `adopt`
 - [ ] P2 — Enforced, and measured
 - [ ] P3 — The author's plugin
-- [ ] P4 — The upper rungs of `direct`
-- [ ] P5 — Release
+- [ ] P4 — Release 1.0
+- [ ] P5 — `direct` mode (2.0) — [`docs/plans/p5-direct-mode.md`](docs/plans/p5-direct-mode.md), written and its mechanisms confirmed
+- [ ] P6 — The upper rungs of `direct` (2.0)
 
 ## Key locations
 
@@ -37,8 +37,8 @@ before proposing anything structural. Decisions made after it go in its
 |---|---|
 | `.claude-plugin/marketplace.json` | The marketplace. Lists the plugins below. (P1a) |
 | `plugins/rolling/` | The learner's plugin: skills, hooks, the `bin/` toolkit. (P1a) |
-| `plugins/rolling-author/` | The author's plugin. `adopt` in P1c, the rest in P3. |
-| `plugins/rallly/`, `plugins/homie/` | Map plugins. (P1c) |
+| `plugins/rolling-author/` | The author's plugin. `adopt` in P1b, the rest in P3. |
+| `plugins/rallly/`, `plugins/homie/` | Map plugins. (P1b) |
 | `examples/rallly/.rolling/` | The Rallly map's source until it becomes a map plugin |
 | `runner/` | The maintainer's harness: Rolling Start on a Rallly clone, contained. Docker on the host, never the tutor's; none of it is the plugin. (P1a) |
 | `docs/plan.md` | Design and decision record |
@@ -49,7 +49,7 @@ before proposing anything structural. Decisions made after it go in its
 | `evals/` | `claude plugin eval` suites, the tests of a prompt product. (P2) |
 | `../rallly` | Rallly reference checkout, pinned at `aab791da`. Read-only. |
 | `../rallly-spike` | A writable Rallly clone the tutor runs in, contained, via `runner/` |
-| `../homie` | The maintainer's Go CLI, the toolchain-diversity target (P1c) |
+| `../homie` | The maintainer's Go CLI, the toolchain-diversity target (P1b) |
 | `../rollingstop` | The archived predecessor, for anything § 9 of the plan says to carry over |
 
 ## Rules

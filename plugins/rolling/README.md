@@ -9,7 +9,7 @@ one of two places: an author inside the project commits it at
 the same directory as a map plugin, which the learner installs beside
 this one. In P1a only the first is wired up; the map-plugin route, and
 the resolver that prefers a committed map over an installed one when
-both are present, arrive in P1c.
+both are present, arrive in P1b.
 
 The skills are `/rolling:start` for intake, `/rolling:next` for the
 next lesson, `/rolling:lesson` for its walkthrough (and to be

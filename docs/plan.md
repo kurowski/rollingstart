@@ -217,7 +217,7 @@ a directory where the plugin is enabled, not only in sessions that
 invoke one of its skills; and, second, that a skill can start a
 Monitor. One more limit the docs do state: a plugin distributed through
 claude.ai organisation settings may not include `bin/`, so an org that
-installs that way needs the toolkit shipped another way, a P5 question.
+installs that way needs the toolkit shipped another way, a P4 question.
 
 **The install story, and it is the whole onboarding pitch.** An author
 inside the project commits two things to the target repo: the map, and
@@ -553,7 +553,7 @@ different an environment as we have to hand. Homie also plays out the
 lifecycle most open source maps would follow: it starts as a map plugin
 in this repository, written as an outsider would, and once it proves
 useful the project adopts it by committing `.rolling/` and retiring the
-plugin. Supporting that handoff is part of P1c: the resolver prefers
+plugin. Supporting that handoff is part of P1b: the resolver prefers
 the in-repo map when both are present, and `rolling-author` gets an
 `adopt` step that moves a map plugin into a repo's tree, stamping where
 it came from. Same stack
@@ -562,9 +562,19 @@ diversifies nothing the plugin touches, which is why the third is Go. A second u
 was the candidate) would test only whether `rolling-author:init` can
 draft a map for a repo the author does not know, which is P3's question.
 
-**P1 — The learner loop as a plugin.** Three checkpoints, each usable
-on its own, in this order because each rests on the one before and the
-second front-loads the mechanics the docs do not confirm.
+**Two releases.** 1.0 is `write` mode end to end: the learner loop,
+distribution, enforcement and evals, the author's plugin, and a
+release a colleague can be onboarded with (P1 to P4). 2.0 adds
+`direct` mode and its upper rungs (P5 and P6). `direct` is where the
+project is aimed and was planned second in P1; it moved to 2.0 on
+2026-09-22 (§ 10) because every part of it is additive to the `write`
+loop, it is the most uncertain part of the plan, and the author's
+plugin is the risk most likely to kill the project and should come
+first. Its plan is written and its mechanisms are confirmed, so 2.0
+starts from known ground.
+
+**P1 — The learner loop as a plugin.** Two checkpoints, each usable on
+its own.
 
 *P1a, `write` mode, in-repo map. Done* (2026-09-15 to 09-19, then
 extended by the first fresh learner's runs to 09-22; PRs #3 to #19;
@@ -575,7 +585,7 @@ the record and the retrospective are in
 (state out of the tree); `begin-task`, `end-task`, `verify` with the
 held test, `diff`, and `export` in `bin/`; the profile validator; the
 write-mode scope guard in `hooks.json`, with the `tutor-session` stamp
-it reads (trivial while the tutor's is the only session, real in P1b);
+it reads (trivial while the tutor's is the only session, real in P5);
 `docs/map.md` and `docs/profile.md` as the specs. The Rallly map,
 hand-written into a local clone's `.rolling/` and never pushed, grows to
 8–10 lessons with rubrics, regions, depths, modes, and tests marked held
@@ -587,41 +597,34 @@ different region deep, every region at working depth) get three
 different routes, and two seeded backgrounds with the *same* destination
 still diverge; nothing the tutor writes is in the tree.
 
-*P1b, `direct` mode.* The session-identity contract (`tutor-session`,
-re-stamped by every skill, and whether the two model-invocable skills,
-`lesson` and `task`, should claim at all, since a coding session with
-the plugin enabled could invoke either); the session-log, state-guard,
-and ask-before-destructive hook handlers; the watch; the human's-ledger
-`done`, in the register the learner drives. First, before any of that
-is built on: confirm that the plugin's hooks fire in a separately
-started session, and that a skill can start a Monitor. *Exit:* one
-`direct` lesson end to end on Rallly, walkthrough and offer included,
-the tutor restarted mid-lesson and reclaiming the role; nothing the
-tutor holds is readable from the coding session; an eval that sets an
-odd output style in the directory and checks what the coding session
-does with it.
-
-*P1c, distribution.* The map-plugin manifest and registration hook, the
-resolver with its precedence and staleness warning, `adopt` as
-`rolling-author`'s first skill, the Rallly map repackaged as a map
-plugin, and the Homie map written as one. The work codebase's map is
-written in its own tree, privately. *Exit:* `/plugin install
-rallly@rollingstart` in a fresh Rallly clone serves a lesson; a `write`
-lesson runs on Homie under `go test`; adopting the Homie map into a
-scratch copy of Homie makes the plugin fall silent with no other change.
+*P1b, distribution.* Opens with the map and the skills after the
+first fresh learner's four lessons: the setup lesson confirming the
+environment's state rather than quizzing about it and using the
+verifier subset it names, `polls` getting an `orientation` lesson
+since `polls: orientation` reaches nothing today, and
+`billing-and-tiers` rewritten as a `write` lesson so the Billing
+engineer course is not empty until 2.0. Then the map-plugin manifest
+and registration hook, the resolver with its precedence and staleness
+warning, `adopt` as `rolling-author`'s first skill, the Rallly map
+repackaged as a map plugin, and the Homie map written as one. The work
+codebase's map is written in its own tree, privately. *Exit:*
+`/plugin install rallly@rollingstart` in a fresh Rallly clone serves a
+lesson; a `write` lesson runs on Homie under `go test`; adopting the
+Homie map into a scratch copy of Homie makes the plugin fall silent
+with no other change.
 
 **P2 — Enforced, and measured.** Feedback shape enforced by the
-citation check; `second-opinion`; the `escalate` skill, and `ask` if
-`lesson` answering what is asked leaves anything for it; detours with
-the depth cap. First eval suite, on the
-properties the spike and the first fresh learner showed matter: did the
-tutor write the solution in a `write` lesson; did it cite code; did a
-failing verifier ever get waved through; did it withhold an answer the
-learner asked for, or hold a lesson open on something they did not ask
-for; in a `direct` lesson, did the verifier's findings stay
-off the learner's ledger, was a tutor-prompted catch credited to the
-learner, did the tutor speak at the right moments and stay quiet
-otherwise, did any of the tutor's plumbing reach the learner. *Exit:*
+citation check; the ask-before-destructive hook (the second layer of
+§ 5's row, a hook on Bash that asks for a command carrying the head of
+a destructive map operation, in every session and mode);
+`second-opinion`; the `escalate` skill, and `ask` if `lesson` answering
+what is asked leaves anything for it; detours with the depth cap.
+First eval suite, on the properties the spike and the first fresh
+learner showed matter: did the tutor write the solution in a `write`
+lesson; did it cite code; did a failing verifier ever get waved
+through; did it withhold an answer the learner asked for, or hold a
+lesson open on something they did not ask for; did any of the tutor's
+plumbing reach the learner. *Exit:*
 evals pass on two model versions; a seeded *gap in the learner's
 background* (a seeded profile, not a planted mistake) earns a correctly
 named detour grounded in Rallly's own code.
@@ -638,7 +641,31 @@ destructive operations into the project's settings. *Exit:* an author
 gets from clone to a reviewable draft map in an afternoon, and edits
 rather than writes.
 
-**P4 — The upper rungs of `direct`.** Architecture (the learner is asked
+**P4 — Release 1.0.** A colleague onboarding onto something real, the
+authoring guide covering both places a map can come from, managed-settings install
+notes, and the question of whether the Rallly example ships a
+`.devcontainer/` so anyone can run it contained the standard way. The
+three targets above have been in use since P1, in `write` mode; whether this repository
+should be an instance of itself is a question for when it has something
+to teach. *Exit:* a colleague who has never seen the target completes a
+real task in it.
+
+**P5 — `direct` mode (2.0).** The plan is
+[`docs/plans/p5-direct-mode.md`](plans/p5-direct-mode.md), written
+2026-09-22 with its three mechanisms confirmed (a plugin's hooks fire in
+a session that invokes none of its skills, a skill can arm a Monitor,
+a PreToolUse `ask` is honoured). The session-identity contract
+(`tutor-session`, claimed only by the skills the learner types, since
+`lesson` and `task` are model-invocable and a coding session could
+invoke either); the session-log and state-guard hook handlers; the
+watch; `direct` tasks built as situations; the human's-ledger `done`,
+in the register the learner drives. *Exit:* one `direct` lesson end to
+end on Rallly, walkthrough and offer included, the tutor restarted
+mid-lesson and reclaiming the role; nothing the tutor holds is readable
+from the coding session; an eval that sets an odd output style in the
+directory and checks what the coding session does with it.
+
+**P6 — The upper rungs of `direct` (2.0).** Architecture (the learner is asked
 what should change about how a region is built, and the tutor compares
 it with the author's corpus pointers and the repo's own history) and
 review of real history (the learner reviews a merged PR and the tutor
@@ -646,15 +673,6 @@ compares that review with what actually shipped and what the
 maintainers said). Steering is no longer a rung here; the spike made it
 the baseline of every `direct` lesson. *Exit:* a `direct` lesson on
 Rallly at each rung that a strong engineer finds fair.
-
-**P5 — Release.** A colleague onboarding onto something real, the
-authoring guide covering both places a map can come from, managed-settings install
-notes, and the question of whether the Rallly example ships a
-`.devcontainer/` so anyone can run it contained the standard way. The
-three targets above have been in use since P1; whether this repository
-should be an instance of itself is a question for when it has something
-to teach. *Exit:* a colleague who has never seen the target completes a
-real task in it.
 
 ## 8. Risks particular to this approach
 
@@ -878,7 +896,7 @@ TOML profile decision, and the strict-frontmatter posture.
   names.
 
 **During the first fresh learner's run** (2026-09-21, the hotfix
-before P1b; the run is written up in its PR):
+before the next checkpoint; the run is written up in its PR):
 
 - **The toolkit's git runs none of the repository's hooks and signs
   nothing.** The starting state and the learner's checkpoint are
@@ -905,7 +923,7 @@ before P1b; the run is written up in its PR):
   skill's grants hold only for the turn it ran in, so once `next`
   needed a reply, auto mode's classifier denied the granted command.
   The rules are the skills' own, in the container's user settings; an
-  author inside a project would commit the same (P1c).
+  author inside a project would commit the same (P1b).
 
 **After the first fresh learner's second lesson** (2026-09-21):
 
@@ -931,7 +949,25 @@ before P1b; the run is written up in its PR):
   since the yes comes in conversation; it builds nothing unless a
   lesson is open.
 
-**Before the P1b plan** (2026-09-22):
+**Reordering the releases** (2026-09-22):
+
+- **`direct` mode moves to 2.0.** 1.0 is `write` mode through
+  distribution, enforcement, the author's plugin, and a release; `direct`
+  and its upper rungs follow as P5 and P6. Everything the first week
+  built is mode-agnostic and `direct` is additive to it (a second
+  session, three hooks, the watch, a second `done`), so nothing on the
+  `write` track waits on it; it was the most uncertain part of the plan,
+  the part most likely to iterate; and the author's plugin, named in
+  § 8 as the risk most likely to kill the project, comes sooner this
+  way. The ask-before-destructive hook, planned with `direct`, is not
+  specific to it and moves to P2. The `direct` plan is kept, retitled
+  P5, with its three mechanisms confirmed on the day of the decision.
+  The Rallly map's `direct` lessons stay as written and are skipped
+  until 2.0, except `billing-and-tiers`, which P1b rewrites as `write`
+  so the Billing engineer course serves something in 1.0. `direct`
+  remains where the project is aimed; only the order changed.
+
+**Before the direct-mode plan** (2026-09-22):
 
 - **`ask` may not be needed.** It was "grounded Q&A that never solves
   the open task", which is the posture the learner-drives change
