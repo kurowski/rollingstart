@@ -77,7 +77,7 @@ def repair_first(w: Where) -> bool:
 
 
 def cmd_show(args: List[str]) -> int:
-    usage = "usage: rolling-show map|map-check|lessons|lesson [slug]|profile|task|corpus|tree|state-dir"
+    usage = "usage: rolling-show map|map-check|lessons|lesson [slug]|profile|task|reference|evidence [slug]|corpus|tree|state-dir"
     what = args[0] if args else ""
     w = locate()
     if w is None:
@@ -121,6 +121,39 @@ def cmd_show(args: List[str]) -> int:
         say(_file_or(w.learner.profile, "(no profile: this is a new learner, or /rolling:start has not run)") if w.learner else f"({paths.NO_DATA_MSG})")
     elif what == "task":
         say(_file_or(w.learner.task_file, "(no open task)") if w.learner else f"({paths.NO_DATA_MSG})")
+    elif what == "reference":
+        # The held answer, for the tutor to relay when the learner asks for
+        # it: the notes, then the diff itself (the fix's own change, or a
+        # seam task's patch), so the lesson skill needs no git grant and no
+        # read of the state directory.
+        if w.learner is None:
+            say(f"({paths.NO_DATA_MSG})")
+        else:
+            say(_file_or(w.learner.reference, "(no reference notes)"), "")
+            try:
+                t = Task.load(w.learner.task_file)
+                say(reference.patch_for(w.repo, w.learner, t).decode("utf-8", "replace").rstrip("\n"))
+            except LoadError as e:
+                say(f"(no diff: {'no open task' if not w.learner.has_task() else e.reason})")
+            except reference.NoReference as e:
+                say(f"(no diff: {e})")
+    elif what == "evidence":
+        # What the tutor has noted about this lesson so far (the route, its
+        # observations, what it showed the learner on request), so done
+        # reads the change knowing it.
+        slug = args[1] if len(args) > 1 else ""
+        if w.learner is None:
+            say(f"({paths.NO_DATA_MSG})")
+        else:
+            if not slug:
+                t = w.learner.task()
+                slug = t.lesson if t else ""
+            if not slug:
+                say("(no open task, so no lesson to show evidence for; name one: rolling-show evidence <slug>)")
+            elif not rules.is_slug(slug):
+                say(f"('{slug}' is not a lesson slug)")
+            else:
+                say(_file_or(w.learner.dir / "evidence" / f"{slug}.md", f"(no evidence yet for {slug})"))
     elif what == "corpus":
         say((m.body_from("Corpus") or "(the map has no ## Corpus section)") if m else "(no map)")
     elif what == "tree":

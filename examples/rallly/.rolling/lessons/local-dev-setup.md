@@ -67,9 +67,13 @@ and may not fix your environment; it may tell you what a failure means.
 ## Rubric
 
 - `typecheck-web`, `lint`, and `structure` pass in the verifier, and
-  the learner has shown `test` and `build` passing.
-- The learner can say, without looking, what `pnpm db:generate` does and
-  why it comes before the type check.
-- The learner can name what the services provide, which of the map's
-  commands and operations need them, and how the app is told where
-  they are.
+  `test` and `build` pass in the learner's environment.
+- The dependencies are installed, both `.env` files point at the
+  services, the Prisma client is generated, and the database is
+  migrated and seeded, whether performed in this lesson or confirmed.
+
+## Talk through
+
+- What `pnpm db:generate` does and why it comes before the type check.
+- What each service provides, which of the map's commands and
+  operations need them, and how the app is told where they are.

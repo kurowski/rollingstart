@@ -51,7 +51,7 @@ first finishes any held-test revert a killed run left behind.
 |---|---|---|
 | `rolling-session-start` | the SessionStart hook | Exports `ROLLING_DATA` (this plugin's data directory) into the session's environment, so every later command can find the learner's directory. |
 | `rolling-guard` | the PreToolUse hook | The `write`-mode scope guard: denies the tutor an edit inside the open task's scope. |
-| `rolling-show <what>` | skills, inline | One piece of context: `map`, `map-check` (the map's faults in words, or `MAP: ok`), `lessons` (the index), `lesson [slug]`, `profile`, `task`, `corpus`, `tree`, `state-dir`. Always exits 0. |
+| `rolling-show <what>` | skills, inline | One piece of context: `map`, `map-check` (the map's faults in words, or `MAP: ok`), `lessons` (the index), `lesson [slug]`, `profile`, `task`, `reference` (the held answer: the notes and the diff, for the tutor to relay when the learner asks), `evidence [slug]` (what the tutor has noted about the open task's lesson, or the one named), `corpus`, `tree`, `state-dir`. Always exits 0. |
 | `rolling-claim-session <id>` | skills, inline | Records the session as the tutor's, in the open task or the `session` file. |
 | `rolling-report` | `done`, inline | The diff, then the verifier, in that order, from one command. |
 | `rolling-diff` | `rolling-report` | The working tree against the task's `base`, untracked included, nothing excluded, capped. |

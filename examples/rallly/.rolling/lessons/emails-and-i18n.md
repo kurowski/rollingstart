@@ -73,6 +73,9 @@ that a sender does not yet pass.
 - The reply address reaches nodemailer through `SendArgs.replyTo` from
   the caller that knows the host, not through a template prop or an
   environment variable, and the mutation selects only what it needs.
-- The learner's own test renders the template and asserts on the copy,
-  and they can say why `createEmailI18n` is called per render and what
-  would go wrong under load if it were not.
+- The learner's own test renders the template and asserts on the copy.
+
+## Talk through
+
+- Why `createEmailI18n` is called per render and what would go wrong
+  under load if it were not.

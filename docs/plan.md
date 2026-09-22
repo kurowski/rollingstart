@@ -28,6 +28,17 @@ course is what the learner pushes on. The learner is not picking a book
 off the shelf; they are opening a choose-your-own-adventure book the
 author wrote, and the first page is already turned.
 
+**And the reader holds the book.** Rolling Start is a README with a
+coach in it, for professional engineers getting up to speed at work;
+it is not a course that withholds a grade until a student has
+performed. The tutor offers, explains, answers what is asked, and says
+what it sees; the learner decides what to do, how much help to take,
+and when a lesson is done. A rubric is what a maintainer would look
+for in the change, never a set of questions the learner must answer.
+The first fresh learner's second lesson found the tutor holding a
+lesson open on questions nobody had asked, and this is the correction
+(2026-09-21, § 10).
+
 **Two kinds of lesson, because two kinds of codebase.** In a repo with a
 long history of humans writing the code, and the intent to continue, a
 lesson is: the learner writes the change, the tutor reviews it. In a
@@ -93,10 +104,12 @@ should only generate and judge. Two things have moved since:
   is an assessment tool's seam, and this is a tutor. Feedback is
   **formative and in the loop**: the same tutor that was there while
   the change was written reads the diff against the rubric, says what
-  is good and what is missing, and a lesson is satisfied when tutor and
-  learner agree it is, with the reasons written to evidence. Nobody is
-  being ranked. A too-generous "you've got it" costs a gap that shows
-  up later as a detour, which is the normal course of tutoring.
+  is good and what is missing, and a lesson is done when the learner
+  says it is, with the tutor's view written to evidence, reservations
+  included. Nobody is being ranked, and nobody is being graded. A gap
+  the tutor saw and the learner closed over shows up later as a
+  detour, which is the normal course of tutoring; that is what the
+  evidence is for.
 - Author-time pooling of generated tasks as the primary source. The
   learner has a capable agent in the loop, so tasks can be generated
   just in time, against the repo as it is now, which also retires the
@@ -388,9 +401,10 @@ catch is whatever the agent really did.
 
 **Profile** — Markdown, appended by the tutor, validated by a script
 (shape, not content). The mutation rules, rewritten for a tutor rather
-than an examiner: a lesson is satisfied when the tutor, having seen the
-verifier pass and read the diff against the rubric, says so and the learner
-agrees, the reasons and any disagreement written to evidence;
+than an examiner: a lesson is satisfied when the learner says so,
+after the tutor has put the verifier's result and its reading of the
+diff against the rubric on the table; the tutor's view, including what
+it did not see, is written to evidence and never blocks the close;
 observations made along the way go to evidence and never satisfy
 anything on their own; in a `direct` lesson, a catch the tutor prompted
 while watching is written to evidence and stays on the tutor's ledger,
@@ -422,7 +436,8 @@ learner, in conversation, never by the tutor on its own.
                           turn by turn: was the direction actionable and scoped, did they steer when the
                           agent drifted, did they ask for the checks, what did they send back, what did
                           they accept that a maintainer here would have bounced
-                → satisfied when the tutor says so and the learner agrees; reasons to evidence either way
+                → done when the learner says so; the tutor's view to evidence either way, what it did not see
+                  included, so a later route can come back to it
                 → the learner's work is committed on the task branch, which is kept; the learner is returned;
                   offer the next
 ```
@@ -433,6 +448,7 @@ learner, in conversation, never by the tutor on its own.
 | Feedback is grounded | Every point of feedback carries a file, a line, a rule, and a provenance label (this repo's convention, or the language's norm). The skill has the tutor write the feedback to evidence in that shape; a script checks each cited path exists at the cited line and flags the ones that do not. Structure, not a second reader, is what stops hand-waving. |
 | The human's ledger (`direct`) | Before the learner's direction or review is read, the verifier's findings are taken off the table: a type error, a lint failure, a failing test are the checks' job, and the only thing on the learner's ledger about them is whether they asked for the checks before saying done. What is judged is what a person directing an agent is responsible for: placement, convention, scope, whether a test was written and tests the right thing, a design that will not age, and the steering that got there. The held test's own result is read the same way: a fail against a valid alternative is the test's shape, not the learner's fault, and is said so. The spike's first `direct` run graded the learner on things the tests catch; that was wrong and this is the correction. |
 | A second opinion is available, never required | An optional `second-opinion` subagent with fresh context and read-only tools, invoked by the learner when they want fresh eyes on a diff (or by the tutor when the two disagree). It advises; it does not satisfy or block anything. |
+| The learner drives | The tutor answers what is asked, the approach and the reference included, and notes what it gave so `done` reads the change with that in mind; a rubric is read against the change and never turned into questions, and a lesson's `## Talk through` items are offered once and dropped; the learner closes a lesson, and the tutor's reservations go to evidence rather than holding it open. Prose in P1; P2's eval measures whether the tutor said what it saw and then deferred. The one hard line is the write guard, which defines the mode rather than polices the learner: a learner who wants the change written for them is asking for a `direct` lesson, and the tutor offers one. |
 | Don't do the task for the learner (`write`) | A **PreToolUse** hook in the plugin's `hooks.json` denies Edit and Write inside the open task's `scope` while a `write` task is open and the session is the tutor's, except paths the task marks `scaffold`, where the tutor may leave `TODO(human)` markers the way the built-in Learning output style does. It lives in `hooks.json` and reads the open task, not in a skill's `hooks:` block: hooks a skill registers persist for the rest of the session, which is the wrong lifetime. The hook is the one rule that must hold even when the learner asks nicely. |
 | The coding session is a real session (`direct`) | The learner's coding agent is an ordinary Claude Code session in the same repo, not a subagent of the tutor and not primed by it. The plugin's hooks apply to every session where the plugin is enabled, so every hook handler begins by reading the open task, if any, and this session's id. The tutor's session id is the `tutor-session` field of the open task, written from `${CLAUDE_SESSION_ID}` by every learner-side skill each time one runs, so whichever session last ran a skill is the tutor and a restarted tutor reclaims the role. While a `direct` task is open, a session that is not the tutor's is logged, one file per session id under `sessions/`, and denied any read or write of the learner's state directory; the tutor's session is neither logged nor guarded. Nothing is injected into any session at start. Whatever the learner sets for their tutor session (an output style, say) can still reach the coding session through the directory's shared settings; the plugin has no launcher to pin it, so that is a named exposure (§ 8) checked by an eval, not a solved problem. |
 | The tutor watches, sparingly (`direct`) | The lesson skill starts a Monitor that follows the `sessions/` directory, filtered to prompts, replies, and file edits, for the life of the tutor's session; a new tutor session on an open `direct` task reads the logs so far and starts it again. Replies arrive once per turn, from the Stop hook's last message. The tutor speaks only on an event worth a word: the agent editing outside the task's scope and the learner not noticing, a result accepted without the repo's checks, the same ask rephrased a third time. One or two lines, as an offer, in its own window, written to evidence as its own intervention. Otherwise an empty turn. Triggers it cannot observe from the log are not triggers. Where Monitor is unavailable (Bedrock, Vertex, Foundry, or non-essential traffic disabled) the tutor says up front that it is not watching and reads the logs at `/done`. |
@@ -640,14 +656,23 @@ real task in it.
   server, and the spike's tutor sat in the same menu as all of them.
   Mitigation: the lesson skill states precedence explicitly; evals run
   against a repo with a busy `CLAUDE.md`.
-- **The tutor is too kind.** With no examiner, the pressure toward
-  "looks great, moving on" is the model's default and the learner's
-  wish. The mitigations are structural (verifier first, citations
-  required, the author's rubric on screen, the human's ledger) and
-  measured by the eval that seeds a diff missing something the rubric
-  names. If that eval cannot be held, `second-opinion` becomes a default
-  step rather than an option, and that is the point at which to revisit,
-  not before.
+- **The tutor is too kind, or too strict.** Two ways to fail the
+  same rule. Too kind: with no examiner, "looks great, moving on" is
+  the model's default and the learner's wish, and a gap goes unsaid.
+  Too strict: the model's other default is the classroom, and the
+  first fresh learner's second lesson found the tutor withholding an
+  answer to make them work for it and holding the lesson open on
+  rubric questions nobody had asked. The rule is the same for both:
+  the tutor says what it sees, located, honestly, once, and then the
+  learner decides. The mitigations are structural (verifier first,
+  citations required, the author's rubric on screen, the human's
+  ledger, the learner's word closing the lesson) and measured by two
+  evals: one seeds a diff missing something the rubric names and
+  checks the tutor said so; the other has the learner say "I'm done"
+  over the tutor's reservation and checks the lesson closed with the
+  reservation in evidence. If the first cannot be held,
+  `second-opinion` becomes a default step rather than an option, and
+  that is the point at which to revisit, not before.
 - **Prompt drift.** A model update changes the tutor's behaviour without
   a code change. Mitigation: the eval suite is the regression test, run
   on each model the audience uses.
@@ -852,3 +877,24 @@ before P1b; the run is written up in its PR):
   needed a reply, auto mode's classifier denied the granted command.
   The rules are the skills' own, in the container's user settings; an
   author inside a project would commit the same (P1c).
+
+**During the first fresh learner's second lesson** (2026-09-21):
+
+- **The learner drives.** The tutor refused a direct question ("what's
+  a good generic solution then?") to make the learner work for it,
+  set them a larger exercise they had not asked for, and at `done`
+  held the lesson open on three rubric items they had not asked about,
+  one unrelated to the change. That is a classroom, and the product is
+  a README with a coach in it for professionals at work. Now: the
+  tutor answers what is asked, the reference included, and notes what
+  it gave; a rubric is what a maintainer looks for in the change,
+  written about the change and never about the learner, and a lesson's
+  `## Talk through` items are offered once; the learner closes a
+  lesson, and the tutor's view goes to evidence, reservations
+  included, so a later route can come back to a gap. The satisfaction
+  rule in § 1, § 4, and § 5 and the "too kind" risk in § 8 are
+  rewritten. Considered and not built: an author-level `posture:` on
+  the map that would make the strict shape available to a classroom.
+  Every target is a workplace, and the strict shape changes the
+  satisfaction rule, the rubric, and the evidence at once; if a
+  classroom ever asks, a map field is where it goes.

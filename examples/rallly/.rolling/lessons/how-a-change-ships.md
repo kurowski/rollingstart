@@ -75,13 +75,20 @@ fix's parent is one commit behind the map's pin.
 ## Rubric
 
 - The test passes and every check on the map that the verifier runs is
-  green; the learner ran `pnpm check`, `pnpm type-check`, and `pnpm
-  check:structure` themselves before saying done.
-- The constant lives where the admission test in `CLAUDE.md` puts it
-  (`packages/ui`, since it could ship in another product), is exported
-  the way that package exports things, and is spread rather than
-  copied; the learner can name the file that would have failed had
-  they put it in a feature folder or a `helpers.ts`.
-- The learner can say why a new write here is a server action and
-  where the old way still lives, and which of `.test.ts` and `.spec.ts`
-  the test they were handed is and why.
+  green: `pnpm check`, `pnpm type-check`, and `pnpm check:structure`
+  are what a maintainer runs before opening a pull request here.
+- The shared piece lives where the admission test in `CLAUDE.md` puts
+  it (`packages/ui`, since it could ship in another product), is
+  exported the way that package exports things, and is spread or
+  applied rather than copied at each input.
+- Every input that collected somebody else's details gets the same
+  treatment; a partial fix leaves the rest still leaking to some
+  password managers, which is what a reviewer here would send back.
+
+## Talk through
+
+- Which check would have failed had the shared piece gone into a
+  feature folder or a `helpers.ts`, and where that check is configured.
+- Why a new write here is a server action and where the old way still
+  lives; which of `.test.ts` and `.spec.ts` the test in this lesson is
+  and what decides that.

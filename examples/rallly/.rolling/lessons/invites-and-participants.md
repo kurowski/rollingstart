@@ -88,6 +88,9 @@ single one, or a status the derivation does not yet distinguish.
 - Every string is a locale key, the menu's action reports success and
   failure the way the dialog already does, and nothing reaches into
   `@rallly/database` outside `data.ts` and `mutations.ts`.
-- The learner can say what happens to an invite when its invitee
-  responds, when the response is deleted, and when the host revokes
-  it, and which of those rotates the token.
+
+## Talk through
+
+- What happens to an invite when its invitee responds, when the
+  response is deleted, and when the host revokes it, and which of
+  those rotates the token.

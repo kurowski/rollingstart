@@ -81,6 +81,8 @@ loader and the hook.
   `resolveSpaceTier`, so a self-hosted instance (no billing) keeps its
   branding, and the learner's own test covers the hobby, switch-off,
   and policy-off cases.
-- The learner can say the difference between a capability and a
-  policy, name the file each lives in, and say what `CLAUDE.md` makes a
-  review blocker.
+
+## Talk through
+
+- The difference between a capability and a policy, the file each
+  lives in, and what `CLAUDE.md` makes a review blocker.

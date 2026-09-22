@@ -50,6 +50,43 @@ class ShowTest(WorldTest):
         self.assertEqual(self.assertRuns("show", "state-dir").strip(), str(w.learner.dir))
         self.assertIn("usage:", self.assertRuns("show"))
 
+    def test_evidence_shows_the_lessons_notes(self):
+        w = self.w
+        self.assertIn("no open task", self.assertRuns("show", "evidence"))
+        self.assertIn("no evidence yet for setup", self.assertRuns("show", "evidence", "setup"))
+        self.assertRuns("note", "setup", stdin="**Observation.** Showed the reference on request.\n")
+        self.assertIn("Showed the reference on request", self.assertRuns("show", "evidence", "setup"))
+        w.task(lesson="setup", mode="write", scope="src")
+        self.assertIn("Showed the reference on request", self.assertRuns("show", "evidence"), "the open task's lesson by default")
+        self.assertIn("not a lesson slug", self.assertRuns("show", "evidence", "Bad Slug"))
+
+    def test_reference_shows_the_notes_and_the_diff(self):
+        """What the tutor relays when the learner asks to see the answer:
+        for a fix, the fix's own change; for a seam, the patch."""
+        w = self.w
+        out = self.assertRuns("show", "reference")
+        self.assertIn("(no reference notes)", out)
+        self.assertIn("no open task", out)
+        branch, base = w.begin("greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh")
+        w.held_task(branch, base)
+        w.learner.reference.write_text("The fix lowers the shouting.\n")
+        out = self.assertRuns("show", "reference")
+        self.assertIn("The fix lowers the shouting.", out)
+        self.assertIn("-printf 'HELLO", out)
+        self.assertIn("+printf 'Hello", out)
+        self.assertNotIn("greet.test.sh", out, "the held test is not part of the answer")
+        self.assertRuns("end-task")
+        self.assertRuns("close-task")
+        w.write("tests/seam.test.sh", "seam\n")
+        branch, base = w.begin("setup", "--here", "tests/seam.test.sh")
+        w.task(lesson="setup", mode="write", branch=branch, base=base, return_to=f"main {w.fix}",
+               started="2026-09-21", tutor_session="s1", scope="src", verify="check")
+        w.learner.patch.write_text("diff --git a/src/greet.sh b/src/greet.sh\n--- a/src/greet.sh\n+++ b/src/greet.sh\n@@ -1 +1 @@\n-x\n+y\n")
+        out = self.assertRuns("show", "reference")
+        self.assertIn("+++ b/src/greet.sh", out)
+        self.assertRuns("end-task")
+        self.assertRuns("close-task")
+
     def test_absence_is_words_not_status(self):
         rc, out = self.w.run("show", "profile", env={"ROLLING_DATA": ""})
         self.assertEqual(rc, 0)

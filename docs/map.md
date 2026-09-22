@@ -194,7 +194,11 @@ the test that proves it …
 ## Rubric
 
 - The change is correct about the relations …
-- The learner can explain, in a sentence each, …
+- The test asserts behaviour, not the mock …
+
+## Talk through
+
+- The participant token, the invite-to-participant link, …
 ```
 
 ### The slug
@@ -253,11 +257,24 @@ Prose for the tutor: what the lesson is, why it matters in this
 repository, pointers into the code (paths and, where they help, line
 numbers and shas, each checked against the commit the map names), and
 for the tutor's use, the fixes and seams in history a task can be
-built from. It ends with **`## Rubric`** (required): what a good
-demonstration shows, as prose the tutor reads the learner's change
-against and shows the learner. The rubric is the author's; the tutor
-does not add to it. The heading's presence is the second body
-convention the scripts check.
+built from. It closes with **`## Rubric`** (required), followed only
+by `## Talk through` when there is one: the rubric is what a
+maintainer here would look for in the change, the reviewer's checklist
+for this lesson, as prose the tutor reads the learner's change against
+and shows the learner. It is written about the change, never about the
+learner: "the constant lives in `packages/ui` and is spread, not
+copied", not "the learner can name the file that would have failed".
+A rubric is never a set of questions; the tutor reads it against what
+was done and says what it saw, and the learner decides when the lesson
+is done. The rubric is the author's; the tutor does not add to it. The
+heading's presence is the second body convention the scripts check.
+
+After the rubric, optionally, **`## Talk through`**: the things a
+colleague would make sure you know before you leave this lesson, the
+"can you say why" items that used to sit in rubrics. The tutor offers
+them once, at `done` or when the work is going well, as a
+conversation; the learner takes them up or not, and nothing about the
+lesson's close depends on it.
 
 ## `lessons/<slug>/<task-slug>.md` (optional)
 
