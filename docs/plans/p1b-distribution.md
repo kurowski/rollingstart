@@ -103,12 +103,14 @@ done-when a reviewer can check in a line or three. Detail lives in the
 artifact it describes (a spec, a script's header comment, a skill),
 and the sub-scope points at it once it exists.
 
-### 1b.1 — The plan [PENDING]
+### 1b.1 — The plan [COMPLETE]
 
 This file. Branch `p1b.1/plan`; depends on nothing. Done when the
 maintainer has read it, the decisions above are theirs or amended, and
 `docs/plan.md` § 7 and § 10 and `CLAUDE.md` § Status say what it
-says.
+says. The maintainer's reading moved three things before it opened:
+the runner out, Homie's map into Homie's tree, and `adopt` to 2.0.
+PR #22.
 
 ---
 
