@@ -644,10 +644,6 @@ in that state; the `direct`-mode mechanism probes, built and not run.
 - **`docs/design.md` and the landscape survey**, carried from the old
   repository shortened (§ 9): after P1 has shipped something for them
   to describe. The README and the plan are the design until then.
-- **The AGPL question** on a public Rallly map with reference
-  solutions (§ 8): the references here are shas into Rallly's own
-  history, not copies, and the map's source has been public since P0.
-  Decide before P1c publishes it as a plugin.
 - **A Bash-level scope guard** for the tutor: P2, if the eval shows
   prose does not hold.
 - **The review bot workflow** (`review.yml`) from the old repository:
