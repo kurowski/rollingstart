@@ -14,8 +14,10 @@ both are present, arrive in P1c.
 The skills are `/rolling:start` for intake, `/rolling:next` for the
 next lesson, `/rolling:lesson` for its walkthrough (and to be
 re-briefed on an open exercise), `/rolling:task` to take the exercise
-the walkthrough offers, and `/rolling:done` when you are done with the
-lesson, exercise or not. `start`, `next`, and `done` are yours to
+the walkthrough offers, `/rolling:done` when you are done with the
+lesson, exercise or not, and `/rolling:cancel` to stop one without
+finishing it (nothing is marked, nothing on the branch is lost).
+`start`, `next`, `done`, and `cancel` are yours to
 type; `lesson` and `task` the tutor may invoke itself, since the
 walkthrough hands off to the first and your yes to the second. Each
 skill declares the toolkit commands it needs and nothing wider: no map
@@ -62,10 +64,10 @@ first finishes any held-test revert a killed run left behind.
 | `rolling-diff` | `rolling-report` | The working tree against the task's `base`, untracked included, nothing excluded, capped. |
 | `rolling-verify [--on-base \| --on-reference]` | `rolling-report`, `task` | The task's `verify:` lines against the map's commands, then the held test applied, run, and reverted, with the learner's own file set aside in the learner's directory and a record that survives a kill. `--on-base` is the proof's first half (the expected failures fail on the starting state; a line that did not run fails it); `--on-reference` the second (the reference applied as a patch, everything passes, the patch reversed in a `finally`). The reference is the fix's own change, or for a seam task the patch the tutor wrote with `rolling-write patch`. |
 | `rolling-begin-task <lesson> --fix <sha> [--held p]… [--shown p]… \| --here <path>…` | `task` | The throwaway branch with the starting state committed; held tests copied aside, shown tests brought forward, the map carried across as it is now; `--here` commits only the paths named. Refuses while a task is open, and from a task branch an earlier run left. A git write that fails part-way is undone (the branch removed, the tree back as it was) and the message says where the repository is. |
-| `rolling-end-task` | `done` | Commits what the learner left on the task branch, keeps it, returns them to where they were. |
+| `rolling-end-task` | `done`, `cancel` | Commits what the learner left on the task branch, keeps it, returns them to where they were. |
 | `rolling-check-map [dir]` | authors, CI | The map's shape against the spec, exit 1 on a fault; `next` reads the same faults inline through `rolling-show map-check`. |
 | `rolling-check-profile`, `rolling-check-task` | authors, by hand; the pen runs the same checks as it writes | The learner's files' shape against the spec. |
-| `rolling-close-task` | `done` | Removes `task.md`, `reference.md`, `reference.patch`, `held/`, and the open-lesson marker, nothing else; after a walkthrough alone, only the marker is there. |
+| `rolling-close-task` | `done`, `cancel` | Removes `task.md`, `reference.md`, `reference.patch`, `held/`, and the open-lesson marker, nothing else; after a walkthrough alone, only the marker is there. |
 | `rolling-write task\|profile\|reference\|patch` | `start`, `task`, `done` | The tutor's pen: the file on standard input, checked (a task or profile with faults is refused and nothing lands), written. A task gets the tutor's session id stamped in, from the open task or the `session` file, whatever the text said. The data directory is a path Claude Code protects from Edit and Write, and a granted script is not prompted. `rolling-write patch --from-tree <path>…` takes a seam task's reference as the diff of those files against HEAD (a new file included) and restores them, since a heredoc carrying code trips the Bash tool's obfuscation check; each path names one file, no glob or pathspec magic, and it runs before the task begins and refuses while one is open. |
 | `rolling-note <lesson>` | every skill | Appends an evidence entry, under today's date; the entry must open with its kind (`**Route.**`, `**Observation.**`, `**Intervention.**`, `**Feedback.**`). |
 | `rolling-keep-task` | `task` | Copies the open task, minus the five lines that belong to one run (`branch`, `base`, `return-to`, `started`, `tutor-session`), to `tasks/<lesson>/<stamp>.md` for a later session (a second keep in the same second gets a `-2`). |

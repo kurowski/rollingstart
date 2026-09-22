@@ -126,7 +126,7 @@ that must hold even when the model is persuaded otherwise.
 | Role | Who | Claude Code mechanism |
 |---|---|---|
 | **Author** | A staff engineer who knows the codebase | Author-side skills (`/rolling-author:init`, `/rolling-author:mine`, `/rolling-author:verify`, `/rolling-author:proposals`, `/rolling-author:adopt`) that draft a **map** of the codebase from the repo and its history for the author to edit, and keep it honest afterwards. Output is committed files in the target repo, or a map plugin. The author describes; the author does not decide where any learner ends up. |
-| **Tutor** | Claude Code running the learner-side plugin | Learner-side skills: `/rolling:start` (intake), `/rolling:next` (chooses the lesson and hands off to) `/rolling:lesson` (the walkthrough, the offer of an exercise, and the coaching rules once one is open), `/rolling:task` (builds the exercise when the learner takes the offer), `/rolling:done`, `/rolling:ask`, `/rolling:escalate`; a small set of hooks; and a profile on disk. One conversation: the coaching and the feedback are the same voice. In a `direct` lesson it also watches the learner's coding session as it happens, from a log the plugin's hooks write. |
+| **Tutor** | Claude Code running the learner-side plugin | Learner-side skills: `/rolling:start` (intake), `/rolling:next` (chooses the lesson and hands off to) `/rolling:lesson` (the walkthrough, the offer of an exercise, and the coaching rules once one is open), `/rolling:task` (builds the exercise when the learner takes the offer), `/rolling:done`, `/rolling:cancel` (stops a lesson without finishing it), `/rolling:ask`, `/rolling:escalate`; a small set of hooks; and a profile on disk. One conversation: the coaching and the feedback are the same voice. In a `direct` lesson it also watches the learner's coding session as it happens, from a log the plugin's hooks write. |
 | **Learner** | The engineer being onboarded | Starts from the author's suggested course at intake and bends it: drops a region, adds one, changes a depth, says why. Works in Claude Code as usual; in a `direct` lesson that means a second, ordinary Claude Code session they direct themselves. The plugin changes how the tutor's session behaves *during a lesson*, logs the coding session in a `direct` one, and does nothing else. |
 
 The tutor is one voice. What keeps it honest is not a second examiner
@@ -150,6 +150,7 @@ rollingstart/                        # the new repo
         next/SKILL.md                # route: choose the next lesson for this learner and open it
         lesson/SKILL.md              # the walkthrough, the offer of an exercise; coach behaviour rules
         task/SKILL.md                # build and prove the exercise, when the learner takes the offer
+        cancel/SKILL.md              # stop the open lesson without finishing it; nothing marked, nothing lost
         done/SKILL.md                # run verifiers, capture diff, feedback against the rubric, update profile
         ask/SKILL.md                 # grounded Q&A that never solves the open task
         escalate/SKILL.md            # write an escalation with the trace attached
@@ -433,6 +434,8 @@ learner, in conversation, never by the tutor on its own.
     direct: the learner directs a coding agent in a second session; hooks log it; the tutor starts the
             watch and speaks only on an event worth a word, as an offer, in its own window
                 → declined: the lesson ends at the walkthrough, and /rolling:done records it
+/rolling:cancel → at any point: the exercise's branch is kept with whatever is on it, the lesson closes
+                  unmarked, and next may offer it again
 /rolling:done   → run the verifier (deterministic tier: the repo's own commands), before the tutor speaks
                 → capture what changed: the working tree against the task's base commit, nothing committed
                 → the held test, if any: applied, run, reverted, now that the diff is captured; its result

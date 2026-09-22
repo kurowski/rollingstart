@@ -18,13 +18,14 @@ Say so in a line and offer `/rolling:next`. Nothing else.
 ## If the learner is stopping without finishing
 
 "I'm done with this, don't count it", "let's drop this one", "I want
-to restart": stopping is theirs to choose, and it is not a close. With
-a task open, run `rolling-end-task` (their work is committed on the
-kept branch and they are returned) and then `rolling-close-task`; with
-only a lesson open, `rolling-close-task` alone. Note a **Feedback**
-entry with `Outcome: stopped by the learner, not finished: <their
-words>.` The profile is not touched, so the lesson stays unsatisfied
-and `next` may offer it again. Then offer `/rolling:next` and stop.
+to restart": stopping is theirs to choose, and it is not a close; it is
+`/rolling:cancel`. Do exactly what that does: note a **Feedback** entry
+with `Outcome: stopped by the learner, not finished: <their words>.`;
+with a task open, run `rolling-end-task` (their work is committed on
+the kept branch and they are returned) and then `rolling-close-task`;
+with only a lesson open, `rolling-close-task` alone. The profile is
+not touched, so the lesson stays unsatisfied and `next` may offer it
+again. Then offer `/rolling:next` and stop.
 
 ## If a lesson is open and no task is (the walkthrough was the lesson)
 

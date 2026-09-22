@@ -382,6 +382,10 @@ examiner:
   wants a second opinion asks for one (P2).
 - **Observations** go to evidence and never satisfy anything on their
   own.
+- A lesson the learner **stops** (`/rolling:cancel`, or saying so at
+  `done`) is not satisfied and not failed: the exercise's branch is
+  kept with whatever was on it, the lesson closes, a Feedback entry
+  says they stopped, and `next` may offer the lesson again.
 - In a `direct` lesson, a **catch the tutor prompted** while watching
   is an Intervention in evidence and stays on the tutor's ledger; it
   is never credited to the learner.
