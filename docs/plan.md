@@ -177,7 +177,6 @@ rollingstart/                        # the new repo
         proposals/SKILL.md           # review detours learners needed → promote
         adopt/SKILL.md               # move a map plugin into a repo's .rolling/, stamping where it came from
     rallly/                          # a map plugin: the Rallly map (below), installable in any Rallly clone
-    homie/                           # a map plugin: the Homie map, until Homie adopts it
   docs/
     design.md                        # rewritten from Rolling Stop's, shorter
     map.md                           # the format the author writes (the spec)
@@ -549,14 +548,15 @@ repository. **Homie**, the maintainer's own Go CLI, public: the
 toolchain check, because the plugin's scripts have only ever seen pnpm
 and a compose stack, and generalising from one ecosystem produces the
 wrong interface; a single binary with `go test` and no services is as
-different an environment as we have to hand. Homie also plays out the
-lifecycle most open source maps would follow: it starts as a map plugin
-in this repository, written as an outsider would, and once it proves
-useful the project adopts it by committing `.rolling/` and retiring the
-plugin. Supporting that handoff is part of P1b: the resolver prefers
-the in-repo map when both are present, and `rolling-author` gets an
-`adopt` step that moves a map plugin into a repo's tree, stamping where
-it came from. Same stack
+different an environment as we have to hand. Homie's map is committed
+in Homie's own tree from the first day (decided 2026-09-21, § 10): the
+maintainer owns the project, and an author inside a project commits
+the map. The handoff most open source maps would go through, an
+outsider's plugin adopted by the project, needs only the resolver's
+precedence in 1.0: the in-repo map wins when both are present, so
+adopting is copying the directory in. The `adopt` step that does the
+copy and stamps where it came from waits for 2.0 and a project that
+wants it (2026-09-21, § 10). Same stack
 twice over (Rallly and the work codebase are both Next.js, Prisma, pnpm)
 diversifies nothing the plugin touches, which is why the third is Go. A second unfamiliar Node app (Papermark
 was the candidate) would test only whether `rolling-author:init` can
@@ -597,7 +597,9 @@ different region deep, every region at working depth) get three
 different routes, and two seeded backgrounds with the *same* destination
 still diverge; nothing the tutor writes is in the tree.
 
-*P1b, distribution.* Opens with the map and the skills after the
+*P1b, distribution.* The plan is
+[`docs/plans/p1b-distribution.md`](plans/p1b-distribution.md). Opens
+with the map and the skills after the
 first fresh learner's four lessons: the setup lesson confirming the
 environment's state rather than quizzing about it and using the
 verifier subset it names, `polls` getting an `orientation` lesson
@@ -605,13 +607,17 @@ since `polls: orientation` reaches nothing today, and
 `billing-and-tiers` rewritten as a `write` lesson so the Billing
 engineer course is not empty until 2.0. Then the map-plugin manifest
 and registration hook, the resolver with its precedence and staleness
-warning, `adopt` as `rolling-author`'s first skill, the Rallly map
-repackaged as a map plugin, and the Homie map written as one. The work
-codebase's map is written in its own tree, privately. *Exit:*
-`/plugin install rallly@rollingstart` in a fresh Rallly clone serves a
-lesson; a `write` lesson runs on Homie under `go test`; adopting the
-Homie map into a scratch copy of Homie makes the plugin fall silent
-with no other change.
+warning, the Rallly map repackaged as a map plugin, and the Homie map
+committed in Homie's own tree. The work codebase's map is written in
+its own tree, privately. `runner/` is retired: with the map a plugin,
+Rolling Start is installed into a Rallly clone like anywhere else, and
+how the maintainer runs Rallly's toolchain is outside this repository.
+`adopt`, and `rolling-author` with it, wait: P3 for the plugin, 2.0
+for the skill. *Exit:* `/plugin install rallly@rollingstart` in a
+fresh Rallly clone serves a lesson; a `write` lesson runs on Homie
+from the map in its tree under `go test`; a Rallly clone with the
+plugin installed and the map committed in its tree is taught from the
+tree.
 
 **P2 — Enforced, and measured.** Feedback shape enforced by the
 citation check; the ask-before-destructive hook (the second layer of
@@ -763,9 +769,6 @@ Rallly at each rung that a strong engineer finds fair.
   with the plugin when it is removed from its last scope. `export`
   exists for this, and `start` mentions it once; a learner who ignores
   both loses their evidence, not their code.
-- **AGPL.** Rallly is AGPL; a public example map with reference
-  solutions is the same derivative-work question as before. Decide before
-  the example ships publicly; a private target has no such problem.
 - **Script dependencies.** The toolkit assumes Python 3.9 and git and
   nothing else (decided 2026-09-15, § 10): Python 3 comes with a Mac's
   command line tools and every desktop Linux, and the native Claude
@@ -999,3 +1002,32 @@ before the next checkpoint; the run is written up in its PR):
   Every target is a workplace, and the strict shape changes the
   satisfaction rule, the rubric, and the evidence at once; if a
   classroom ever asks, a map field is where it goes.
+
+**Planning P1b** (2026-09-21):
+
+- **Homie's map is in Homie's tree from day one.** The plan had Homie
+  start as a map plugin here and be adopted later, to play out the
+  open source lifecycle; but the maintainer owns Homie, and an author
+  inside a project commits the map, so the plugin stage was ceremony.
+  Homie is the internal-author route in public; the work codebase is
+  the same route in private.
+- **`adopt` waits for 2.0, and `rolling-author` for P3.** Adoption in
+  1.0 is copying a plugin's map into `.rolling/`, because the tree
+  wins; a skill that does the copy, stamps where the map came from,
+  and notices when the plugin is newer than the stamp is machinery for
+  a lifecycle nobody has started, and P1b is simpler without it. The
+  design keeps the skill (§ 2, § 3); it is built if a project asks.
+  With it out, the author's plugin has no reason to exist before
+  `init`, so it first appears in P3.
+- **`runner/` is retired.** It existed because the maintainer kept
+  Node off the host, which meant orchestrating Rallly's toolchain and
+  services around the plugin from inside this repository. Once the map
+  is a plugin, installing Rolling Start into a Rallly clone is `plugin
+  install` like anywhere, and how the maintainer runs Rallly
+  (contained, or on the host after all) is as external to this
+  repository as the environment is to the tutor. No map, Homie's
+  included, assumes any orchestration; what a lesson expects to find
+  running is the map's to say. The runner's leftover duties go where
+  they belong: a git identity and the toolkit's allow rules are the
+  learner's environment, said in the map plugin's install notes; a
+  task's proof is `rolling-verify` by hand until P3's `verify`.
