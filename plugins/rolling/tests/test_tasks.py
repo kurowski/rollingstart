@@ -446,7 +446,7 @@ class EndAndCloseTest(WorldTest):
         (w.learner.dir / "evidence/setup.md").write_text("e")
         w.learner.profile.write_text("# Profile\n")
         out = self.assertRuns("close-task")
-        self.assertIn("task closed", out)
+        self.assertIn("closed;", out)
         self.assertFalse(w.learner.task_file.exists())
         self.assertFalse(w.learner.reference.exists())
         self.assertFalse(w.learner.held.exists())

@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from . import frontmatter as fm
+from . import frontmatter as fm, rules
 
 
 class LoadError(Exception):
@@ -41,6 +41,7 @@ class Lesson:
     requires: List[str] = field(default_factory=list)
     assumes: List[str] = field(default_factory=list)
     test: str = ""              # '' means held
+    exercise: str = ""          # '' means one is offered; 'none' means the walkthrough is the lesson
     keys: List[str] = field(default_factory=list)
 
     @classmethod
@@ -51,7 +52,7 @@ class Lesson:
         return cls(
             slug=path.name[:-3], path=path, title=f.scalar("title"), region=f.scalar("region"),
             depth=f.scalar("depth"), mode=f.scalar("mode"), requires=f.list("requires"),
-            assumes=f.list("assumes"), test=f.scalar("test"), keys=list(f.keys),
+            assumes=f.list("assumes"), test=f.scalar("test"), exercise=f.scalar("exercise"), keys=list(f.keys),
         )
 
     @property
@@ -186,6 +187,12 @@ class Learner:
         return self.dir / "session"
 
     @property
+    def lesson_file(self) -> Path:
+        """The open lesson's slug, one line: written when next chooses it,
+        before any exercise exists, and removed with the task."""
+        return self.dir / "lesson"
+
+    @property
     def task_file(self) -> Path:
         return self.dir / "task.md"
 
@@ -230,6 +237,18 @@ class Learner:
 
     def has_task(self) -> bool:
         return self.task_file.is_file()
+
+    def open_lesson(self) -> str:
+        """The open lesson's slug: the task's when one is open, else the
+        marker's, else ''."""
+        t = self.task()
+        if t is not None and t.lesson:
+            return t.lesson
+        try:
+            slug = self.lesson_file.read_text(encoding="utf-8", errors="surrogateescape").strip()
+        except (OSError, ValueError):
+            return ""
+        return slug if rules.is_slug(slug) else ""
 
     def task(self) -> Optional[Task]:
         try:

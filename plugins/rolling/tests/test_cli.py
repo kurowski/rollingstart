@@ -32,9 +32,11 @@ class ShowTest(WorldTest):
         self.assertIn("## Rubric", self.assertRuns("show", "lesson", "setup"))
         self.assertIn("no lesson 'nope'", self.assertRuns("show", "lesson", "nope"))
         self.assertIn("not a lesson slug", self.assertRuns("show", "lesson", "Bad Slug"))
-        self.assertIn("no open task", self.assertRuns("show", "lesson"))
+        self.assertIn("no open lesson", self.assertRuns("show", "lesson"))
         w.task(lesson="setup", mode="write", scope="src")
-        self.assertIn("title: Setup", self.assertRuns("show", "lesson"))
+        shown = self.assertRuns("show", "lesson")
+        self.assertIn("title: Setup", shown)
+        self.assertTrue(shown.startswith("### setup\n"), "the slug leads, since the file does not carry it")
         self.assertIn("lesson: setup", self.assertRuns("show", "task"))
         self.assertIn("no profile", self.assertRuns("show", "profile"))
         w.learner.profile.write_text("# Profile\n")
@@ -50,9 +52,73 @@ class ShowTest(WorldTest):
         self.assertEqual(self.assertRuns("show", "state-dir").strip(), str(w.learner.dir))
         self.assertIn("usage:", self.assertRuns("show"))
 
+    def test_a_lesson_opens_before_any_exercise_and_closes_with_it(self):
+        """next opens a lesson for the walkthrough; the exercise, if the
+        learner takes the offer, is built later; close removes both."""
+        w = self.w
+        self.assertIn("not a lesson slug", self.assertRuns("begin-lesson", "Bad Slug", status=1))
+        self.assertIn("no lesson 'nope'", self.assertRuns("begin-lesson", "nope", status=1))
+        self.assertIn("no open lesson", self.assertRuns("show", "lesson"))
+        self.assertIn("LESSON: setup is open", self.assertRuns("begin-lesson", "setup"))
+        self.assertTrue(self.assertRuns("show", "lesson").startswith("### setup\n"))
+        self.assertIn("(no open task)", self.assertRuns("show", "task"))
+        self.assertIn("LESSON: greet-politely is open", self.assertRuns("begin-lesson", "greet-politely"), "reopening with another lesson, no task yet, is fine")
+        # Closing after the walkthrough alone: the marker goes, nothing else was there.
+        out = self.assertRuns("close-task")
+        self.assertIn("removed lesson", out)
+        self.assertIn("closed;", out)
+        self.assertIn("no open lesson", self.assertRuns("show", "lesson"))
+        # Notes follow the open lesson too, before any task exists.
+        self.assertRuns("begin-lesson", "greet-politely")
+        self.assertRuns("note", "greet-politely", stdin="**Route.** Chosen for the walkthrough.\n")
+        self.assertIn("Chosen for the walkthrough", self.assertRuns("show", "evidence"))
+        # A task for another lesson is refused while this one is open; the same lesson is fine, and marks it.
+        self.assertIn("the open lesson is greet-politely, not setup", self.assertRuns("begin-task", "setup", "--fix", w.fix, "--shown", "tests/greet.test.sh", status=1))
+        self.assertOnBranch("main")
+        branch, base = w.begin("greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh")
+        self.assertEqual(w.learner.lesson_file.read_text().strip(), "greet-politely")
+        w.held_task(branch, base)
+        self.assertIn("a task is open (greet-politely)", self.assertRuns("begin-lesson", "setup", status=1))
+        self.assertRuns("end-task")
+        self.assertRuns("close-task")
+        self.assertFalse(w.learner.lesson_file.exists())
+
+    def test_a_marker_the_toolkit_did_not_write_is_handled(self):
+        w = self.w
+        w.learner.dir.mkdir(parents=True, exist_ok=True)
+        w.learner.lesson_file.write_bytes(b"\xff\xfe not text")
+        self.assertIn("no open lesson", self.assertRuns("show", "lesson"), "garbage reads as no lesson, in words")
+        w.learner.lesson_file.unlink()
+        w.learner.lesson_file.mkdir()
+        self.assertIn("not a plain file", self.assertRuns("begin-lesson", "setup", status=1))
+        self.assertIn("it was a directory", self.assertRuns("close-task"))
+        self.assertFalse(w.learner.lesson_file.exists())
+        outside = w.root / "elsewhere"
+        outside.write_text("keep me\n")
+        os.symlink(outside, w.learner.lesson_file)
+        self.assertIn("symbolic link", self.assertRuns("begin-lesson", "setup", status=1))
+        self.assertEqual(outside.read_text(), "keep me\n", "nothing was written through the link")
+        self.assertIn("removed lesson", self.assertRuns("close-task"))
+        self.assertTrue(outside.is_file(), "the link went, not its target")
+        os.symlink(outside, w.learner.lesson_file)
+        branch, base = w.begin("greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh")
+        self.assertEqual(outside.read_text(), "keep me\n", "begin-task does not write through the link either")
+        w.held_task(branch, base)
+        self.assertRuns("end-task")
+        self.assertRuns("close-task")
+
+    def test_opening_a_lesson_clears_a_reference_no_exercise_was_served_with(self):
+        w = self.w
+        self.assertRuns("begin-lesson", "setup")
+        w.learner.reference.write_text("the answer to an exercise that never got built\n")
+        out = self.assertRuns("begin-lesson", "greet-politely")
+        self.assertIn("leftover reference.md", out)
+        self.assertFalse(w.learner.reference.exists())
+        self.assertIn("(no reference notes)", self.assertRuns("show", "reference"))
+
     def test_evidence_shows_the_lessons_notes(self):
         w = self.w
-        self.assertIn("no open task", self.assertRuns("show", "evidence"))
+        self.assertIn("no open lesson", self.assertRuns("show", "evidence"))
         self.assertIn("no evidence yet for setup", self.assertRuns("show", "evidence", "setup"))
         self.assertRuns("note", "setup", stdin="**Observation.** Showed the reference on request.\n")
         self.assertIn("Showed the reference on request", self.assertRuns("show", "evidence", "setup"))

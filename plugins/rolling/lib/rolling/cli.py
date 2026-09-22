@@ -104,19 +104,17 @@ def cmd_show(args: List[str]) -> int:
     elif what == "lesson":
         slug = args[1] if len(args) > 1 else ""
         if not slug:
-            t = w.learner.task() if w.learner else None
-            if t is None:
-                say("(no open task, so no lesson to show; name one: rolling-show lesson <slug>)")
+            slug = w.learner.open_lesson() if w.learner else ""
+            if not slug:
+                say("(no open lesson: rolling-begin-lesson opens one; or name one: rolling-show lesson <slug>)")
                 return 0
-            if not t.lesson:
-                say("(the open task names no lesson)")
-                return 0
-            slug = t.lesson
         if not rules.is_slug(slug):
             say(f"('{slug}' is not a lesson slug)")
         else:
             f = w.map_dir / "lessons" / f"{slug}.md"
-            say(_file_or(f, f"(no lesson '{slug}': {f} does not exist)"))
+            # The slug on the first line: the file does not carry it, and the
+            # skills need it for the commands that take a lesson.
+            say(f"### {slug}", _file_or(f, f"(no lesson '{slug}': {f} does not exist)"))
     elif what == "profile":
         say(_file_or(w.learner.profile, "(no profile: this is a new learner, or /rolling:start has not run)") if w.learner else f"({paths.NO_DATA_MSG})")
     elif what == "task":
@@ -146,10 +144,9 @@ def cmd_show(args: List[str]) -> int:
             say(f"({paths.NO_DATA_MSG})")
         else:
             if not slug:
-                t = w.learner.task()
-                slug = t.lesson if t else ""
+                slug = w.learner.open_lesson()
             if not slug:
-                say("(no open task, so no lesson to show evidence for; name one: rolling-show evidence <slug>)")
+                say("(no open lesson, so no lesson to show evidence for; name one: rolling-show evidence <slug>)")
             elif not rules.is_slug(slug):
                 say(f"('{slug}' is not a lesson slug)")
             else:
@@ -363,6 +360,39 @@ def cmd_begin_task(args: List[str]) -> int:
     return 0
 
 
+def cmd_begin_lesson(args: List[str]) -> int:
+    """rolling-begin-lesson <slug>: record the lesson next chose as the
+    open one, before any exercise exists. Refuses while a task is open
+    (its lesson is the open one), and for a slug the map lacks."""
+    slug = args[0] if args else ""
+    w = _need(locate())
+    if not rules.is_slug(slug):
+        raise Refused(f"'{slug}' is not a lesson slug (lowercase kebab-case)")
+    if w.learner.has_task():
+        t = w.learner.task()
+        raise Refused(f"a task is open ({t.lesson if t else '?'}); its lesson is the open one until rolling-close-task")
+    if not (w.map_dir / "lessons" / f"{slug}.md").is_file():
+        raise Refused(f"no lesson '{slug}' in the map")
+    marker = w.learner.lesson_file
+    if marker.is_symlink():
+        raise Refused(f"{marker} is a symbolic link; the open-lesson marker is a plain file the toolkit writes, so remove the link first")
+    if marker.exists() and not marker.is_file():
+        raise Refused(f"{marker} is not a plain file; remove it (rolling-close-task does) and open the lesson again")
+    try:
+        w.learner.dir.mkdir(parents=True, exist_ok=True)
+        marker.write_text(slug + "\n", encoding="utf-8")
+    except OSError as e:
+        raise Refused(f"the learner directory cannot be written: {e}")
+    # A reference a task never got built around (the proof failed and the
+    # tutor stopped) would otherwise show as this lesson's answer.
+    for f in (w.learner.reference, w.learner.patch):
+        if f.is_file():
+            f.unlink()
+            say(f"removed a leftover {f.name} from an exercise that was never served")
+    say(f"LESSON: {slug} is open (no exercise built yet)")
+    return 0
+
+
 def cmd_end_task(args: List[str]) -> int:
     w = _need(locate())
     if not repair_first(w):
@@ -505,7 +535,7 @@ INLINE: Dict[str, Callable[[List[str]], int]] = {
     "diff": cmd_diff, "verify": cmd_verify, "report": cmd_report,
 }
 ACTIONS: Dict[str, Callable[[List[str]], int]] = {
-    "begin-task": cmd_begin_task, "end-task": cmd_end_task, "close-task": cmd_close_task,
+    "begin-task": cmd_begin_task, "begin-lesson": cmd_begin_lesson, "end-task": cmd_end_task, "close-task": cmd_close_task,
     "export": cmd_export, "check-map": cmd_check_map, "check-profile": cmd_check_profile, "check-task": cmd_check_task,
     "write": cmd_write, "note": cmd_note, "keep-task": cmd_keep_task,
 }

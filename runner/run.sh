@@ -192,7 +192,7 @@ install_identity() {
 # turn, in the container's user settings. A skill's grants hold only for
 # the turn it ran in, so once `next` needs a reply from the learner (a
 # refusal to relay, a question), the same rolling-begin-task the skill
-# had granted is a fresh permission decision in the next turn, and in
+# had granted (now task's) is a fresh permission decision in the next turn, and in
 # auto mode the classifier denied it (the first fresh learner's run,
 # 2026-09-21). These are exactly the commands the skills grant; none of
 # them touches the learner's tree except through the task branch, and a
@@ -223,7 +223,8 @@ if not isinstance(allow, list):
     allow = perms["allow"] = []
 rules = ["Bash(rolling-show *)", "Bash(rolling-claim-session *)", "Bash(rolling-write *)", "Bash(rolling-note *)",
          "Bash(rolling-begin-task *)", "Bash(rolling-verify)", "Bash(rolling-verify *)", "Bash(rolling-report)",
-         "Bash(rolling-keep-task)", "Bash(rolling-end-task)", "Bash(rolling-close-task)", "Bash(rolling-export *)"]
+         "Bash(rolling-keep-task)", "Bash(rolling-end-task)", "Bash(rolling-close-task)", "Bash(rolling-export *)",
+         "Bash(rolling-begin-lesson *)", "Skill(rolling:lesson)", "Skill(rolling:task)"]
 added = [r for r in rules if r not in allow]
 allow.extend(added)
 os.makedirs(os.path.dirname(p), exist_ok=True)

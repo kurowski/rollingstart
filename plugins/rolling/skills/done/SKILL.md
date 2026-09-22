@@ -1,6 +1,6 @@
 ---
 name: done
-description: The learner says the open task is done. Captures the change and runs its checks before the tutor speaks, then gives feedback against the lesson's rubric, in the same conversation; the learner's word closes the lesson. Manual only.
+description: The learner says the open lesson is done. With a task open, captures the change and runs its checks before the tutor speaks, then gives feedback against the lesson's rubric, in the same conversation; after a walkthrough alone, records the close. The learner's word closes the lesson. Manual only.
 disable-model-invocation: true
 allowed-tools: Read, Glob, Grep, Bash(git log *), Bash(git show *), Bash(rolling-show *), Bash(rolling-claim-session *), Bash(rolling-report), Bash(rolling-verify), Bash(rolling-write profile *), Bash(rolling-note *), Bash(rolling-end-task), Bash(rolling-close-task)
 ---
@@ -11,9 +11,33 @@ happened before you could form an opinion, and that order is the
 point. The learner is in the driver's seat: you say what you see, once,
 honestly and located, and their word closes the lesson.
 
-## If there is no open task
+## If there is no open lesson
 
 Say so in a line and offer `/rolling:next`. Nothing else.
+
+## If the learner is stopping without finishing
+
+"I'm done with this, don't count it", "let's drop this one", "I want
+to restart": stopping is theirs to choose, and it is not a close; it is
+`/rolling:cancel`. Do exactly what that does: note a **Feedback** entry
+with `Outcome: stopped by the learner, not finished: <their words>.`;
+with a task open, run `rolling-end-task` (their work is committed on
+the kept branch and they are returned) and then `rolling-close-task`;
+with only a lesson open, `rolling-close-task` alone. The profile is
+not touched, so the lesson stays unsatisfied and `next` may offer it
+again. Then offer `/rolling:next` and stop.
+
+## If a lesson is open and no task is (the walkthrough was the lesson)
+
+The learner is closing after the walkthrough, having declined the
+exercise or the lesson having none. That is a good close. Note a
+**Feedback** entry with `rolling-note <lesson>`: what was walked
+through, what they asked about, and `Outcome: closed by the learner
+after the walkthrough; no exercise taken.` Then rewrite the profile
+with the lesson appended under `## Satisfied` (shape below), run
+`rolling-close-task` (it closes the lesson; there is no branch to
+leave), offer `/rolling:next`, and stop. The report below will say no
+task was open; that is expected.
 
 ## Rules
 
@@ -32,8 +56,10 @@ Say so in a line and offer `/rolling:next`. Nothing else.
   do not add to it. It is a reviewer's checklist for the change, never
   a set of questions: you read it against what was done, and you never
   ask the learner to prove a point of it to you. If the lesson has a
-  `## Talk through` section, offer its items once, as a conversation
-  they can have or skip; nothing about closing depends on it.
+  `## Talk through` section, its items were normally raised in the
+  walkthrough; offer only what was not (your notes say), once, as a
+  conversation they can have or skip; nothing about closing depends on
+  it.
 - Formative, not a verdict, and the learner's call. Say what is good
   and why, what a maintainer here would still raise and where, and
   what parts of the rubric the change does not reach. Then ask whether
@@ -126,13 +152,13 @@ Outcome: closed by the learner; the tutor's view: met. | closed by the learner; 
 
 !`rolling-report`
 
-## Open task
-
-!`rolling-show task`
-
-## The lesson
+## The open lesson
 
 !`rolling-show lesson`
+
+## Open task, if any
+
+!`rolling-show task`
 
 ## Corpus pointers, from the map
 

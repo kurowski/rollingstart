@@ -181,8 +181,10 @@ skill. The analogy the project started from stays in conversation.
   status. CI runs the same on Python 3.9, a current Python, and a
   Mac's system Python.
 - **Skills.** `disable-model-invocation: true` on every learner-facing
-  skill except `lesson`, which only ever re-presents the open task and
-  is how `next` hands off; `allowed-tools` grants narrow and named,
+  skill except two: `lesson`, which gives the walkthrough or re-presents
+  the open task and is how `next` and `task` hand off, and `task`,
+  which builds the exercise when the learner's yes comes in conversation
+  and builds nothing unless a lesson is open with no task; `allowed-tools` grants narrow and named,
   never `Bash(pnpm *)` or `Bash(git *)`; inline commands are single
   invocations of a `bin/` script, never compound one-liners (their
   parts match no grant).

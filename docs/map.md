@@ -240,6 +240,11 @@ the directory can be opened as an Obsidian vault.
   `postgres`. Not checked against anything; the tutor reads it against
   the learner's background to go faster where it is covered and to
   offer a detour where it is not. A lesson is never skipped for it.
+- **`exercise`** (optional). `none`, for a lesson that is its
+  walkthrough: a look around a region with nothing worth changing for
+  its own sake. Left out, the tutor offers an exercise at the end of
+  the walkthrough, built from the lesson's task sources when the
+  learner takes it.
 - **`test`** (optional). `held`, the default, or `shown`. When the
   tutor builds a task from a fix in history, the fix's test is
   normally held back: the learner writes their own, and the original
@@ -253,11 +258,17 @@ silently declare a lesson with no prerequisites.
 
 ### The body
 
-Prose for the tutor: what the lesson is, why it matters in this
-repository, pointers into the code (paths and, where they help, line
-numbers and shas, each checked against the commit the map names), and
-for the tutor's use, the fixes and seams in history a task can be
-built from. It closes with **`## Rubric`** (required), followed only
+Prose for the learner, walked through by the tutor: what the lesson
+is, why it matters in this repository, and where to look, as pointers
+into the code (paths and, where they help, line numbers and shas, each
+checked against the commit the map names). This is the lecture: the
+tutor opens every lesson by reading it with the learner in the code,
+before any exercise is offered, so write it the way you would show a
+new colleague around. Notes for the tutor alone (the fixes and seams
+in history a task can be built from, situations to present, mistakes
+to watch for) go in the body too, addressed to the tutor, and the
+tutor leaves them out of the walkthrough. It closes with
+**`## Rubric`** (required), followed only
 by `## Talk through` when there is one: the rubric is what a
 maintainer here would look for in the change, the reviewer's checklist
 for this lesson, as prose the tutor reads the learner's change against
@@ -271,8 +282,8 @@ heading's presence is the second body convention the scripts check.
 
 After the rubric, optionally, **`## Talk through`**: the things a
 colleague would make sure you know before you leave this lesson, the
-"can you say why" items that used to sit in rubrics. The tutor offers
-them once, at `done` or when the work is going well, as a
+"can you say why" items that used to sit in rubrics. The tutor raises
+them once, normally during the walkthrough, else at `done`, as a
 conversation; the learner takes them up or not, and nothing about the
 lesson's close depends on it.
 
@@ -283,7 +294,7 @@ the map: what to learn, why it matters here, where to look, the
 rubric; it is what a course is made of and what a profile marks
 satisfied. A task is one concrete piece of work that demonstrates a
 lesson: a brief or a situation, a starting state, a verifier, a held
-reference. Normally the `next` skill builds a task just in time from
+reference. Normally the `task` skill builds a task just in time from
 the lesson's pointers and the repository's history. An author who
 would rather choose the exercise by hand writes it here, in a
 directory beside the lesson file that shares the lesson's slug, one
@@ -330,6 +341,7 @@ file and the field, so a map is fixed in one pass.
   `depth`; `region` names a region from `map.md`; `depth` is one of
   the three; `mode`, if present, is one of the two; `test`, if
   present, is `held` or `shown`; no unknown field.
+- `exercise`, if present, is `none`.
 - Every `requires` entry names a lesson in the directory and is not
   the lesson itself, no lesson is listed twice, and the graph has no
   cycle (reported once, naming the lessons on it).
