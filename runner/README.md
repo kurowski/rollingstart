@@ -5,7 +5,7 @@ Claude Code in a container, Rallly's services from its own compose
 file, this repository's marketplace manifest and plugins mounted
 read-only as the plugin marketplace, and nothing from npm executing on
 the host. It is how a lesson is run on this machine during P1, and the
-shape a `.devcontainer/` would take if P5 decides the Rallly example
+shape a `.devcontainer/` would take if P4 decides the Rallly example
 ships one.
 
 What the host needs: git 2.23 or later (for `git switch`), Docker with
@@ -52,7 +52,7 @@ open. A map edit already committed on `rolling/map` is not protected:
 the example is the source, and `up` recommits it over the edit, which
 git still has. This is the shape a map has in a repository whose author
 committed it, which is what the plugin expects in P1a; the map-plugin
-route arrives in P1c.
+route arrives in P1b.
 
 Two more things `up` puts in the home volume, both found by the first
 fresh learner's run. The host's git identity, copied in, so the

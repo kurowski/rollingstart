@@ -19,7 +19,7 @@ demonstrating.
 |---|---|
 | [`docs/plan.md`](plan.md) | Design and decision record. Decisions made after it go in § 10, dated. |
 | [`docs/map.md`](map.md), [`docs/profile.md`](profile.md) | The formats: what the author writes, what the tutor writes (P1a.2) |
-| [`docs/plans/`](plans/) | One plan per checkpoint (P1a, P1b, …): its sub-scopes, a paragraph each, are the tracker; each PR flips its own to `[COMPLETE]`, and the plan ends with a retrospective. Detail lives in the artifact a sub-scope describes, not in the plan. |
+| [`docs/plans/`](plans/) | One plan per checkpoint (P1a, P1b, …, P5): its sub-scopes, a paragraph each, are the tracker; each PR flips its own to `[COMPLETE]`, and the plan ends with a retrospective. Detail lives in the artifact a sub-scope describes, not in the plan. |
 | [`spike/NOTES.md`](../spike/NOTES.md) | What P0 found, as it happened; the register a retrospective is written in |
 
 GitHub carries the PRs. Issues are a backlog, not a tracker: file one

@@ -10,7 +10,7 @@ The learner's side is [`profile.md`](profile.md).
 A map lives at `.rolling/` in the repository root, committed and
 reviewed in the repository's own pull requests, when the author is
 inside the project. When the author is outside it, the same directory
-ships as a map plugin (P1c); the format is identical and this page
+ships as a map plugin (P1b); the format is identical and this page
 covers both. The design is in [`plan.md`](plan.md) § 4.
 
 ```

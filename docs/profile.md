@@ -46,7 +46,7 @@ repository's tooling; that is the point of its location.
   held/<path>              # the held test files for the open task
   held-aside/<path>        # your file set aside while the held test runs (normally absent)
   held-aside.pending       # the record of that run, kept only if it was interrupted
-  sessions/<session id>.log  # a direct lesson's coding sessions (P1b)
+  sessions/<session id>.log  # a direct lesson's coding sessions (P5, 2.0)
   tasks/<lesson>/<stamp>.md  # tasks the tutor built and kept for reuse
   evidence/<lesson>.md     # feedback, observations, interventions, appended
   detours/<slug>.md        # lessons the tutor created for this learner (P2)
@@ -102,7 +102,7 @@ Joining the payments team; polls can wait.
 One line, the session id of the tutor's most recent session, written
 by `rolling-claim-session` from every learner-side skill when no task
 is open. While a task is open the same id lives in the task instead.
-It is how P1b's hooks tell the tutor's session from the learner's
+It is how P5's hooks tell the tutor's session from the learner's
 coding session. In P1a one thing reads it: `rolling-write task` stamps
 it into a new task as `tutor-session`, rewriting any such line the
 text carried, since that field is what the write guard keys on. The
@@ -284,7 +284,7 @@ from a seam: the tutor's own solution, as a description or a diff.
 Named to the learner as "a reference exists and I am holding it",
 never by path, and shown when they ask, through `rolling-show
 reference`, with a note in evidence that it was; a coding session in a
-`direct` lesson is denied the whole directory (P1b).
+`direct` lesson is denied the whole directory (P5, 2.0).
 
 ## `held/`, `held-aside/`, `held-aside.pending`
 
@@ -307,7 +307,7 @@ is applied only through plain files and directories: a symbolic link
 anywhere in it, at the fix or in the tree, is refused, and two held
 paths that turn out to be one file are refused too.
 
-## `sessions/<session id>.log` (P1b)
+## `sessions/<session id>.log` (P5, 2.0)
 
 One file per coding session in a `direct` lesson, written by the
 plugin's hooks from that session: every prompt, every file edited,
