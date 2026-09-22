@@ -12,13 +12,17 @@ the resolver that prefers a committed map over an installed one when
 both are present, arrive in P1c.
 
 The skills are `/rolling:start` for intake, `/rolling:next` for the
-next task, `/rolling:lesson` to be re-briefed, and `/rolling:done` when
-you think you are done. `start`, `next`, and `done` are yours to type;
-`lesson` is the one the tutor may invoke itself, since it only ever
-re-presents the open task. Each skill declares the toolkit commands
-it needs and nothing wider: no map command, no package manager, no
-git that changes the tree; `next` alone also has the Edit and Write
-tools, for the test it prepares before a task exists. The checks a
+next lesson, `/rolling:lesson` for its walkthrough (and to be
+re-briefed on an open exercise), `/rolling:task` to take the exercise
+the walkthrough offers, and `/rolling:done` when you are done with the
+lesson, exercise or not. `start`, `next`, and `done` are yours to
+type; `lesson` and `task` the tutor may invoke itself, since the
+walkthrough hands off to the first and your yes to the second. Each
+skill declares the toolkit commands it needs and nothing wider: no map
+command, no package manager, no git that changes the tree; `task` has
+the Edit and Write tools for the test it prepares before a task exists,
+and `lesson` for the `TODO(human)` markers a task's scaffold paths
+allow. The checks a
 lesson asks of you are the repository's own commands, exactly as the
 map declares them, and when the tutor runs one itself it asks. Those
 grants hold for the turn a skill runs in; in a later turn of the same
@@ -53,17 +57,18 @@ first finishes any held-test revert a killed run left behind.
 | `rolling-guard` | the PreToolUse hook | The `write`-mode scope guard: denies the tutor an edit inside the open task's scope. |
 | `rolling-show <what>` | skills, inline | One piece of context: `map`, `map-check` (the map's faults in words, or `MAP: ok`), `lessons` (the index), `lesson [slug]`, `profile`, `task`, `reference` (the held answer: the notes and the diff, for the tutor to relay when the learner asks), `evidence [slug]` (what the tutor has noted about the open task's lesson, or the one named), `corpus`, `tree`, `state-dir`. Always exits 0. |
 | `rolling-claim-session <id>` | skills, inline | Records the session as the tutor's, in the open task or the `session` file. |
+| `rolling-begin-lesson <slug>` | `next` | Records the lesson `next` chose as the open one, before any exercise exists; refuses while a task is open or for a slug the map lacks. |
 | `rolling-report` | `done`, inline | The diff, then the verifier, in that order, from one command. |
 | `rolling-diff` | `rolling-report` | The working tree against the task's `base`, untracked included, nothing excluded, capped. |
-| `rolling-verify [--on-base \| --on-reference]` | `rolling-report`, `next` | The task's `verify:` lines against the map's commands, then the held test applied, run, and reverted, with the learner's own file set aside in the learner's directory and a record that survives a kill. `--on-base` is the proof's first half (the expected failures fail on the starting state; a line that did not run fails it); `--on-reference` the second (the reference applied as a patch, everything passes, the patch reversed in a `finally`). The reference is the fix's own change, or for a seam task the patch the tutor wrote with `rolling-write patch`. |
-| `rolling-begin-task <lesson> --fix <sha> [--held p]… [--shown p]… \| --here <path>…` | `next` | The throwaway branch with the starting state committed; held tests copied aside, shown tests brought forward, the map carried across as it is now; `--here` commits only the paths named. Refuses while a task is open, and from a task branch an earlier run left. A git write that fails part-way is undone (the branch removed, the tree back as it was) and the message says where the repository is. |
+| `rolling-verify [--on-base \| --on-reference]` | `rolling-report`, `task` | The task's `verify:` lines against the map's commands, then the held test applied, run, and reverted, with the learner's own file set aside in the learner's directory and a record that survives a kill. `--on-base` is the proof's first half (the expected failures fail on the starting state; a line that did not run fails it); `--on-reference` the second (the reference applied as a patch, everything passes, the patch reversed in a `finally`). The reference is the fix's own change, or for a seam task the patch the tutor wrote with `rolling-write patch`. |
+| `rolling-begin-task <lesson> --fix <sha> [--held p]… [--shown p]… \| --here <path>…` | `task` | The throwaway branch with the starting state committed; held tests copied aside, shown tests brought forward, the map carried across as it is now; `--here` commits only the paths named. Refuses while a task is open, and from a task branch an earlier run left. A git write that fails part-way is undone (the branch removed, the tree back as it was) and the message says where the repository is. |
 | `rolling-end-task` | `done` | Commits what the learner left on the task branch, keeps it, returns them to where they were. |
 | `rolling-check-map [dir]` | authors, CI | The map's shape against the spec, exit 1 on a fault; `next` reads the same faults inline through `rolling-show map-check`. |
 | `rolling-check-profile`, `rolling-check-task` | authors, by hand; the pen runs the same checks as it writes | The learner's files' shape against the spec. |
-| `rolling-close-task` | `done` | Removes `task.md`, `reference.md`, `reference.patch`, `held/`, nothing else. |
-| `rolling-write task\|profile\|reference\|patch` | `start`, `next`, `done` | The tutor's pen: the file on standard input, checked (a task or profile with faults is refused and nothing lands), written. A task gets the tutor's session id stamped in, from the open task or the `session` file, whatever the text said. The data directory is a path Claude Code protects from Edit and Write, and a granted script is not prompted. `rolling-write patch --from-tree <path>…` takes a seam task's reference as the diff of those files against HEAD (a new file included) and restores them, since a heredoc carrying code trips the Bash tool's obfuscation check; each path names one file, no glob or pathspec magic, and it runs before the task begins and refuses while one is open. |
+| `rolling-close-task` | `done` | Removes `task.md`, `reference.md`, `reference.patch`, `held/`, and the open-lesson marker, nothing else; after a walkthrough alone, only the marker is there. |
+| `rolling-write task\|profile\|reference\|patch` | `start`, `task`, `done` | The tutor's pen: the file on standard input, checked (a task or profile with faults is refused and nothing lands), written. A task gets the tutor's session id stamped in, from the open task or the `session` file, whatever the text said. The data directory is a path Claude Code protects from Edit and Write, and a granted script is not prompted. `rolling-write patch --from-tree <path>…` takes a seam task's reference as the diff of those files against HEAD (a new file included) and restores them, since a heredoc carrying code trips the Bash tool's obfuscation check; each path names one file, no glob or pathspec magic, and it runs before the task begins and refuses while one is open. |
 | `rolling-note <lesson>` | every skill | Appends an evidence entry, under today's date; the entry must open with its kind (`**Route.**`, `**Observation.**`, `**Intervention.**`, `**Feedback.**`). |
-| `rolling-keep-task` | `next` | Copies the open task, minus the five lines that belong to one run (`branch`, `base`, `return-to`, `started`, `tutor-session`), to `tasks/<lesson>/<stamp>.md` for a later session (a second keep in the same second gets a `-2`). |
+| `rolling-keep-task` | `task` | Copies the open task, minus the five lines that belong to one run (`branch`, `base`, `return-to`, `started`, `tutor-session`), to `tasks/<lesson>/<stamp>.md` for a later session (a second keep in the same second gets a `-2`). |
 | `rolling-export <dir>` | the learner | Copies the learner's directory somewhere safe. |
 
 The toolkit's commits (the starting state, the learner's checkpoint at

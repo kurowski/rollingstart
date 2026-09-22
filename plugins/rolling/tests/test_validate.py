@@ -18,6 +18,18 @@ def whats(faults):
     return [f.what for f in faults]
 
 
+class ExerciseFieldTest(WorldTest):
+    def test_exercise_none_is_allowed_and_anything_else_is_not(self):
+        w = self.w
+        w.write(".rolling/lessons/tour.md", "---\ntitle: Tour\nregion: platform\ndepth: orientation\nexercise: none\n---\n\nA look around.\n\n## Rubric\n\n- Nothing to change.\n")
+        self.assertIn("MAP: ok", self.assertRuns("show", "map-check"))
+        w.write(".rolling/lessons/tour.md", "---\ntitle: Tour\nregion: platform\ndepth: orientation\nexercise: optional\n---\n\nA look around.\n\n## Rubric\n\n- Nothing to change.\n")
+        self.assertIn("exercise 'optional' is not 'none'", self.assertRuns("show", "map-check"))
+        w.write(".rolling/lessons/tour.md", "---\ntitle: Tour\nregion: platform\ndepth: orientation\nexercise: none\n---\n\nA look around.\n\n## Rubric\n\n- Nothing to change.\n")
+        w.write(".rolling/lessons/tour/one.md", "---\nfix: " + w.fix + "\nscope: src\nverify: check\n---\n\n## Brief\n\nx\n\n## Source\n\ny\n")
+        self.assertIn("would never be served", self.assertRuns("show", "map-check"))
+
+
 class MapValidationTest(WorldTest):
     def setUp(self):
         super().setUp()

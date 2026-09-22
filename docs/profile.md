@@ -37,6 +37,7 @@ repository's tooling; that is the point of its location.
 <learner's directory>/
   profile.md               # who this learner is and where they are going
   session                  # the tutor's session id, when no task is open
+  lesson                   # the open lesson's slug, from next's choice until the lesson closes
   task.md                  # the open task, if any
   reference.md             # the held reference solution for the open task
   reference.patch          # a seam task's reference as a diff, for the forward proof
@@ -108,9 +109,20 @@ text carried, since that field is what the write guard keys on. The
 pen declines to take it from the text; it is not beyond a shell's
 reach, and the checkpoint plan names that exposure.
 
+## `lesson`
+
+One line, the slug of the open lesson, written by `rolling-begin-lesson`
+when `next` chooses it, before any exercise exists, so the walkthrough,
+the offer, and the `task` skill agree on which lesson it is.
+`rolling-begin-task` writes it too, so a task begun without `next` (a
+proof harness) is recorded the same way; `rolling-close-task` removes
+it with the task, or alone when a lesson closes after its walkthrough.
+`rolling-show lesson` with no slug reads the open task's lesson, else
+this.
+
 ## `task.md`
 
-The open task. Written by the `next` skill after `rolling-begin-task`
+The open task. Written by the `task` skill after `rolling-begin-task`
 has put the repository on the task's branch, through `rolling-write
 task`, which checks the file before it lands and refuses a malformed
 one with its faults, so nothing downstream ever reads one; removed by
@@ -360,8 +372,9 @@ is written in P1.
 The rules the tutor holds, rewritten for a tutor rather than an
 examiner:
 
-- A lesson is **satisfied** when the learner says it is done, after
-  the tutor has put the verifier's result and its reading of the change
+- A lesson is **satisfied** when the learner says it is done: after
+  the walkthrough alone, having declined the exercise, or after the
+  tutor has put the verifier's result and its reading of the change
   against the rubric on the table. `done` writes the line to
   `## Satisfied` then, and only then. The tutor's view goes to
   evidence, what it did not see included, and never holds the lesson

@@ -29,7 +29,7 @@ class Fault:
 
 
 MAP_FIELDS = ("name", "mode", "commands", "operations", "destructive")
-LESSON_FIELDS = ("title", "region", "depth", "mode", "requires", "assumes", "test")
+LESSON_FIELDS = ("title", "region", "depth", "mode", "requires", "assumes", "test", "exercise")
 AUTHOR_TASK_FIELDS = ("mode", "scope", "scaffold", "setup", "verify", "held", "held-verify", "expect-fail-on-base", "fix")
 TASK_FIELDS = ("lesson", "branch", "base", "return-to", "started", "tutor-session", "task") + AUTHOR_TASK_FIELDS
 
@@ -183,6 +183,10 @@ def _lesson_faults(lesson: Lesson, regions: Sequence[str], lessons: Dict[str, Le
         faults.append(Fault(where, f"mode '{lesson.mode}' is not write or direct"))
     if lesson.test and lesson.test not in rules.TESTS:
         faults.append(Fault(where, f"test '{lesson.test}' is not held or shown"))
+    if lesson.exercise and lesson.exercise != "none":
+        faults.append(Fault(where, f"exercise '{lesson.exercise}' is not 'none' (leave it out to offer one)"))
+    if lesson.exercise == "none" and (lesson.path.parent / lesson.slug).is_dir():
+        faults.append(Fault(where, "exercise: none, but the lesson has a task directory beside it; its tasks would never be served"))
     seen = set()
     for q in lesson.requires:
         if q == lesson.slug:

@@ -100,7 +100,21 @@ class Tasks:
             # is the toolkit's, so switching back discards nothing of the
             # learner's.
             raise Refused(self._undo_begin(branch, origin_branch, origin, str(e), discard=True, before=[]))
+        self._mark_lesson(lesson)
         return Begun(branch, base, return_to, held)
+
+    def _mark_lesson(self, lesson: str) -> None:
+        """The open-lesson marker, so the lesson a task belongs to is
+        recorded the same way whether next chose it first or a task was
+        begun directly (a proof harness, a test). Best effort: the task
+        file carries the lesson too."""
+        marker = self.learner.lesson_file
+        try:
+            if marker.is_symlink() or (marker.exists() and not marker.is_file()):
+                return   # not a marker the toolkit wrote; never write through it, and close-task clears it
+            marker.write_text(lesson + "\n", encoding="utf-8")
+        except OSError:
+            pass
 
     def begin_here(self, lesson: str, files: List[str]) -> Begun:
         """The task starts from the current commit plus the files the
@@ -141,6 +155,7 @@ class Tasks:
             # HEAD never moved, so unstaging is enough: the files the tutor
             # prepared stay in the tree, untracked, as they were.
             raise Refused(self._undo_begin(branch, origin_branch, origin, str(e), discard=False, before=status))
+        self._mark_lesson(lesson)
         return Begun(branch, base, return_to, [], note)
 
     def _undo_begin(self, branch: str, origin_branch: Optional[str], origin: str, why: str, discard: bool, before: List[str]) -> str:
@@ -211,6 +226,14 @@ class Tasks:
         if self.learner.has_task():
             t = self.learner.task()
             raise Refused(f"a task is already open ({t.lesson if t else '?'}); run rolling-end-task and rolling-close-task first")
+        # A lesson next opened is the one a task may begin for: a task for
+        # another lesson would split the learner's record (the route note
+        # under one lesson, the exercise and its feedback under another) and
+        # mark the wrong lesson satisfied. No marker is fine: a proof
+        # harness begins tasks without next.
+        open_lesson = self.learner.open_lesson()
+        if open_lesson and open_lesson != lesson:
+            raise Refused(f"the open lesson is {open_lesson}, not {lesson}; a task begins for the open lesson. Close it first (rolling-close-task) if the learner is changing lessons")
         # An open task's own branch is the case above; this is a branch a
         # failed or abandoned run left, with no task to end.
         cur = self.repo.branch()
@@ -303,16 +326,25 @@ class Tasks:
     # ---- close
 
     def close(self) -> List[str]:
-        """Remove task.md, reference.md, reference.patch, and held/, and nothing else."""
+        """Remove task.md, reference.md, reference.patch, held/, and the
+        open-lesson marker, and nothing else. Closing a lesson that never
+        got an exercise is the same call with less to remove."""
         out: List[str] = []
         for f in (self.learner.task_file, self.learner.reference, self.learner.patch):
             if f.is_file():
                 f.unlink()
                 out.append(f"removed {f.name}")
+        marker = self.learner.lesson_file
+        if marker.is_symlink() or marker.is_file():
+            marker.unlink()
+            out.append("removed lesson")
+        elif marker.exists():   # not a file the toolkit wrote; gone anyway, so the next lesson can open
+            shutil.rmtree(marker)
+            out.append("removed lesson (it was a directory, which nothing of the toolkit's writes)")
         if self.learner.held.is_dir():
             shutil.rmtree(self.learner.held)
             out.append("removed held/")
-        out.append("task closed; profile.md, evidence/, tasks/, sessions/ kept")
+        out.append("closed; profile.md, evidence/, tasks/, sessions/ kept")
         return out
 
 
