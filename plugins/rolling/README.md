@@ -27,10 +27,11 @@ the Edit and Write tools for the test it prepares before a task exists,
 and `lesson` for the `TODO(human)` markers a task's scaffold paths
 allow. The checks a
 lesson asks of you are the repository's own commands, exactly as the
-map declares them, and when the tutor runs one itself it asks. Those
-grants hold for the turn a skill runs in; in a later turn of the same
-conversation the tutor's own record-keeping commands ask you once
-each, and the tutor says so.
+map declares them, and when the tutor runs one itself it asks. The
+toolkit's own commands never ask: a skill's grants hold only for the
+turn it runs in, so the plugin's `rolling-allow` hook allows one plain
+invocation of a toolkit executable, and the two skills the others hand
+off to, in every turn and every permission mode, and nothing else.
 
 Everything the tutor knows about you lives outside the repository, in
 this plugin's data directory, keyed by the repository
@@ -58,6 +59,7 @@ first finishes any held-test revert a killed run left behind.
 |---|---|---|
 | `rolling-session-start` | the SessionStart hook | Exports `ROLLING_DATA` (this plugin's data directory) into the session's environment, so every later command can find the learner's directory. |
 | `rolling-guard` | the PreToolUse hook | The `write`-mode scope guard: denies the tutor an edit inside the open task's scope. |
+| `rolling-allow` | the PreToolUse hook, on Bash and Skill | Allows one plain invocation of a toolkit executable (word arguments, the pen's quoted heredoc, a trailing `2>&1`; nothing chained, substituted, or redirected) and the two hand-off skills; silent about everything else, which the session's own permissions decide. What makes the install two `/plugin` lines and no settings. |
 | `rolling-show <what>` | skills, inline | One piece of context: `map`, `map-check` (where the map came from and its faults in words, `MAP: ok`, or `MAP: none` with what is installed), `lessons` (the index), `lesson [slug]`, `profile`, `task`, `reference` (the held answer: the notes and the diff, for the tutor to relay when the learner asks), `evidence [slug]` (what the tutor has noted about the open task's lesson, or the one named), `corpus`, `tree`, `state-dir`. Always exits 0. |
 | `rolling-claim-session <id>` | skills, inline | Records the session as the tutor's, in the open task or the `session` file. |
 | `rolling-begin-lesson <slug>` | `next` | Records the lesson `next` chose as the open one, before any exercise exists; refuses while a task is open or for a slug the map lacks. |

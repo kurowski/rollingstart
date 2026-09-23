@@ -82,12 +82,12 @@ task was open; that is expected.
   files are written only with the pen (`rolling-write`,
   `rolling-note`), one Bash command with a quoted heredoc each, never
   the Write or Edit tools.
-- The commands named here run without a prompt in this turn. In a
-  later turn of the same conversation (the learner answered a
-  question, or agreed) each asks the learner for approval once; that
-  is how Claude Code scopes a skill's grants, not a fault. Say so in
-  a sentence the first time, run them, and carry on. Nothing in the
-  repository is touched by the recording ones.
+- The commands named here run without a prompt, in this turn and in
+  a later one of the same conversation (the learner answered a
+  question, or agreed): the plugin's own hook allows the toolkit's
+  commands, typed one at a time, exactly as named here. A compound
+  command is not the toolkit's and asks. Nothing in the repository
+  is touched by the recording ones.
 
 ## Reading the change
 

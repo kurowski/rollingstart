@@ -220,13 +220,14 @@ installs that way needs the toolkit shipped another way, a P4 question.
 
 **The install story, and it is the whole onboarding pitch.** An author
 inside the project commits two things to the target repo: the map, and
-a `.claude/settings.json` that registers the public marketplace,
-enables `rolling`, and pre-approves the toolkit's own commands (the
-`rolling-*` executables and the two skills the tutor hands off to), so
-that a skill needing the learner's reply mid-way is not stranded: a
-skill's grants hold only for the turn it ran in, and auto mode denies
-rather than prompts (found by the first fresh learner's run). The
-learner clones the repo, opens Claude Code,
+a `.claude/settings.json` that registers the public marketplace and
+enables `rolling`. Nothing about permissions: a skill's grants hold
+only for the turn it ran in, and auto mode denies rather than prompts
+when a lesson needs the learner's reply mid-way (found by the first
+fresh learner's run), so the plugin's own PreToolUse hook allows the
+toolkit's commands and the two hand-off skills, in every mode, and
+nothing else (2026-09-23, § 10). The learner clones the repo, opens
+Claude Code,
 trusts the folder (a project's marketplace registration applies only
 after that), and is offered the tutor. No binary, no PATH, no second
 process. An author outside the project publishes the map as a plugin
@@ -1050,3 +1051,19 @@ before the next checkpoint; the run is written up in its PR):
   means, so the examples keep it. The Rallly map was revalidated at
   `v4.15.2`, the latest release, to declare one, and the reference
   checkout's pin moved with it.
+
+- **The toolkit allows its own commands through a hook, not through
+  settings** (2026-09-23). The allow rules a learner pasted into user
+  settings were the roughest edge of the install, and the maintainer
+  hit it first when walking the Rallly path as a user. A plugin cannot
+  ship permission rules, but its hooks run in every mode and an `allow`
+  skips the prompt for that one call, the mechanism the write guard
+  already uses for `deny`. `rolling-allow` allows one plain invocation
+  of a toolkit executable (word arguments, the pen's quoted heredoc, a
+  trailing `2>&1`, nothing chained or redirected) and the two hand-off
+  skills, and is silent about everything else, so a map's command and
+  a destructive operation ask as before. Considered and not built: a
+  `rolling-setup` script that edits `~/.claude/settings.json`, which is
+  what permission systems exist to stop, and still a step to know
+  about. The install is the two `/plugin` lines and a restart, on
+  either route.

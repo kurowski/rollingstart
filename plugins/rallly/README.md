@@ -31,32 +31,13 @@ Then `/rolling:start`. The map plugin registers itself when a session
 starts, so a plugin installed during a session is found at the next
 one.
 
-Two things the tutor needs from the environment, neither of which it
-will set up itself. A git identity (`user.name` and `user.email`), so
-that the checkpoint the tutor commits on a lesson's throwaway branch
-is yours; without one the toolkit commits it under its own name and
-says so. And standing permission for the toolkit's own commands, in
-your user settings or the clone's `.claude/settings.local.json`, so
-that a lesson which needs your reply mid-way is not stranded when the
-next turn's command is a fresh permission decision:
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "Bash(rolling-show *)", "Bash(rolling-claim-session *)", "Bash(rolling-write *)",
-      "Bash(rolling-note *)", "Bash(rolling-begin-lesson *)", "Bash(rolling-begin-task *)",
-      "Bash(rolling-verify)", "Bash(rolling-verify *)", "Bash(rolling-report)",
-      "Bash(rolling-keep-task)", "Bash(rolling-end-task)", "Bash(rolling-close-task)",
-      "Bash(rolling-export *)", "Skill(rolling:lesson)", "Skill(rolling:task)"
-    ]
-  }
-}
-```
-
-These are the toolkit's own commands, none of which touches the tree
-except through a lesson's branch; no Rallly command is among them, so
-a database reset still asks.
+One thing the tutor needs from the environment and will not set up
+itself: a git identity (`user.name` and `user.email`), so that the
+checkpoint the tutor commits on a lesson's throwaway branch is yours;
+without one the toolkit commits it under its own name and says so.
+Nothing about permissions: the tutor's own commands never ask, since
+the `rolling` plugin's hook allows them, and Rallly's commands ask as
+they would for any agent, so a database reset still prompts.
 
 ## What the lessons expect to find running
 
