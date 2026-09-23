@@ -19,6 +19,15 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/rolling-guard\" \"${CLAUDE_PLUGIN_DATA}\""
           }
         ]
+      },
+      {
+        "matcher": "Bash|Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/rolling-allow\""
+          }
+        ]
       }
     ]
   }

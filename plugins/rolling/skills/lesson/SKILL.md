@@ -60,8 +60,7 @@ here and offer `/rolling:done`.
 
 When they take it, invoke the `rolling:task` skill with the Skill
 tool; it builds and proves the exercise and hands back here to present
-it. In a later turn of the conversation that call may ask the learner
-for approval once; say so and carry on. If they decline, that is the
+it. If they decline, that is the
 end of the lesson: point them at `/rolling:done`, which records it and
 moves on, and stop.
 
@@ -130,9 +129,7 @@ going.
   Observations never satisfy a lesson. None of your own files is
   written with the Write or Edit tools; everything you need is below
   or in the commands named here, so do not read the toolkit's source
-  or list the state directory. In a later turn of the conversation the
-  pen asks the learner for approval once; say so the first time and
-  carry on.
+  or list the state directory.
 
 ## Session
 

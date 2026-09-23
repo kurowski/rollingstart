@@ -25,37 +25,28 @@ identical and this page covers both. The design is in
 
 **In the tree.** `.rolling/` at the top level of the working tree, as
 above. A project that carries its map also carries, in
-`.claude/settings.json`, what a learner needs so that cloning and
-trusting the folder is the whole install: the marketplace, the plugin
-enabled, and standing allow rules for the toolkit's own commands (a
-skill's grants hold only for the turn it ran in, and the moment a
-skill needs the learner's reply the next turn's command is a fresh
-permission decision, which auto mode denies rather than asks). The
-rules are every toolkit command a skill runs, none of which touches
-the tree except through a task's branch, plus `rolling-export`, which
-only ever
-creates a directory the learner names; no map operation is among them,
-so a destructive one still prompts, and git's read-only commands are
-not among them either, since a standing grant on `git diff *` would
-also pre-approve its `--output` write.
+`.claude/settings.json`, what makes cloning and trusting the folder
+the whole install: the marketplace, and the plugin enabled.
 
 ```json
 {
   "extraKnownMarketplaces": {
     "rollingstart": { "source": { "source": "github", "repo": "kurowski/rollingstart" } }
   },
-  "enabledPlugins": { "rolling@rollingstart": true },
-  "permissions": {
-    "allow": [
-      "Bash(rolling-show *)", "Bash(rolling-claim-session *)", "Bash(rolling-write *)",
-      "Bash(rolling-note *)", "Bash(rolling-begin-lesson *)", "Bash(rolling-begin-task *)",
-      "Bash(rolling-verify)", "Bash(rolling-verify *)", "Bash(rolling-report)",
-      "Bash(rolling-keep-task)", "Bash(rolling-end-task)", "Bash(rolling-close-task)",
-      "Bash(rolling-export *)", "Skill(rolling:lesson)", "Skill(rolling:task)"
-    ]
-  }
+  "enabledPlugins": { "rolling@rollingstart": true }
 }
 ```
+
+No permission rules go with it. A skill's grants hold only for the
+turn it ran in, and the moment a lesson needs the learner's reply the
+next turn's toolkit command is a fresh permission decision, which auto
+mode denies rather than asks; the plugin's own `rolling-allow` hook
+answers that, in every mode, by allowing one plain invocation of a
+toolkit executable and the two hand-off skills, and nothing else. A
+map's command still asks when the tutor runs it, a destructive
+operation still prompts, and git's read-only commands are not
+pre-approved either, since a standing grant on `git diff *` would also
+cover its `--output` write.
 
 **As a map plugin.** The same directory, with a manifest and one hook
 beside it, published in any marketplace and installed with `/plugin
@@ -65,7 +56,7 @@ install <name>@<marketplace>`. The plugin root *is* the map directory:
 <plugin>/
   .claude-plugin/plugin.json    # name, version, and the declaration below
   hooks/hooks.json              # one SessionStart command: the registration
-  README.md                     # install notes: the settings block above, minus the map's own registration
+  README.md                     # install notes: the two /plugin lines, a git identity, what the lessons expect running
   map.md                        # the landscape, exactly as in .rolling/
   lessons/<slug>.md
 ```
