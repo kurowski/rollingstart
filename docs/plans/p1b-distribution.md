@@ -82,9 +82,9 @@ builds on it. The result is recorded here.
 
 | Mechanism | Sub-scope | Result |
 |---|---|---|
-| A plugin with `hooks.json` and no skills installs from a marketplace, its SessionStart hook fires with `CLAUDE_PLUGIN_ROOT` and `CLAUDE_PLUGIN_DATA` for its own id, alongside `rolling`'s hook in the same session, and its data directory is a sibling of `rolling`'s under one plugin data root | 1b.3 | |
-| The hook's shell command can create `${CLAUDE_PLUGIN_DATA}` (the directory may not exist at the first session start) and the `root` it writes is readable from the Bash tool afterwards | 1b.3 | |
-| `plugin.json` `metadata` with a nested object passes `claude plugin validate --strict` without a warning | 1b.3 | |
+| A plugin with `hooks.json` and no skills installs from a marketplace, its SessionStart hook fires with `CLAUDE_PLUGIN_ROOT` and `CLAUDE_PLUGIN_DATA` for its own id, alongside `rolling`'s hook in the same session, and its data directory is a sibling of `rolling`'s under one plugin data root | 1b.3 | **Yes** (2026-09-22, 2.1.278, on the host). A scratch marketplace under the scratchpad with one hooks-only plugin, `scratchmap`, added and installed at user scope beside the installed `rolling`; one `claude -p` in a scratch repository created `~/.claude/plugins/data/scratchmap-scratchmarket/root` holding the plugin's cache path, next to `rolling-rollingstart/`. Under `--plugin-dir` the same plugin registered as `scratchmap-inline`. Uninstalled and the marketplace removed afterwards. |
+| The hook's shell command can create `${CLAUDE_PLUGIN_DATA}` (the directory may not exist at the first session start) and the `root` it writes is readable from the Bash tool afterwards | 1b.3 | **Yes** (same probes). The data directory did not exist before the first session; `mkdir -p` in the hook's one line made it, and the `root` file was there for the toolkit to read. In the probe the model's own Bash was refused by the sandbox for expanding a variable, which says nothing about the hook and is why the tests drive the resolver directly. |
+| `plugin.json` `metadata` with a nested object passes `claude plugin validate --strict` without a warning | 1b.3 | **Yes** (same probe): `metadata.rolling` with `repo` and `commit`, validated strictly as a plugin and through its marketplace, no warning. |
 | A `dependencies: ["rolling"]` entry: what `plugin install rallly@rollingstart` does when `rolling` is not installed (installs it, refuses naming it, or installs `rallly` alone), and what it does when it is | 1b.4 | |
 | A bumped `version` in a map plugin's `plugin.json` reaches an installed learner on `plugin update` and not before, under a marketplace added from GitHub | 1b.7 | |
 | `/plugin marketplace add kurowski/rollingstart` then `/plugin install rolling@rollingstart` and `rallly@rollingstart` in a fresh Rallly clone on a machine that has never seen this repository: the plugin's `bin/` on PATH, the map resolved, a lesson served | 1b.7 | |
@@ -171,7 +171,7 @@ tutor's, and ended by saying the lesson has no exercise. PR #23.
 
 ---
 
-### 1b.3 — The map-plugin format and the resolver [PENDING]
+### 1b.3 — The map-plugin format and the resolver [COMPLETE]
 
 The spec first, then the toolkit. `docs/map.md` gains the map
 plugin's shape (the map at the plugin root, the manifest's `metadata.rolling`
@@ -184,8 +184,11 @@ does when both homes are present and when the declared commit is
 missing. Then `paths.resolve_map`, `Where.map_dir` resolved through
 it, `rolling-show map` and `map-check` saying the source and the
 warning, and the message for no map naming what is registered.
-`_carry_map` is unchanged: a plugin map has nothing in the tree to
-carry. Branch `p1b.3/resolver`, a stack if the spec and the toolkit
+`_carry_map` removes the branch point's `.rolling/` before carrying the
+origin's, when there is one: a project that moved its map into a
+plugin still has the old map in its history, and a task cut from
+before the move would otherwise revive it, where the tree wins (found
+in review). Branch `p1b.3/resolver`, a stack if the spec and the toolkit
 run past one review; depends on 1b.1. Done when the tests cover the
 tree alone, a plugin alone, both with the tree winning, two matching
 plugins refused, a registration whose root is gone, and a declared
@@ -193,6 +196,30 @@ commit outside HEAD's history, all against a scratch data root; the
 three 1b.3 rows of the mechanism table are filled from a scratch
 plugin; and a reader of `docs/map.md` could publish a map plugin for a
 repository of their own, or commit one to it, without reading a skill.
+Done: `docs/map.md` has the section (the settings block a project
+commits, the plugin's shape with the manifest's declaration and the
+one-line hook, the resolver's three answers and its one warning);
+`lib/rolling/mapsource.py` is the resolver, with its contract as the
+module docstring, and `Where` in `cli.py` carries what it found, so
+every command reads the same map; `rolling-show map` opens with
+`(map: in tree)` or `(map: plugin rallly@rollingstart 0.3.0)` and the
+notes, `map-check` says the source beside its verdict and `MAP: none`
+with the registrations listed when nothing resolves, and
+`rolling-check-map` with no argument exits 1 then. Fifteen tests in
+`test_resolver.py`: the URL normaliser across every spelling of one
+remote (and paths, Windows drives included, refused), the tree winning
+over an installed plugin, a plugin alone read by every command, two
+matches refused naming both, a registration whose root is gone or
+whose manifest lacks the declaration or whose root has no map, no
+remote, a local remote, `ROLLING_DATA` unset, nothing installed, a
+declared commit the checkout lacks, one ahead of HEAD, one that is not
+a sha, and a task branch cut from a commit that still carried a map.
+The pre-push review found the matching case-sensitive where GitHub is
+not, the two-plugins refusal followed by a verdict line contradicting
+it, and the revived map; all fixed with tests. The three
+mechanism rows above are filled from a scratch plugin on the host. The
+Rallly map still lives in the tree until 1b.4, so the plugin route has
+run only against the scratch plugin. PR #24.
 
 ---
 
