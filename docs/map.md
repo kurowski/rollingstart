@@ -77,9 +77,9 @@ accepts:
 ```json
 {
   "name": "rallly",
-  "version": "4.14.0",
+  "version": "4.15.2",
   "description": "The Rolling Start map for Rallly.",
-  "metadata": { "rolling": { "repo": "github.com/lukevella/rallly", "ref": "v4.14.0" } }
+  "metadata": { "rolling": { "repo": "github.com/lukevella/rallly", "ref": "v4.15.2" } }
 }
 ```
 
@@ -91,7 +91,7 @@ path, or a `file://` URL with no host, matches nothing.
 `github.com/lukevella/rallly` matches the upstream clone only;
 `*/rallly` matches forks too, which is the author's call. `ref` is
 the release the map was last checked against, as a git ref: a tag
-(`v4.14.0`) nearly always, since "validated against version 4.14.0"
+(`v4.15.2`) nearly always, since "validated against version 4.15.2"
 is a thing a learner can be told, and a sha only for a project with no
 releases. A map by an outsider is always behind a living repository,
 and that is fine; what the resolver watches for is the reverse, a
@@ -99,7 +99,7 @@ checkout behind the map. An in-tree map declares nothing, since the
 tree it is in is its pin.
 
 `version` is the target's release, by convention: the map for Rallly
-4.14.0 is `rallly` 4.14.0, so a learner reading the plugin's version
+4.15.2 is `rallly` 4.15.2, so a learner reading the plugin's version
 knows what it describes without opening the manifest. Nothing checks
 this; it is what a reader will assume, so the examples here keep it.
 A change to the map that does not revalidate it against a new release
@@ -146,7 +146,7 @@ once, through one function (`lib/rolling/mapsource.py`):
    clone can tell.
 
 `rolling-show map` opens with where the map came from (`in tree`, or
-`plugin rallly@rollingstart 4.14.0`) and `rolling-show map-check` says
+`plugin rallly@rollingstart 4.15.2`) and `rolling-show map-check` says
 it beside its verdict. A plugin map adds one warning when its declared
 `ref` is not in the checkout (a shallow clone or one made without tags
 may lack it: fetch) or is not an ancestor of HEAD: a checkout behind

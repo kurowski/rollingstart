@@ -30,9 +30,9 @@ knowing the criteria up front is cheaper than learning them in review.
   someone something, and a guard against it is not a fix; simplicity
   outranks it. The rules that must hold are the ones `CLAUDE.md` says
   cost something when broken, and only those want a hook or a script.
-- Claims about a target's code (`examples/*`, the map plugins) are
-  cited by path and pin against the checkout named in that example's
-  README. If that checkout is on this machine, read it and check them;
+- Claims about a target's code (the map plugins under `plugins/`) are
+  cited by path and pin against the release the plugin's manifest
+  declares. If that checkout is on this machine, read it and check them;
   if it is not, review the shape and the reasoning, and do not report
   the missing checkout as a finding.
 

@@ -241,8 +241,13 @@ mechanism row above is filled in.
 - **Cancel versus pause** (#20).
 - **`permissions.ask` rules and the toolkit's allow rules in the
   author's committed settings**: written by `rolling-author:init` in
-  P3, described in `docs/plan.md` § 3 now, provided by the runner in
-  P1.
+  P3, described in `docs/plan.md` § 3 and the map spec now.
+- **The runner this plan names** (`runner/run.sh code`, the container
+  the mechanism rows were probed in) was retired in P1b (1b.4;
+  `docs/plan.md` § 10, 2026-09-21). The coding session is an ordinary
+  `claude` in the clone, however the maintainer runs Rallly, and 5.6
+  is a script beside the maintainer's environment, not a runner
+  command.
 - **The review bot's silent patterns** are process, not product: the
   read-only template, the missing `Skill` grant, and a stacked PR whose
   workflow file lags `main`'s all end in a green check and no review.

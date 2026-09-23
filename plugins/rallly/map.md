@@ -30,7 +30,7 @@ people, they vote, and the host books the winner. A pnpm/turbo monorepo:
 Next.js 16 App Router in `apps/web`, Prisma in `packages/database`,
 tRPC for reads, server actions for writes, React Email in
 `packages/emails`, Stripe in `packages/billing`. Every claim on this map
-is checked against the checkout at `aab791da` (main on 2026-09-09).
+is checked against release 4.15.2 (`v4.15.2`, 2026-09-21).
 
 The commands above are what a task's verifier may select, and the
 scoped ones are what a task should use. `test` runs every unit suite
@@ -48,8 +48,9 @@ checks whatever an editor or an agent has dropped in the tree
 ignored). `structure` is the feature-folder check, whole tree, under a
 second. `integration` runs Playwright, needs the stack from
 `docker-compose.dev.yml` and a browser, and takes one spec, never the
-suite; in this example's environment there is no browser, so a task
-proved here uses a unit test. `apps/web` needs `regenerate-client`
+suite; this map does not use it as a verifier, so every task is
+proved with a unit test, and a browser is never a precondition of a
+lesson. `apps/web` needs `regenerate-client`
 before `typecheck-web` or any `test-*` after a schema change, and a
 task cut from before one (`packages/database/prisma/` in `git log`
 between the fix and the pin) names it as its `setup:` operation when
@@ -64,10 +65,10 @@ below assume you have.
 ## Environment
 
 The services Rallly needs (`docker-compose.dev.yml`: postgres, redis,
-an S3 stand-in, a mail catcher) are managed outside the toolchain in
-this example's environment: they are up before a lesson starts, and
-`docker` is not available where the toolchain runs. So the lessons
-here do not have the learner start, stop, or inspect them. A team that
+an S3 stand-in, a mail catcher) are a precondition of a lesson in
+this map, not a step in one: the learner brings them up before a
+lesson starts, however they run them, and the lessons here do not
+have the learner start, stop, or inspect them. A team that
 develops on bare machines would write this differently, with `pnpm
 docker:up` as a step in the setup lesson; that is the author's call.
 What does not vary: the tutor never brings services up, and a command

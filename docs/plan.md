@@ -225,8 +225,8 @@ enables `rolling`, and pre-approves the toolkit's own commands (the
 `rolling-*` executables and the two skills the tutor hands off to), so
 that a skill needing the learner's reply mid-way is not stranded: a
 skill's grants hold only for the turn it ran in, and auto mode denies
-rather than prompts (found by the first fresh learner's run; the runner
-does the same in its home volume). The learner clones the repo, opens Claude Code,
+rather than prompts (found by the first fresh learner's run). The
+learner clones the repo, opens Claude Code,
 trusts the folder (a project's marketplace registration applies only
 after that), and is offered the tutor. No binary, no PATH, no second
 process. An author outside the project publishes the map as a plugin
@@ -1040,11 +1040,13 @@ before the next checkpoint; the run is written up in its PR):
   draft of the format pinned a plugin map to a commit. A target
   repository moves faster than a map an outsider writes for it, so the
   map is always behind HEAD, and "check out this old sha" is an awkward
-  thing to tell a learner while "validated against version 4.14.0" is
+  thing to tell a learner while "validated against version 4.15.2" is
   not. The declaration is `ref`, any git ref, a tag nearly always; the
   resolver resolves it and warns only when the checkout lacks it or is
   behind it, and HEAD past the release, the common case, says nothing.
-  The plugin's own version is the target's release (`rallly` 4.14.0 for
-  Rallly 4.14.0), with the patch bumped for a map change between
+  The plugin's own version is the target's release (`rallly` 4.15.2 for
+  Rallly 4.15.2), with the patch bumped for a map change between
   releases; not enforced, but what a reader assumes a map's version
-  means, so the examples keep it.
+  means, so the examples keep it. The Rallly map was revalidated at
+  `v4.15.2`, the latest release, to declare one, and the reference
+  checkout's pin moved with it.

@@ -28,8 +28,8 @@ active space and the content scope for this member), `proProcedure`
 requests, duration)` (line 199) is what a public procedure wears
 (`polls/participants.ts` line 288, `add`, is the shape). The routers
 in `trpc/routers/` call `features/*/data.ts`; the poll router still
-holds mutations (`make` at `polls.ts` line 95, `book` at 842, `close`
-at 1290), and they are the frozen set: read to understand, never
+holds mutations (`make` at `polls.ts` line 95, `book` at 827, `close`
+at 1275), and they are the frozen set: read to understand, never
 extend.
 
 The server-action side is `apps/web/src/lib/safe-action/server.ts`:

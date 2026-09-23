@@ -27,7 +27,7 @@ Plan: [`docs/plan.md`](../docs/plan.md) § 7, P0.
 | `claude/scripts/guard-profile.mjs` | PreToolUse hook for the coding session: denies reads and writes under `.rolling/profile/`, where the reference lives. |
 | `claude/scripts/watch-session.sh` | What the tutor's Monitor runs during a `direct` lesson: follows the session log and emits prompts, replies, and edits. |
 | `claude/scripts/transcript.mjs` | Best-effort reader of a Claude Code session transcript (internal format), for detail beyond the log. |
-| `../examples/rallly/.rolling/` | The map and lessons for Rallly. |
+| `../examples/rallly/.rolling/` | The map and lessons for Rallly, as they were then; the map is [`plugins/rallly/`](../plugins/rallly/) now (P1b), and `install.sh`'s copy of it no longer resolves. |
 | `install.sh` | Copies all of the above into a Rallly clone. |
 | `container/Dockerfile` | The toolchain image: Node 24, pnpm, git, Claude Code, unprivileged `node` user. |
 | `container/run.sh` | `up`, `shell`, `tutor`, `code`, `down`, `destroy`: the stack from Rallly's compose file and the toolchain container on its network. |
@@ -37,11 +37,12 @@ Plan: [`docs/plan.md`](../docs/plan.md) § 7, P0.
 
 **Frozen.** This section describes the spike's own runner,
 `container/`, which installed the spike's skills and scripts into the
-clone. The plugin is run contained by [`runner/`](../runner/README.md)
-at the repository root, which registers this repository as a local
-marketplace inside the container and installs the plugin from it, and
-which removes what this section's `install.sh` put in a clone. Nothing
-below is maintained; it stays as the record of P0.
+clone. The plugin is installed like any Claude Code plugin now, and
+the Rallly map with it ([`plugins/rallly/README.md`](../plugins/rallly/README.md));
+a contained harness for it, `runner/`, existed through P1a and was
+retired in P1b, since how the maintainer runs Rallly's toolchain is
+outside this repository's concerns. Nothing below is maintained; it
+stays as the record of P0.
 
 Nothing from npm runs on the host. Rallly's toolchain and Claude Code
 run in a container built from `container/Dockerfile` (Node 24, the pnpm
