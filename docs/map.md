@@ -77,9 +77,9 @@ accepts:
 ```json
 {
   "name": "rallly",
-  "version": "0.3.0",
+  "version": "4.14.0",
   "description": "The Rolling Start map for Rallly.",
-  "metadata": { "rolling": { "repo": "*/rallly", "commit": "aab791da5177f4a7653c8904e754808d9b4968ef" } }
+  "metadata": { "rolling": { "repo": "github.com/lukevella/rallly", "ref": "v4.14.0" } }
 }
 ```
 
@@ -89,13 +89,28 @@ credentials, a trailing slash, and `.git` stripped, an scp-style
 `git@github.com:owner/name` read as `github.com/owner/name`; a local
 path, or a `file://` URL with no host, matches nothing.
 `github.com/lukevella/rallly` matches the upstream clone only;
-`*/rallly` matches forks too, which is the author's call. `commit` is
-the sha the map's claims were checked against, the one the map's own
-prose names; an in-tree map declares nothing, since the tree it is in
-is its pin. `version` is bumped on every change to the map: a plugin
-with a version is pinned to it, so a learner keeps the map they
-installed until they update, and a lesson in progress does not have
-its map change under it.
+`*/rallly` matches forks too, which is the author's call. `ref` is
+the release the map was last checked against, as a git ref: a tag
+(`v4.14.0`) nearly always, since "validated against version 4.14.0"
+is a thing a learner can be told, and a sha only for a project with no
+releases. A map by an outsider is always behind a living repository,
+and that is fine; what the resolver watches for is the reverse, a
+checkout behind the map. An in-tree map declares nothing, since the
+tree it is in is its pin.
+
+`version` is the target's release, by convention: the map for Rallly
+4.14.0 is `rallly` 4.14.0, so a learner reading the plugin's version
+knows what it describes without opening the manifest. Nothing checks
+this; it is what a reader will assume, so the examples here keep it.
+A change to the map that does not revalidate it against a new release
+(a lesson fixed, a pointer corrected) bumps the patch number, since
+every change to a map needs a new version: a plugin with a version is
+pinned to it, so a learner keeps the map they installed until they
+update, and a lesson in progress does not have its map change under
+it. When the map is revalidated against a new release, the version
+becomes that release. If the target's own patch releases and the map's
+patch bumps ever collide, `ref` is the exact truth and the version is
+the convention.
 
 The hook is one line of shell, and it is the plugin's only code:
 
@@ -131,12 +146,14 @@ once, through one function (`lib/rolling/mapsource.py`):
    clone can tell.
 
 `rolling-show map` opens with where the map came from (`in tree`, or
-`plugin rallly@rollingstart 0.3.0`) and `rolling-show map-check` says
+`plugin rallly@rollingstart 4.14.0`) and `rolling-show map-check` says
 it beside its verdict. A plugin map adds one warning when its declared
-`commit` is not in the checkout's history or not an ancestor of HEAD:
-a checkout behind the map's pin gets pointers that describe a future
-it has not fetched, and the tutor should say so rather than hunt for
-what is not there. A task branch carries the tree's map as of the
+`ref` is not in the checkout (a shallow clone or one made without tags
+may lack it: fetch) or is not an ancestor of HEAD: a checkout behind
+the release the map describes gets pointers to code it has not
+fetched, and the tutor should say so rather than hunt for what is not
+there. HEAD past the release, the common case, says nothing. A task
+branch carries the tree's map as of the
 commit the task began on, and none when there is none: a map an older
 commit carried (a project that moved its map into a plugin) is removed
 from the branch's starting state rather than revived, so the plugin's

@@ -63,14 +63,14 @@ class NormalizeTest(unittest.TestCase):
 class ResolverTest(WorldTest):
     """Each test starts with the scratch world's tree map in place."""
 
-    def register(self, id_: str, name: str, repo: str, commit: str = "", version: str = "0.1.0",
+    def register(self, id_: str, name: str, repo: str, ref: str = "", version: str = "0.1.0",
                  root: Path = None, map_text: str = MAP) -> Path:
         """A map plugin as its hook registers it: <data root>/<id>/root
         naming a plugin directory with a manifest and a map."""
         root = root or (self.w.root / f"plugin-{id_}")
         (root / ".claude-plugin").mkdir(parents=True, exist_ok=True)
         manifest = {"name": name, "version": version,
-                    "metadata": {"rolling": {"repo": repo, "commit": commit}}}
+                    "metadata": {"rolling": {"repo": repo, "ref": ref}}}
         (root / ".claude-plugin" / "plugin.json").write_text(json.dumps(manifest), encoding="utf-8")
         if map_text is not None:
             (root / "map.md").write_text(map_text, encoding="utf-8")
@@ -102,12 +102,12 @@ class ResolverTest(WorldTest):
 
     def test_a_plugin_alone_is_the_map(self):
         self.w.git("remote", "add", "origin", REMOTE)
-        root = self.register("scratchmap-scratchmarket", "scratchmap", "*/scratch-target", commit=self.w.pre, version="0.2.0")
+        root = self.register("scratchmap-scratchmarket", "scratchmap", "*/scratch-target", ref=self.w.pre, version="0.2.0")
         self.drop_tree_map()
         r = self.resolve()
         self.assertEqual((r.source, r.dir), ("plugin", root))
         self.assertEqual(r.plugin.label, "scratchmap@scratchmarket 0.2.0")
-        self.assertEqual(r.notes, [], "the declared commit is in history and behind HEAD")
+        self.assertEqual(r.notes, [], "the declared ref is in history and behind HEAD")
         out = self.assertRuns("show", "map")
         self.assertTrue(out.startswith("(map: plugin scratchmap@scratchmarket 0.2.0)\n"), out)
         self.assertIn("name: Scratch", out)
@@ -178,13 +178,30 @@ class ResolverTest(WorldTest):
         self.assertEqual(r.source, "none")
         self.assertIn("local path", r.notes[0])
 
-    def test_a_declared_commit_that_is_not_a_sha_is_a_note(self):
+    def test_a_declared_ref_that_is_not_one_is_a_note(self):
         self.w.git("remote", "add", "origin", REMOTE)
-        self.register("scratchmap-scratchmarket", "scratchmap", "*/scratch-target", commit="--not-a-sha")
+        self.register("scratchmap-scratchmarket", "scratchmap", "*/scratch-target", ref="--not-a-ref")
         self.drop_tree_map()
         r = self.resolve()
         self.assertEqual(r.source, "plugin")
-        self.assertIn("not a sha", r.notes[0])
+        self.assertIn("not one", r.notes[0])
+
+    def test_a_release_tag_is_the_usual_declaration(self):
+        # A map by an outsider says the release it was checked against;
+        # HEAD at or past it is the normal case and gets no note.
+        self.w.git("remote", "add", "origin", REMOTE)
+        self.w.git("tag", "-a", "v1.0.0", "-m", "release 1.0.0", self.w.pre)   # annotated, so it must be peeled
+        self.w.git("tag", "v1.0.1", self.w.fix)                                 # lightweight
+        self.register("scratchmap-scratchmarket", "scratchmap", "*/scratch-target", ref="v1.0.0")
+        self.drop_tree_map()
+        self.assertEqual(self.resolve().notes, [], "HEAD is past v1.0.0")
+        self.register("scratchmap-scratchmarket", "scratchmap", "*/scratch-target", ref="v1.0.1")
+        self.assertEqual(self.resolve().notes, [], "HEAD is past v1.0.1 too")
+        self.register("scratchmap-scratchmarket", "scratchmap", "*/scratch-target", ref="v2.0.0")
+        r = self.resolve()
+        self.assertEqual(r.source, "plugin")
+        self.assertIn("v2.0.0, which this checkout does not have", r.notes[0])
+        self.assertIn("tags included", r.notes[0])
 
     def test_a_task_branch_does_not_revive_a_map_history_carried(self):
         # The project used to commit its map (the fix's parent has one) and
@@ -222,9 +239,9 @@ class ResolverTest(WorldTest):
         self.w.task(lesson="setup", mode="write", scope="src")   # the verifier looks for a task before a map
         self.assertIn("no map: " + r.summary, self.assertRuns("verify"), "the verifier says the same, not the tree's path")
 
-    def test_a_declared_commit_the_checkout_lacks_is_a_note(self):
+    def test_a_declared_sha_the_checkout_lacks_is_a_note(self):
         self.w.git("remote", "add", "origin", REMOTE)
-        self.register("scratchmap-scratchmarket", "scratchmap", "*/scratch-target", commit="0123456789abcdef0123456789abcdef01234567")
+        self.register("scratchmap-scratchmarket", "scratchmap", "*/scratch-target", ref="0123456789abcdef0123456789abcdef01234567")
         self.drop_tree_map()
         r = self.resolve()
         self.assertEqual(r.source, "plugin", "a stale pin is a note, never a refusal")
@@ -234,9 +251,10 @@ class ResolverTest(WorldTest):
         self.assertIn("MAP: ok", out)
         self.assertIn("does not have", out)
 
-    def test_a_declared_commit_ahead_of_head_is_a_note(self):
+    def test_a_declared_ref_ahead_of_head_is_a_note(self):
         self.w.git("remote", "add", "origin", REMOTE)
-        self.register("scratchmap-scratchmarket", "scratchmap", "*/scratch-target", commit=self.w.fix)
+        self.w.git("tag", "-a", "v1.0.1", "-m", "release", self.w.fix)
+        self.register("scratchmap-scratchmarket", "scratchmap", "*/scratch-target", ref="v1.0.1")
         self.drop_tree_map()
         ahead = self.w.git("rev-parse", "HEAD")
         self.w.git("switch", "-q", "--detach", self.w.pre)   # behind the map's pin, before the tree map was removed

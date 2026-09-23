@@ -10,7 +10,7 @@ The contract, as docs/map.md § "Where the map lives" states it:
   data directory is a sibling of rolling's under one root
   (~/.claude/plugins/data/<plugin id>/). Each `root` file is read for
   the manifest at <root>/.claude-plugin/plugin.json and its
-  `metadata.rolling` declaration ({"repo": <pattern>, "commit": <sha>});
+  `metadata.rolling` declaration ({"repo": <pattern>, "ref": <tag or sha>});
   the one whose `repo` matches this repository's origin URL, normalised
   to host/owner/name, is the map. A registration whose root is gone, or
   has no manifest, no declaration, or no map.md, is skipped and said.
@@ -50,7 +50,7 @@ class Registration:
     name: str = ""
     version: str = ""
     repo: str = ""          # the declared pattern
-    commit: str = ""        # the declared sha
+    ref: str = ""           # the release the map was last checked against: a tag, or a sha when there is none
     problem: str = ""       # why it cannot be the map, when it cannot
 
     @property
@@ -182,7 +182,7 @@ def _read(id_: str, marker: Path) -> Registration:
         reg.problem = "its manifest declares no repository (metadata.rolling.repo)"
         return reg
     reg.repo = str(decl.get("repo") or "").strip()
-    reg.commit = str(decl.get("commit") or "").strip()
+    reg.ref = str(decl.get("ref") or "").strip()
     if not (reg.root / "map.md").is_file():
         reg.problem = f"no map.md at its root {reg.root}"
     return reg
@@ -202,7 +202,7 @@ def resolve(top: Path, data: Optional[Path]) -> Resolved:
     notes: List[str] = []
     if len(hits) == 1:
         reg = hits[0]
-        notes += _commit_notes(top, reg)
+        notes += _ref_notes(top, reg)
         return Resolved(reg.root, "plugin", reg, notes)
     if len(hits) > 1:
         summary = ("two map plugins claim this repository (" + ", ".join(r.label for r in hits)
@@ -222,19 +222,24 @@ def resolve(top: Path, data: Optional[Path]) -> Resolved:
     return Resolved(None, "none", None, notes, summary)
 
 
-def _commit_notes(top: Path, reg: Registration) -> List[str]:
-    """One note when the plugin's declared commit is not in this
-    checkout's history, or is but is not behind HEAD."""
-    if not reg.commit:
+def _ref_notes(top: Path, reg: Registration) -> List[str]:
+    """One note when the release the map was checked against (a tag,
+    or a sha) is not in this checkout, or is but is not behind HEAD.
+    HEAD at or past it is the common case and says nothing: a map by an
+    outsider is always behind a living repository."""
+    ref = reg.ref
+    if not ref:
         return []
-    if not re.fullmatch(r"[0-9a-fA-F]{7,64}", reg.commit):
-        return [f"the map declares a commit that is not a sha ({reg.commit[:40]!r}); the author fixes the manifest"]
-    if not _git_ok(top, "cat-file", "-e", f"{reg.commit}^{{commit}}"):
-        return [f"the map was written against {reg.commit[:12]}, which this checkout does not have; "
-                "fetch, or expect pointers to code you cannot see"]
-    if not _git_ok(top, "merge-base", "--is-ancestor", reg.commit, "HEAD"):
-        return [f"the map was written against {reg.commit[:12]}, which is not an ancestor of HEAD; "
-                "the checkout is behind the map, so some pointers describe code it does not have yet"]
+    # git's own rule for what a ref name is keeps anything option-shaped
+    # (a leading -) or otherwise malformed from reaching the next calls.
+    if not _git_ok(top, "check-ref-format", "--allow-onelevel", ref):
+        return [f"the map declares a ref that is not one ({ref[:40]!r}); the author fixes the manifest"]
+    if not _git_ok(top, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"):
+        return [f"the map was checked against {ref}, which this checkout does not have; "
+                "fetch (tags included), or expect pointers to code you cannot see"]
+    if not _git_ok(top, "merge-base", "--is-ancestor", f"{ref}^{{commit}}", "HEAD"):
+        return [f"the map was checked against {ref}, which is not an ancestor of HEAD; "
+                "the checkout is behind the release the map describes, so some pointers describe code it does not have yet"]
     return []
 
 
