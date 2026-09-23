@@ -13,7 +13,7 @@ go green. This is the one lesson where the task is the environment:
 there is no fix to revert and no test to hold or show, so the lesson
 declares neither, and the tutor builds the task from this page.
 
-In this environment the services (postgres, redis, an S3 stand-in, a
+In this map the services (postgres, redis, an S3 stand-in, a
 mail catcher, all declared in `docker-compose.dev.yml`) are a
 precondition of this lesson, not a step in it: they are brought up from
 outside the toolchain before the lesson starts. The tutor will not ask
@@ -37,8 +37,8 @@ Pointers:
   `check:structure`, `type-check`, `test:unit`.
 - `apps/web/.env.sample` ships `SECRET_PASSWORD` empty (line 3) and the
   build's env validation rejects that; fill it in. `DATABASE_URL`
-  (line 10), `SMTP_HOST` (17), `S3_ENDPOINT` (26), and `KV_REST_API_URL`
-  (35) name where the services are; the samples say `localhost`, and a
+  (line 15), `SMTP_HOST` (22), `S3_ENDPOINT` (31), and `KV_REST_API_URL`
+  (40) name where the services are; the samples say `localhost`, and a
   contained toolchain reaches them by service name instead.
   `packages/database/.env.sample` carries `DATABASE_URL` again (line
   2), for Prisma's own commands.

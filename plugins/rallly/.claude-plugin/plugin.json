@@ -1,0 +1,12 @@
+{
+  "name": "rallly",
+  "version": "4.15.2",
+  "description": "The Rolling Start map for Rallly: the landscape of the codebase, three suggested courses through it, and eleven lessons, for the rolling plugin to teach from.",
+  "author": { "name": "Brandt Kurowski", "url": "https://github.com/kurowski" },
+  "homepage": "https://github.com/kurowski/rollingstart",
+  "repository": "https://github.com/kurowski/rollingstart",
+  "license": "Apache-2.0",
+  "keywords": ["onboarding", "tutor", "map", "rallly"],
+  "dependencies": ["rolling"],
+  "metadata": { "rolling": { "repo": "github.com/lukevella/rallly", "ref": "v4.15.2" } }
+}

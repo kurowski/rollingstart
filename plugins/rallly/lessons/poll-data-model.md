@@ -38,7 +38,7 @@ Where the model is used: reads in `features/poll/data.ts` (`getPoll`,
 functions from 266), with `mutations.test.ts` beside them as the
 pattern for testing a write against the mocked client. The legacy vote
 path is `trpc/routers/polls/participants.ts` (`add` at line 288 mints
-the token and attaches to a pending invite; `update` at 518 replaces
+the token and attaches to a pending invite; `update` at 541 replaces
 all votes in a transaction; `delete` at 214 hard-deletes so the invite
 reverts to pending). The recent history of `Participant` is a worked
 example of how schema changes ship here in stages: backfill
@@ -50,10 +50,10 @@ Task sources for the tutor. `af3d9273` (#3191) is the exemplary fix,
 ten lines in `participants.ts` plus the assertion in
 `tests/email-invites.spec.ts`; its test is Playwright, so it can be
 held only where the map's `integration` command can run (a browser
-and the stack), which this example's environment does not have.
+and the stack), which this map does not ask of a lesson.
 `6b30747e` (#3193) removes the participant soft-delete filters from
 reads and is a good "understand why this is now safe" reading, with no
-test to hold. So in this environment the tutor builds along a seam
+test to hold. So here the tutor builds along a seam
 and writes the test itself, against the mocked client in
 `mutations.test.ts`'s shape: a read in `data.ts` that must respect a
 poll's soft-delete and an invite's `revokedAt`, or a write in

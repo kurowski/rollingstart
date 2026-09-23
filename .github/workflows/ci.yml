@@ -53,3 +53,7 @@ jobs:
         run: claude plugin validate --strict .
       - name: Validate the rolling plugin
         run: claude plugin validate --strict plugins/rolling
+      - name: Validate the rallly map plugin
+        run: claude plugin validate --strict plugins/rallly
+      - name: Check the rallly map
+        run: plugins/rolling/bin/rolling-check-map plugins/rallly

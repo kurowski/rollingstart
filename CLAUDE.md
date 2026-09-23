@@ -39,16 +39,14 @@ before proposing anything structural. Decisions made after it go in its
 | `plugins/rolling/` | The learner's plugin: skills, hooks, the `bin/` toolkit. (P1a) |
 | `plugins/rolling-author/` | The author's plugin. (P3; `adopt` is 2.0) |
 | `plugins/rallly/` | The Rallly map plugin, the demo. (P1b) |
-| `examples/rallly/.rolling/` | The Rallly map's source until it becomes a map plugin |
-| `runner/` | The maintainer's harness: Rolling Start on a Rallly clone, contained. Docker on the host, never the tutor's; none of it is the plugin. (P1a) |
 | `docs/plan.md` | Design and decision record |
 | `docs/map.md`, `docs/profile.md` | The formats: what the author writes, what the tutor writes. (P1a) |
 | `docs/workflow.md` | How work happens here |
 | `docs/plans/` | One plan per checkpoint, the tracker for its work, with a retrospective at the end |
 | `spike/` | P0, kept as a record. None of it is the plugin. |
 | `evals/` | `claude plugin eval` suites, the tests of a prompt product. (P2) |
-| `../rallly` | Rallly reference checkout, pinned at `aab791da`. Read-only. |
-| `../rallly-spike` | A writable Rallly clone the tutor runs in, contained, via `runner/` |
+| `../rallly` | Rallly reference checkout, pinned at release `v4.15.2` (`f61c0970`), the release the `rallly` map declares. Read-only. |
+| `../rallly-spike` | A writable Rallly clone at the same pin, where lessons and proofs run; how Rallly's toolchain and services run there is the maintainer's environment, not this repository's |
 | `../homie` | The maintainer's Go CLI, the toolchain-diversity target; its map is committed in its own tree (P1b) |
 | `../rollingstop` | The archived predecessor, for anything § 9 of the plan says to carry over |
 

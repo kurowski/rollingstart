@@ -40,8 +40,8 @@ is a retry forever (`c2229e14`, #3001, added the `spaceExists` guard
 to three handlers for exactly that); the tier is synced, not assumed;
 and nothing here reads the session, since there is none. The
 unit-test seams are in `packages/billing`; the handlers themselves are
-exercised through Stripe's CLI against a dev server, which this
-example's environment does not run.
+exercised through Stripe's CLI against a dev server, which no
+lesson in this map requires.
 
 Situations for the tutor to present: `c2229e14` (#3001) as a symptom
 (Stripe retrying a subscription event for a space that no longer

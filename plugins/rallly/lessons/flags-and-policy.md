@@ -16,7 +16,11 @@ statement; this lesson is the mechanism.
 Capabilities answer "can this instance do X?" and live in one file,
 `apps/web/src/lib/feature-flags/config.ts`: `featureFlagConfig`, one
 line per field with its reason (`billing`, `captcha`, `registration`,
-`pollAdmin`, `inProcessRateLimit`, …), typed by `types.ts`. Server code
+`pollAdmin`, `inProcessRateLimit`, …), typed by `types.ts`;
+`registration` stopped depending on `emailLogin` in 4.15.2
+(`dea0a7a0`, #3337), since an SSO-only instance still provisions
+accounts, and the create hook in `lib/auth.ts` enforces it on every
+path that mints one (`10a3b6f1`, #3239). Server code
 asks `isFeatureEnabled(feature)` from `server.ts`; client code asks
 `useFeatureFlag(feature)` from `client.tsx`, fed by a provider mounted
 in the root layout. Policies answer "what does this instance's
