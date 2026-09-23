@@ -19,6 +19,7 @@ identical and this page covers both. The design is in
   map.md                        # the landscape
   lessons/<slug>.md             # one file per lesson
   lessons/<slug>/<task-slug>.md # optional: tasks the author wrote by hand for that lesson
+  <script>                      # optional, in the tree only: a script an operation runs (below)
 ```
 
 ## Where the map lives, and how the tutor finds it
@@ -230,7 +231,13 @@ together …
   first (regenerate a client, seed a database), keyed the same way,
   values verbatim. A task names one on a `setup:` line and the tutor
   runs it when the task starts. Operations are the author's shell and
-  are reviewed in the repository like any script.
+  are reviewed in the repository like any script. An operation runs
+  on the task's starting state, which may be older than the script it
+  calls, so a map in the tree may carry the scripts its operations
+  run (`reset-test-db: .rolling/reset-test-db`): the toolkit carries
+  `.rolling/` onto every task branch, and the validator reads only
+  `map.md` and `lessons/`. A map plugin's directory is not in the
+  learner's tree, so its operations cannot name a path into it.
 - **`destructive`** (optional, a list of operation keys). The ones
   that drop or overwrite something of the learner's. The tutor asks
   before each run of one, in every permission mode, and the author's

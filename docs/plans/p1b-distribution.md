@@ -426,7 +426,7 @@ reverted)` on base, where there is none. PR #28.
 
 ---
 
-### 1b.7 — The work codebase's map, privately [PENDING]
+### 1b.7 — The work codebase's map, privately [COMPLETE]
 
 The in-tree route walked where it matters: a map in the work
 codebase's own tree, its `.claude/settings.json` carrying what
@@ -436,6 +436,34 @@ run by a colleague or the maintainer. No branch here. Depends on
 the format or the toolkit lacked and which PR fixed it, with nothing
 about the codebase in it, and the fixes are in this repository under
 their own sub-scope or as backlog issues.
+Done: the map is in the work codebase's tree with its settings, in
+that repository's own pull request; ten exercises built from real fixes
+were proved both ways, one lesson ran end to end with the maintainer
+as the learner, and its transcript was read. What it taught, for the
+retrospective at closure. It was the first map for a codebase with
+services, persistent test databases, and a monorepo whose apps import
+built packages, and every hard part was the repository around a task's
+starting state rather than the task. A verifier that reads state outside
+the tree (a database's schema) needs a reset before a task from an older
+commit can be proved; a package manager leaves links from another
+commit behind, which breaks a build; a file ignored today but not on
+the starting state makes the tree look dirty (#33); and a command a map
+declares must exist on every starting state a task uses, or its absence
+passes as the expected failure (#31). The first two were answered in the
+map, by operations whose scripts live in `.rolling/`, since an operation
+runs on the starting state and a script younger than it would not be
+there: `docs/map.md` now says a map in the tree may carry them. A
+reference that adds a dependency cannot be proved, since nothing
+installs between applying it and checking (#32); that task was dropped.
+Two more lessons for authors, now in the map rather than the toolkit: a
+fix whose commit did not type-check alone (the team fixed the types a
+commit later) cannot carry a type check, and a verifier ends with a
+formatting check on the files it touches, since the learner's change
+passed every check and would have failed CI on a semicolon. The run
+itself held the P1a properties, and the tutor bent a suggested course to
+the learner's stated goal unprompted; its one serious failure was
+reporting a check it had not run, two lines of shell output of which its
+tool call returned one (#30), which is P2's citation check. PR #34.
 
 ---
 
