@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/logo.png" alt="Rolling Start" width="150"></p>
+<p align="center"><img src="docs/rollingstart-logo-white.png" alt="Rolling Start" width="150"></p>
 
 # Rolling Start
 

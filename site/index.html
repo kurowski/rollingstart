@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rolling Start — a codebase tutor for Claude Code</title>
+  <meta name="description" content="A Claude Code native codebase tutor. The author describes the landscape, the learner picks the destination, the tutor points the way.">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0b0b0d">
+  <link rel="canonical" href="https://rollingstart.dev/">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://rollingstart.dev/">
+  <meta property="og:title" content="Rolling Start">
+  <meta property="og:description" content="A codebase tutor that runs in Claude Code. The author describes the landscape, the learner picks the destination, the tutor points the way.">
+  <meta property="og:image" content="https://rollingstart.dev/assets/og.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#top" aria-label="Rolling Start, home">
+        <span class="brand-dot" aria-hidden="true"></span>Rolling Start
+      </a>
+      <nav aria-label="Sections">
+        <a href="#roles">Roles</a>
+        <a href="#loop">The loop</a>
+        <a href="#modes">Modes</a>
+        <a href="#install">Install</a>
+        <a class="nav-gh" href="https://github.com/kurowski/rollingstart">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="wrap hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="pill">Pre-release</span> A Claude Code plugin</p>
+          <h1>Learn a codebase by working in&nbsp;it.</h1>
+          <p class="lede">
+            Rolling Start is a codebase tutor that runs in Claude Code. The
+            <em>author</em> describes the landscape, the <em>learner</em> picks
+            the destination, the <em>tutor</em> points the way: one task at a
+            time, with feedback on real work in your own working copy.
+          </p>
+          <div class="cta">
+            <a class="btn btn-primary" href="#install">Install the plugin</a>
+            <a class="btn btn-ghost" href="https://github.com/kurowski/rollingstart">Read the source <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <picture>
+            <source srcset="assets/wheel.webp" type="image/webp">
+            <img src="assets/wheel.jpg" width="720" height="720" alt="">
+          </picture>
+        </div>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="wrap band-inner">
+        <p><span class="k">For</span> experienced engineers getting up to speed in a codebase they had no hand in building.</p>
+        <p><span class="k">Not</span> a course. Nobody is graded; the learner says when a lesson is done.</p>
+        <p><span class="k">Runs</span> in Claude Code, beside whatever editor you already use.</p>
+      </div>
+    </section>
+
+    <section class="section" id="roles">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="label">01 — Roles</p>
+          <h2>Three roles, one working copy.</h2>
+          <p class="sub">The map says what is there. The profile says where you are going. Neither decides the route alone.</p>
+        </header>
+        <div class="grid3">
+          <article class="card">
+            <p class="card-k">Author</p>
+            <h3>Describes the landscape</h3>
+            <p>A staff engineer who knows the codebase writes a map: its regions, what is exemplary and what is legacy, the local rituals, the commands that check work, and a suggested course through it all.</p>
+          </article>
+          <article class="card">
+            <p class="card-k">Learner</p>
+            <h3>Picks the destination</h3>
+            <p>Starts from the author's course and bends it: drops a region, adds one, changes a depth. One new hire needs <code>billing</code> and not <code>scheduling</code>; another wants all of it at working depth today.</p>
+          </article>
+          <article class="card">
+            <p class="card-k">Tutor</p>
+            <h3>Points the way</h3>
+            <p>Claude Code running the <code>rolling</code> plugin. It chooses the next lesson inside your destination, skips what your background covers, walks the code with you, and reviews what you write.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="loop">
+      <div class="wrap split">
+        <header class="section-head">
+          <p class="label">02 — The loop</p>
+          <h2>Six commands. Your editor does the rest.</h2>
+          <p class="sub">Work happens in your own editor, on a throwaway branch. The tutor reads the working copy straight off disk, uncommitted and unstaged. You never commit for it to see your work.</p>
+        </header>
+        <div class="term" role="table" aria-label="Rolling Start commands">
+          <div class="term-bar" aria-hidden="true"><span></span><span></span><span></span><p>claude</p></div>
+          <div class="term-body">
+            <div class="row" role="row"><kbd role="cell">/rolling:start</kbd><p role="cell">Intake. Your background, the author's course, your changes to it.</p></div>
+            <div class="row" role="row"><kbd role="cell">/rolling:next</kbd><p role="cell">The next lesson inside your destination, never outside it.</p></div>
+            <div class="row" role="row"><kbd role="cell">/rolling:lesson</kbd><p role="cell">A walkthrough in the real code, then the offer of an exercise.</p></div>
+            <div class="row" role="row"><kbd role="cell">/rolling:task</kbd><p role="cell">Builds the exercise from the repo's history, proven solvable first.</p></div>
+            <div class="row" role="row"><kbd role="cell">/rolling:done</kbd><p role="cell">The repo's own checks run, then feedback that cites file and line.</p></div>
+            <div class="row" role="row"><kbd role="cell">/rolling:cancel</kbd><p role="cell">Stop without finishing. The branch and your work are kept.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="modes">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="label">03 — Modes</p>
+          <h2>Two kinds of lesson, for two kinds of codebase.</h2>
+          <p class="sub">The author chooses per lesson.</p>
+        </header>
+        <div class="grid2">
+          <article class="card">
+            <p class="card-k"><code>write</code> <span class="state state-on">Available</span></p>
+            <h3>You write the change. The tutor reviews it.</h3>
+            <p>For a repo with a long history of people writing the code. The tutor explains, points, and asks, but never writes inside the task's scope. A hook holds that line, not a promise in a prompt.</p>
+          </article>
+          <article class="card">
+            <p class="card-k"><code>direct</code> <span class="state">In design</span></p>
+            <h3>You direct an agent. The tutor watches how it goes.</h3>
+            <p>For a repo largely written by agents. Can you scope a request, steer over as many turns as it takes, and catch what a maintainer would bounce? You work in your own second session; the tutor reads the whole of it at the end.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="holds">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="label">04 — What holds</p>
+          <h2>Rules held by hooks and scripts, in every permission mode.</h2>
+        </header>
+        <ul class="rules">
+          <li><strong>The verifier speaks first.</strong> The repo's own declared commands run before the tutor offers an opinion.</li>
+          <li><strong>Feedback is grounded.</strong> Every point carries a file, a line, a rule, and whether it is local convention or language norm.</li>
+          <li><strong>Nothing lands in your tree.</strong> Learner state lives in the plugin's data directory, outside the working copy.</li>
+          <li><strong>The tutor never orchestrates your environment.</strong> No containers started, no toolchains installed. It runs where you already run.</li>
+          <li><strong>Destructive steps ask.</strong> Anything that could lose your work prompts first, whatever the permission mode.</li>
+          <li><strong>The plugin knows no codebase.</strong> Everything specific to a repo lives in its map, which its author commits.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="install">
+      <div class="wrap split">
+        <header class="section-head">
+          <p class="label">05 — Install</p>
+          <h2>From the grid.</h2>
+          <p class="sub">Add the marketplace, install the learner's plugin, and install the map for the codebase you are learning. The demo map teaches <a href="https://github.com/lukevella/rallly">Rallly</a>, in any Rallly clone. Then <code>/clear</code>, so the plugins set up in a fresh session.</p>
+        </header>
+        <div class="install">
+          <div class="cmd">
+            <code id="c1">/plugin marketplace add kurowski/rollingstart</code>
+            <button class="copy" type="button" data-copy="c1" aria-label="Copy command">Copy</button>
+          </div>
+          <div class="cmd">
+            <code id="c2">/plugin install rolling@rollingstart</code>
+            <button class="copy" type="button" data-copy="c2" aria-label="Copy command">Copy</button>
+          </div>
+          <div class="cmd">
+            <code id="c3">/plugin install rallly@rollingstart</code>
+            <button class="copy" type="button" data-copy="c3" aria-label="Copy command">Copy</button>
+          </div>
+          <div class="cmd">
+            <code id="c4">/clear</code>
+            <button class="copy" type="button" data-copy="c4" aria-label="Copy command">Copy</button>
+          </div>
+          <div class="cmd">
+            <code id="c5">/rolling:start</code>
+            <button class="copy" type="button" data-copy="c5" aria-label="Copy command">Copy</button>
+          </div>
+          <p class="note">Rolling Start is pre-1.0 and built in public, mostly by AI agents with a human maintainer. Expect rough edges; <a href="https://github.com/kurowski/rollingstart/issues">file what you hit</a>.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-inner">
+      <p>Rolling Start · Apache-2.0</p>
+      <nav aria-label="Footer">
+        <a href="https://github.com/kurowski/rollingstart">GitHub</a>
+        <a href="https://github.com/kurowski/rollingstart/blob/main/docs/plan.md">The plan</a>
+        <a href="https://github.com/kurowski/rollingstart/blob/main/docs/map.md">Map format</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script>
+    document.querySelectorAll('[data-copy]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var text = document.getElementById(b.dataset.copy).textContent;
+        navigator.clipboard.writeText(text).then(function () {
+          b.textContent = 'Copied';
+          setTimeout(function () { b.textContent = 'Copy'; }, 1400);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
