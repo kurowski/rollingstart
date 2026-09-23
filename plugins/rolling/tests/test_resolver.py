@@ -196,7 +196,7 @@ class ResolverTest(WorldTest):
         self.drop_tree_map()
         self.assertEqual(self.resolve().notes, [], "HEAD is past v1.0.0")
         self.register("scratchmap-scratchmarket", "scratchmap", "*/scratch-target", ref="v1.0.1")
-        self.assertEqual(self.resolve().notes, [], "HEAD is past v1.0.1 too")
+        self.assertEqual(self.resolve().notes, [], "HEAD is at v1.0.1: the release itself is the silent case too")
         self.register("scratchmap-scratchmarket", "scratchmap", "*/scratch-target", ref="v2.0.0")
         r = self.resolve()
         self.assertEqual(r.source, "plugin")

@@ -247,8 +247,10 @@ the toolkit checks for the presence of two of them, `## Regions` and
 `## Suggested courses`, and reads the region names out of the first.
 
 - **A one-paragraph summary** under the title: what the software is,
-  how the repository is put together, and the commit the map was
-  checked against. The tutor introduces the codebase from it.
+  how the repository is put together, and the release the map was
+  checked against (a map plugin's manifest `ref`; a tree's map names
+  the tag or commit it was last read at). The tutor introduces the
+  codebase from it.
 - **`## Environment`** (optional). The shape of the environment the
   lessons assume, as a description, not a rule: whether services are
   a precondition provided from outside or a step the learner takes,
@@ -400,7 +402,7 @@ silently declare a lesson with no prerequisites.
 Prose for the learner, walked through by the tutor: what the lesson
 is, why it matters in this repository, and where to look, as pointers
 into the code (paths and, where they help, line numbers and shas, each
-checked against the commit the map names). This is the lecture: the
+checked against the release the map names). This is the lecture: the
 tutor opens every lesson by reading it with the learner in the code,
 before any exercise is offered, so write it the way you would show a
 new colleague around. Notes for the tutor alone (the fixes and seams

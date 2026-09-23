@@ -116,6 +116,7 @@ class ScratchWorld:
         self._git("config", "user.email", "test@example.com")
         self._git("config", "user.name", "Test")
         self._git("config", "commit.gpgsign", "false")
+        self._git("config", "tag.gpgsign", "false")   # the resolver tests make annotated tags
         # git reports the physical path (macOS keeps temp dirs under a symlink)
         self.top = Path(self._git("rev-parse", "--show-toplevel").strip())
         self.repo = Repo(self.top)

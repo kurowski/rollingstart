@@ -246,13 +246,14 @@ tree and an open source project may commit one. The format is identical
 either way, and `rolling` resolves it with one question: is there a
 `.rolling/` in the repo root, and if not, is there an installed map
 plugin for this repo? A map plugin's manifest names the repo it is for
-(a remote URL pattern and the commit it was written against), and on
+(a remote URL pattern and the release it was last checked against,
+as a tag nearly always), and on
 `SessionStart` its own hook writes its root and that declaration to a
 fixed file in its own data directory, the one place a plugin can write
 without knowing anyone else's paths; `rolling`'s resolver scans the
 plugin data directories for those files and takes the one whose
 declaration matches the current repo's remote, warning when the
-checkout does not contain the declared commit. When both a committed
+checkout does not contain the declared release. When both a committed
 map and a plugin map are present the repo's own wins, which is what
 lets a project adopt an outsider's map without a flag day: commit it,
 and the plugin is simply no longer consulted. `adopt` stamps the source
@@ -1031,3 +1032,19 @@ before the next checkpoint; the run is written up in its PR):
   they belong: a git identity and the toolkit's allow rules are the
   learner's environment, said in the map plugin's install notes; a
   task's proof is `rolling-verify` by hand until P3's `verify`.
+
+**While building P1b** (2026-09-23):
+
+- **A map plugin declares the release it was checked against, not a
+  sha, and its version is that release by convention.** The first
+  draft of the format pinned a plugin map to a commit. A target
+  repository moves faster than a map an outsider writes for it, so the
+  map is always behind HEAD, and "check out this old sha" is an awkward
+  thing to tell a learner while "validated against version 4.14.0" is
+  not. The declaration is `ref`, any git ref, a tag nearly always; the
+  resolver resolves it and warns only when the checkout lacks it or is
+  behind it, and HEAD past the release, the common case, says nothing.
+  The plugin's own version is the target's release (`rallly` 4.14.0 for
+  Rallly 4.14.0), with the patch bumped for a map change between
+  releases; not enforced, but what a reader assumes a map's version
+  means, so the examples keep it.
