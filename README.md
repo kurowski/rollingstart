@@ -14,7 +14,7 @@ the toolkit, the write-mode guard, and a ten-lesson map (P1a, done).
 [`docs/plan.md`](docs/plan.md); the checkpoint's record is in
 [`docs/plans/p1a-write-mode.md`](docs/plans/p1a-write-mode.md).
 
-Two codebases have maps today. [Homie](https://github.com/kurowski/homie)
+Two public codebases have maps today. [Homie](https://github.com/kurowski/homie)
 has built-in support: its map and settings are committed in its own tree,
 so in a Homie clone trusting the folder turns the tutor on, and
 `/clear` then `/rolling:start` is the whole install. We also support
