@@ -58,6 +58,7 @@ p code {
   border: 1px solid var(--line);
   border-radius: 4px;
   background: var(--bg-raised);
+  white-space: nowrap;
 }
 
 h1, h2, h3 { color: var(--text-1); font-weight: 600; margin: 0; }
