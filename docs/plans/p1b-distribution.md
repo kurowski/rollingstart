@@ -114,7 +114,7 @@ PR #22.
 
 ---
 
-### 1b.2 — The Rallly map after the first fresh learner [PENDING]
+### 1b.2 — The Rallly map after the first fresh learner [COMPLETE]
 
 The three things the plan's P1b entry opens with, all in
 `examples/rallly/.rolling/` where the map still lives. The setup
@@ -137,7 +137,37 @@ in a Rallly clone at the pin (begin from the fix, `--on-base`,
 `--on-reference`, end, close, branch deleted; wherever the maintainer
 runs Rallly), and a seeded profile with `billing: deep` gets
 `billing-and-tiers` from `/rolling:next` rather than the refusal
-1a.8's seed 4 got.
+1a.8's seed 4 got. Done: the setup lesson has a step-by-step list of
+what shows each setup step done (the seed's fixed users make a second
+`db:seed` refuse, which is the check for "seeded"), names its four
+verifier lines as the only ones, and tells the tutor the task is a
+shown-test seam beside the setup steps and never a reverted fix; the
+first fresh learner's transcript had the tutor choosing its own
+verifier, running lint and structure by hand at `done`, and quizzing
+on the services. `poll-surfaces` is the polls orientation lesson: the
+four screens (`/new`, `/poll/<id>`, `/invite/<id>`, `/polls`), what
+each composes, the role rule in `client.tsx`, and what feeds them,
+with `exercise: none`. `billing-and-tiers` is `write` with
+`pricing.test.ts` held from `dd4833d3`, the brief scoped to the rule in
+the pricing package, and the four-PR currency arc as reading;
+`typecheck-billing` joins the map's commands for it; the courses say
+which lessons are which. Everything was read at `aab791da`, and two
+claims written from memory were wrong at the pin and fixed before
+the run (the manage menu's items, the event card's contents). Proved
+and run on the host, not in the runner: the maintainer put Node 24
+and pnpm on the host and installed `rolling` at user scope from this
+repository as a local marketplace, so the proof is four toolkit
+commands in the clone with scratch state (`--on-base`: the held test
+fails on the parent since `getCountryCurrency` does not exist,
+`typecheck-billing` and `lint` pass; `--on-reference`: all pass and
+the tree comes back clean; under three seconds each). Two seeds
+through `/rolling:next` in print mode: billing at `deep` with both
+openers satisfied opened `billing-and-tiers` with the route note
+saying it is the only reachable billing lesson and the walkthrough
+should lean on Stripe; the first fresh learner's destination (polls at
+`orientation`) opened `poll-surfaces`, walked it through pacing the
+App Router parts for a learner new to them, named nothing of the
+tutor's, and ended by saying the lesson has no exercise. PR #23.
 
 ---
 
