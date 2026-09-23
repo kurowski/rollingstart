@@ -26,7 +26,12 @@ identical and this page covers both. The design is in
 **In the tree.** `.rolling/` at the top level of the working tree, as
 above. A project that carries its map also carries, in
 `.claude/settings.json`, what makes cloning and trusting the folder
-the whole install: the marketplace, and the plugin enabled.
+the whole install: the marketplace, and the plugin enabled. Trusting
+the folder adds the marketplace and turns the plugin on without an
+offer or a `/plugin` line; the plugin arrives after that first
+session has started, so its hooks have not run, and the learner's
+next step is `/clear` (or a restart), then `/rolling:start`. Tell
+learners that much in the project's contributing notes.
 
 ```json
 {

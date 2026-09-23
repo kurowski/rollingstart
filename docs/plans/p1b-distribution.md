@@ -92,6 +92,9 @@ builds on it. The result is recorded here.
 | When two hooks decide the same call, a `deny` from one beats an `allow` from the other | 1b.5 | **Yes** (2026-09-23, same scratch plugin, under `--permission-mode auto`): the allow hook and a second hook denying `probe-cmd` both fired; the command did not run, the result listed it as denied, and the model reported the deny hook's reason. So P5's state guard can deny in a coding session what this hook allows everywhere. |
 | A bumped `version` in a map plugin's `plugin.json` reaches an installed learner on `plugin update` and not before, under a marketplace added from GitHub | 1b.8 | |
 | `/plugin marketplace add kurowski/rollingstart` then `/plugin install rolling@rollingstart` and `rallly@rollingstart` in a fresh Rallly clone on a machine that has never seen this repository: the plugin's `bin/` on PATH, the map resolved, a lesson served | 1b.8 | |
+| A held `_test.go` that does not compile on the starting state (it calls what the fix adds) is the expected failure `--on-base` wants | 1b.6 | **Yes** (2026-09-22, in a scratch clone of Homie at `v0.7.0`): the `tool-owned-files` task, held `clonetarget_test.go` from `f3ba646`, which takes two results from a function that returns one on the parent; `--on-base` reported the held line `EXPECTED-FAIL` with the compiler's `assignment mismatch`, and `PROOF: ok`. The same holds for a shown test: `vet` compiles a package's tests, so a shown test calling a function the task adds fails `vet` on its package on the starting state too, and the tutor in the lesson run marked both lines expected. The converse is the author's to know, and the Homie map now says it: when a fix changes a function a held test calls, `vet` on that package fails *with the reference in place*, because the learner's own copy of the test still calls the old form; the task vets the callers' package instead. |
+| `go test`'s and `go vet`'s arguments (`./internal/runner/`, `./cmd/hm/`, `-run`, `TestName`) are words the verifier's argument rule accepts | 1b.6 | **Yes** (same proofs): every Homie task's lines, `test ./internal/packages/ -run TestPacman`, `vet ./internal/render/ ./cmd/hm/`, and the rest, ran as written. A `-run` pattern with `|` in it would not, which the map says: a task needing two tests names their common prefix. |
+| An in-tree map's `.claude/settings.json` (the marketplace and `enabledPlugins`) offers to install `rolling` when a learner trusts the folder | 1b.6 | **Yes, silently, and it needs a `/clear`** (2026-09-23, 2.1.280, a fresh clone of Homie at `22a7e2d` opened under a throwaway `CLAUDE_CONFIG_DIR` with no marketplaces, no plugins, and no trusted folders). The trust dialog asked only to trust the directory, and nothing offered the marketplace or the plugin, but afterwards the `rollingstart` marketplace was known and `rolling` 0.1.0 was in the plugin cache and loaded, from the project's `enabledPlugins` (`installed_plugins.json` stayed empty). The first `/rolling:start` refused with the unset-`ROLLING_DATA` message: the plugin arrived after that session began, so its SessionStart hook had not run. After `/clear`, `/rolling:start` ran intake. So the in-tree install is clone, trust, `/clear`, `/rolling:start`; `docs/map.md` says so. On the maintainer's own host the first attempt showed nothing, because Homie had been trusted before the settings file existed. One more fact: the plugin data root stayed at `~/.claude/plugins/data/` under the throwaway config dir. |
 
 Two assumptions of the toolkit that have only ever been checked under
 pnpm, to confirm on Homie in 1b.6 and record in the same table: a held
@@ -346,7 +349,7 @@ in a coding session and a claimed stamp. PR #26.
 
 ---
 
-### 1b.6 — The Homie map, in Homie's tree [PENDING]
+### 1b.6 — The Homie map, in Homie's tree [COMPLETE]
 
 A map for Homie, committed to `github.com/kurowski/homie` as
 `.rolling/` in that repository's own PR, with the `.claude/settings.json`
@@ -376,6 +379,50 @@ table recorded, and one `write` lesson runs end to end there with the
 maintainer as the learner, its transcript read for the failure modes
 P1a named and for one more: anything in the plugin's prose or the
 toolkit's messages that only made sense under pnpm.
+Done: the map is in Homie's tree (`kurowski/homie` `6d3f2af`, pushed
+to `main` at the maintainer's word, with `05a4498` moving the
+contributing pointer to homie.sh's page and leading it with the
+tutor), read at `v0.7.0` (`d09af90`). Four commands (`build: go build
+./...`; `test: go test` and `vet: go vet`, which take a package path;
+`e2e`, never a verifier), no operations. Five regions (`cli`,
+`config`, `packages`, `scripts` with externals, `scaffold`; doctor and
+status in `cli`), three courses, six lessons: the two openers, the
+second from `1349c31` (#30) with its test shown, and four `working`
+lessons, each a reverted fix with its test held: `a051c28` (pacman's
+cached `-Qq`), `d9a9c24` (#29, `$USER` in scripts), `f352881`
+(render's skip when in sync), `f3ba646` (`CloneTarget` derives only
+under `$HOME`). Each tells the tutor to keep the walkthrough off the
+function that is the answer, since at the pin it is in the learner's
+tree. All five fix-backed tasks proved both ways with the toolkit in a
+scratch clone, the map committed there (begin, `--on-base`,
+`--on-reference`, end, close, branch deleted), under three seconds a
+direction. The first proof of `tool-owned-files` was not ok: `vet` on
+the scaffold package failed with the reference in place, for the
+reason the Go row above records, and the task now vets `./cmd/hm/`;
+the map says the rule for any author. The lesson run, on the host
+with `rolling` installed by hand (the trust-prompt row above, probed afterwards):
+`/rolling:start` laid out the five regions and three courses from the
+map and wrote a Generalist profile for a Go newcomer fluent in bash
+and rpm; `/rolling:next` opened `local-dev-setup`; the walkthrough
+paced the Go (modules, `internal/`, `-X main.version`, same-package
+tests, table tests) at the lesson's pointers, confirmed each setup
+step from the learner's pasted output, and raised both talk-through
+items; the exercise was a seam the tutor chose (`repoName` beside
+`normalizeURL` in `internal/externals`, test shown, `--here`), proved
+both ways after the tutor found `vet` failing on base and marked it
+expected (now in the lesson); `done` gave located feedback against
+the rubric (a hand-rolled loop where `strings.LastIndexAny` does it,
+a fragment of a doc comment) and the learner closed. Read for P1a's
+failure modes: no fourth wall broken, no quiz, the verifier the
+lesson's three lines and nothing added at `done`. Nothing in the
+tutor's prose or the toolkit's messages leaned on pnpm. Three small
+things, none a toolkit fix: the tutor never said the lesson was a
+`write` lesson, which `CLAUDE.md` asks for; it dropped the lesson's
+`$HOMIE_REPO` caveat on `homie status`; and it cited `f3ba646`, a later
+exercise's source, as the example of what e2e catches, since the map's
+corpus lists it. And one toolkit wording nit for the backlog: a
+task with only a shown test gets `PROOF: ok (… and the held test was
+reverted)` on base, where there is none. PR #28.
 
 ---
 
