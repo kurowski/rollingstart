@@ -15,11 +15,8 @@ the toolkit, the write-mode guard, and a ten-lesson map (P1a, done).
 [`docs/plans/p1a-write-mode.md`](docs/plans/p1a-write-mode.md).
 
 Two public codebases have maps today. [Homie](https://github.com/kurowski/homie)
-has built-in support: its map and settings are committed in its own tree,
-so in a Homie clone trusting the folder turns the tutor on, and
-`/clear` then `/rolling:start` is the whole install. We also support
-[Rallly](https://github.com/lukevella/rallly) as a demo
-of external support: its map ships as the `rallly`
-plugin in this marketplace. Clone Rallly then
-[install](https://rollingstart.dev/#install) the Rolling Start and Rallly
-plugins.
+has built-in support: its map is committed in its own tree, so Claude Code can
+run `/rolling:start` right out of the box on a fresh Homie clone.
+We also support [Rallly](https://github.com/lukevella/rallly) as a demo of
+external support: its map ships as the `rallly` plugin in this marketplace.
+Clone Rallly then [install](https://rollingstart.dev/#install) Rolling Start's Rallly plugin.
