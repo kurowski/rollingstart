@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from . import diff as diffmod, frontmatter as fm, heldtest, paths, reference, rules, session, validate, writes
+from . import diff as diffmod, frontmatter as fm, heldtest, mapsource, paths, reference, rules, session, validate, writes
 from .model import Learner, LoadError, Map, Task
 from .repo import GitError, Repo
 from .tasks import Refused, Tasks
@@ -32,10 +32,12 @@ def say(*lines: str) -> None:
 
 @dataclass
 class Where:
-    """Where a command runs: the repository, its map, the learner's
-    directory (None when ROLLING_DATA is unset)."""
+    """Where a command runs: the repository, its map as the resolver
+    found it (the tree's, an installed map plugin's, or none), the
+    learner's directory (None when ROLLING_DATA is unset)."""
     top: Path
     learner: Optional[Learner]
+    resolved: mapsource.Resolved
 
     @property
     def repo(self) -> Repo:
@@ -43,11 +45,21 @@ class Where:
 
     @property
     def map_dir(self) -> Path:
-        return paths.map_dir(self.top)
+        """The map directory in use; the tree's place for one when there
+        is none, so a message can say where it was looked for."""
+        return self.resolved.dir or paths.map_dir(self.top)
+
+    @property
+    def map_source(self) -> str:
+        """`in tree`, `plugin <name>@<marketplace> <version>`, or `none`,
+        with the resolver's notes after it, one per line."""
+        return "\n".join([self.resolved.describe(), *self.resolved.notes])
 
     def load_map(self) -> Optional[Map]:
+        if self.resolved.dir is None:
+            return None
         try:
-            return Map.load(self.map_dir)
+            return Map.load(self.resolved.dir)
         except LoadError:
             return None
 
@@ -57,7 +69,8 @@ def locate() -> Optional[Where]:
     if top is None:
         return None
     ld = paths.learner_dir(top)
-    return Where(top, Learner(ld) if ld else None)
+    data = Path(os.environ["ROLLING_DATA"]) if os.environ.get("ROLLING_DATA") else None
+    return Where(top, Learner(ld) if ld else None, mapsource.resolve(top, data))
 
 
 def repair_first(w: Where) -> bool:
@@ -85,16 +98,26 @@ def cmd_show(args: List[str]) -> int:
         return 0
     m = w.load_map()
     if what == "map":
-        say(_file_or(w.map_dir / "map.md", f"(no map: {w.map_dir / 'map.md'} does not exist)"))
+        # Where it came from first, so the tutor can say so and can pass a
+        # note on (a plugin map behind the checkout, say) before reading it.
+        say(f"(map: {w.map_source})")
+        if w.resolved.dir is None:
+            say(f"(no map: {w.resolved.summary})")
+        else:
+            say(_file_or(w.map_dir / "map.md", f"(no map: {w.map_dir / 'map.md'} does not exist)"))
     elif what == "map-check":
         # The check a skill reads inline: the same faults rolling-check-map
         # exits 1 on, reported in words at exit 0, since a non-zero inline
         # exit aborts the skill before the tutor could say a word about them.
-        faults = validate.validate_map(w.map_dir)
-        if faults:
-            say(*map(str, faults), f"MAP: {len(faults)} fault(s) in {w.map_dir}; the author fixes the map before a task can be built")
+        if w.resolved.dir is None:
+            say(*w.resolved.notes, f"MAP: none; {w.resolved.summary}")
         else:
-            say(f"MAP: ok ({w.map_dir})")
+            faults = validate.validate_map(w.map_dir)
+            if faults:
+                say(*map(str, faults), f"MAP: {len(faults)} fault(s) in {w.map_dir}; the author fixes the map before a task can be built")
+            else:
+                say(f"MAP: ok ({w.map_dir}; {w.resolved.describe()})")
+            say(*w.resolved.notes)
     elif what == "lessons":
         files = m.lesson_files() if m else []
         for f in files:
@@ -256,7 +279,7 @@ def _verify(w: Optional[Where], on_base: bool = False, on_reference: bool = Fals
         return rep
     m = w.load_map()
     if m is None:
-        rep.not_run = f"no map: {w.map_dir / 'map.md'}"
+        rep.not_run = "no map: " + (w.resolved.summary if w.resolved.dir is None else str(w.map_dir / "map.md"))
         return rep
     return Verifier(w.top, w.learner, m, t, on_base=on_base, on_reference=on_reference).run()
 
@@ -491,6 +514,9 @@ def cmd_check_map(args: List[str]) -> int:
         if w is None:
             say("not inside a git repository and no directory given")
             return 2
+        if w.resolved.dir is None:
+            say(*w.resolved.notes, "no map: " + w.resolved.summary)
+            return 1
         mdir = w.map_dir
     faults = validate.validate_map(mdir)
     if faults:

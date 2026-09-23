@@ -10,8 +10,9 @@ The learner's side is [`profile.md`](profile.md).
 A map lives at `.rolling/` in the repository root, committed and
 reviewed in the repository's own pull requests, when the author is
 inside the project. When the author is outside it, the same directory
-ships as a map plugin (P1b); the format is identical and this page
-covers both. The design is in [`plan.md`](plan.md) § 4.
+ships as a map plugin, installed beside `rolling`; the format is
+identical and this page covers both. The design is in
+[`plan.md`](plan.md) § 3 and § 4.
 
 ```
 .rolling/
@@ -19,6 +20,144 @@ covers both. The design is in [`plan.md`](plan.md) § 4.
   lessons/<slug>.md             # one file per lesson
   lessons/<slug>/<task-slug>.md # optional: tasks the author wrote by hand for that lesson
 ```
+
+## Where the map lives, and how the tutor finds it
+
+**In the tree.** `.rolling/` at the top level of the working tree, as
+above. A project that carries its map also carries, in
+`.claude/settings.json`, what a learner needs so that cloning and
+trusting the folder is the whole install: the marketplace, the plugin
+enabled, and standing allow rules for the toolkit's own commands (a
+skill's grants hold only for the turn it ran in, and the moment a
+skill needs the learner's reply the next turn's command is a fresh
+permission decision, which auto mode denies rather than asks). The
+rules are every toolkit command a skill runs, none of which touches
+the tree except through a task's branch, plus `rolling-export`, which
+only ever
+creates a directory the learner names; no map operation is among them,
+so a destructive one still prompts, and git's read-only commands are
+not among them either, since a standing grant on `git diff *` would
+also pre-approve its `--output` write.
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "rollingstart": { "source": { "source": "github", "repo": "kurowski/rollingstart" } }
+  },
+  "enabledPlugins": { "rolling@rollingstart": true },
+  "permissions": {
+    "allow": [
+      "Bash(rolling-show *)", "Bash(rolling-claim-session *)", "Bash(rolling-write *)",
+      "Bash(rolling-note *)", "Bash(rolling-begin-lesson *)", "Bash(rolling-begin-task *)",
+      "Bash(rolling-verify)", "Bash(rolling-verify *)", "Bash(rolling-report)",
+      "Bash(rolling-keep-task)", "Bash(rolling-end-task)", "Bash(rolling-close-task)",
+      "Bash(rolling-export *)", "Skill(rolling:lesson)", "Skill(rolling:task)"
+    ]
+  }
+}
+```
+
+**As a map plugin.** The same directory, with a manifest and one hook
+beside it, published in any marketplace and installed with `/plugin
+install <name>@<marketplace>`. The plugin root *is* the map directory:
+
+```
+<plugin>/
+  .claude-plugin/plugin.json    # name, version, and the declaration below
+  hooks/hooks.json              # one SessionStart command: the registration
+  README.md                     # install notes: the settings block above, minus the map's own registration
+  map.md                        # the landscape, exactly as in .rolling/
+  lessons/<slug>.md
+```
+
+The manifest declares which repository the map is for, under
+`metadata`, which Claude Code ignores and its strict validator
+accepts:
+
+```json
+{
+  "name": "rallly",
+  "version": "4.14.0",
+  "description": "The Rolling Start map for Rallly.",
+  "metadata": { "rolling": { "repo": "github.com/lukevella/rallly", "ref": "v4.14.0" } }
+}
+```
+
+`repo` is a pattern the repository's `origin` URL must match once
+normalised to `host/owner/name`, lower-cased throughout: scheme,
+credentials, a trailing slash, and `.git` stripped, an scp-style
+`git@github.com:owner/name` read as `github.com/owner/name`; a local
+path, or a `file://` URL with no host, matches nothing.
+`github.com/lukevella/rallly` matches the upstream clone only;
+`*/rallly` matches forks too, which is the author's call. `ref` is
+the release the map was last checked against, as a git ref: a tag
+(`v4.14.0`) nearly always, since "validated against version 4.14.0"
+is a thing a learner can be told, and a sha only for a project with no
+releases. A map by an outsider is always behind a living repository,
+and that is fine; what the resolver watches for is the reverse, a
+checkout behind the map. An in-tree map declares nothing, since the
+tree it is in is its pin.
+
+`version` is the target's release, by convention: the map for Rallly
+4.14.0 is `rallly` 4.14.0, so a learner reading the plugin's version
+knows what it describes without opening the manifest. Nothing checks
+this; it is what a reader will assume, so the examples here keep it.
+A change to the map that does not revalidate it against a new release
+(a lesson fixed, a pointer corrected) bumps the patch number, since
+every change to a map needs a new version: a plugin with a version is
+pinned to it, so a learner keeps the map they installed until they
+update, and a lesson in progress does not have its map change under
+it. When the map is revalidated against a new release, the version
+becomes that release. If the target's own patch releases and the map's
+patch bumps ever collide, `ref` is the exact truth and the version is
+the convention.
+
+The hook is one line of shell, and it is the plugin's only code:
+
+```json
+{ "hooks": { "SessionStart": [ { "hooks": [ { "type": "command",
+  "command": "mkdir -p \"${CLAUDE_PLUGIN_DATA}\" && printf '%s\\n' \"${CLAUDE_PLUGIN_ROOT}\" > \"${CLAUDE_PLUGIN_DATA}/root\"" } ] } ] } }
+```
+
+Every session start, it writes where the plugin's copy is into the
+plugin's own data directory, which is the one place a plugin can write
+without knowing anyone else's paths, and the one thing nothing else
+can say (the copy's path carries its version and moves on update). A
+map plugin ships no `bin/`, no skills, and no agents; an author who
+copies the `rallly` plugin's shape maintains prose and a manifest.
+
+**The resolver.** Every toolkit command finds the map the same way,
+once, through one function (`lib/rolling/mapsource.py`):
+
+1. `.rolling/` in the tree, when it exists. It wins whenever it
+   exists, which is what lets a project take an outsider's map into
+   its tree by copying the directory in: commit it, and the plugin is
+   simply no longer consulted.
+2. Else the installed map plugin declared for this repository: the
+   `root` files in the sibling directories of `rolling`'s own data
+   directory (Claude Code keeps every plugin's data under one root),
+   each read for its manifest's declaration, the one whose `repo`
+   matches the repository's remote. A registration whose root is
+   gone (an uninstall with `--keep-data`, a cache purge), or whose
+   root has no manifest, no declaration, or no `map.md`, is skipped.
+   Two matches is a refusal naming both.
+3. Else no map, and the message says which map plugins are installed
+   and which repository each declares, so a learner in the wrong
+   clone can tell.
+
+`rolling-show map` opens with where the map came from (`in tree`, or
+`plugin rallly@rollingstart 4.14.0`) and `rolling-show map-check` says
+it beside its verdict. A plugin map adds one warning when its declared
+`ref` is not in the checkout (a shallow clone or one made without tags
+may lack it: fetch) or is not an ancestor of HEAD: a checkout behind
+the release the map describes gets pointers to code it has not
+fetched, and the tutor should say so rather than hunt for what is not
+there. HEAD past the release, the common case, says nothing. A task
+branch carries the tree's map as of the
+commit the task began on, and none when there is none: a map an older
+commit carried (a project that moved its map into a plugin) is removed
+from the branch's starting state rather than revived, so the plugin's
+map stays the one in use for the task.
 
 Two audiences read these files. The **tutor** reads all of it, as
 prose, every time a skill runs. The **scripts** read only the parts
@@ -108,8 +247,10 @@ the toolkit checks for the presence of two of them, `## Regions` and
 `## Suggested courses`, and reads the region names out of the first.
 
 - **A one-paragraph summary** under the title: what the software is,
-  how the repository is put together, and the commit the map was
-  checked against. The tutor introduces the codebase from it.
+  how the repository is put together, and the release the map was
+  checked against (a map plugin's manifest `ref`; a tree's map names
+  the tag or commit it was last read at). The tutor introduces the
+  codebase from it.
 - **`## Environment`** (optional). The shape of the environment the
   lessons assume, as a description, not a rule: whether services are
   a precondition provided from outside or a step the learner takes,
@@ -261,7 +402,7 @@ silently declare a lesson with no prerequisites.
 Prose for the learner, walked through by the tutor: what the lesson
 is, why it matters in this repository, and where to look, as pointers
 into the code (paths and, where they help, line numbers and shas, each
-checked against the commit the map names). This is the lecture: the
+checked against the release the map names). This is the lecture: the
 tutor opens every lesson by reading it with the learner in the code,
 before any exercise is offered, so write it the way you would show a
 new colleague around. Notes for the tutor alone (the fixes and seams

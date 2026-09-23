@@ -72,7 +72,9 @@ the answer sits in a diff, an editor's gutter, or a stash.
 `rolling-begin-task` makes the branch and prints the `branch:`,
 `base:`, `return-to:`, and `held:` lines the task file needs. If the
 map check below reports faults, tell the learner the map has a problem
-the author needs to fix, quote the faults, and stop.
+the author needs to fix, quote the faults, and stop; if it reports no
+map at all (`MAP: none`), say so, quote what it says is installed, and
+stop.
 
 The lesson's page comes first. When it says how its task is built (a
 lesson with nothing to revert, whose task is the environment with a

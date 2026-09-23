@@ -79,6 +79,10 @@ Say that you have not met yet, offer `/rolling:start`, and stop.
 
 1. If the map check below reports faults, tell the learner the map
    has a problem the author needs to fix, quote the faults, and stop.
+   If it reports no map at all (`MAP: none`), say that nothing is in
+   the tree at `.rolling/` and no installed map plugin is declared for
+   this repository, quote what it says is installed, and stop: no
+   lessons reachable is not the destination reached.
 2. Choose the lesson by the rules above and open it:
    `rolling-begin-lesson <lesson>`. It records the lesson as the open
    one so the walkthrough, the offer, and the exercise all know which
