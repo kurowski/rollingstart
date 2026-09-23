@@ -60,9 +60,10 @@ P2 (enforced, and measured) follows. Nothing here assumes it.
 | `runner/` is retired | Deleted in 1b.4 with its README, its rows in `CLAUDE.md`, and `spike/README.md`'s pointer to it; the maintainer's harness beside this repository is theirs | It existed to keep Node off the host, which meant orchestrating Rallly's toolchain and services around the plugin from inside this repository. Once the map is a plugin, installing Rolling Start into a Rallly clone is the same `plugin install` as anywhere, and how the maintainer runs Rallly (contained, or on the host after all) is as external to this repository as the environment is to the tutor. What the runner did that still matters is documented where it belongs: a git identity and the toolkit's allow rules are the learner's environment and the install notes say so; the proof of a task is the toolkit's `rolling-verify` by hand until P3's `verify`. |
 | Homie's map is in Homie's tree from day one | `.rolling/` committed to `github.com/kurowski/homie` in that repository's own PR, with the `.claude/settings.json` § 3 says an author inside a project commits; nothing of the map in this repository | The maintainer owns Homie, so the lifecycle the plan sketched for it (a plugin here, adopted later) was ceremony: an author inside a project commits the map. Homie is now the internal-author route in public, the same route the work codebase walks in private. Homie assumes no orchestration: a Go toolchain and git, and the map says so. |
 | `adopt` and `rolling-author` wait | No `rolling-author` plugin in P1b; it first appears in P3 with `init`. `adopt` (the copy of a plugin map into `.rolling/`, a stamp saying where it came from, a note when the plugin is newer than what the tree adopted) is 2.0, if a project ever asks for it | Adoption in 1.0 is a copy any author can do by hand, because the tree wins. A skill, a stamp, and a staleness note on the stamp are machinery for a lifecycle nobody has started yet, and P1b is simpler without them. The design keeps the skill (`docs/plan.md` § 2, § 3); the plan moves it. |
+| The toolkit allows its own commands through a hook, not through settings | `rolling-allow`, a PreToolUse handler on Bash and Skill: `allow` for a single invocation of a toolkit executable with word arguments (heredoc and `2>&1` included) and for the two hand-off skills; silence otherwise | The allow rules existed because a skill's grants expire with its turn and auto mode denies a fresh decision; they were a JSON block a learner pasted into user settings, the roughest edge of the install (the maintainer, walking the Rallly path as a user). A plugin cannot ship permission rules, but its hooks run in every mode and an `allow` skips the prompt for that one call: the same mechanism the write guard uses for `deny`. Considered: a `rolling-setup` script that edits `~/.claude/settings.json`; a plugin editing the user's permissions is what permission systems exist to stop, and it would still be a step to know about. The hook matches only the toolkit's own executables, so nothing of the map's is allowed by it, and P5's state guard, which denies the same executables in a coding session, is its mirror (a deny from one hook beats an allow from another on the same call, probed below). The hook handlers themselves (`rolling-allow`, `rolling-guard`, `rolling-session-start`) are left out of the list: they exist to be run by `hooks.json`, and `rolling-session-start` would repoint the learner's directory for the rest of the session. |
 | The work codebase's map leaves one paragraph here | What the format or the toolkit lacked, generically, and nothing else | `CLAUDE.md`: the maintainer's employer's codebase never appears in this repository. The internal-author route still has to be walked in P1b, since it is the corporate case, and the plugin should learn from it without the record saying what was learned about. |
 
-One decision is the maintainer's, before 1b.7 runs: `/plugin
+One decision is the maintainer's, before 1b.8 runs: `/plugin
 marketplace add kurowski/rollingstart` needs the repository public and
 reachable from a learner's machine at the moment of the exit run; a
 private repository can be added with a token, but the demo's point is
@@ -86,11 +87,14 @@ builds on it. The result is recorded here.
 | The hook's shell command can create `${CLAUDE_PLUGIN_DATA}` (the directory may not exist at the first session start) and the `root` it writes is readable from the Bash tool afterwards | 1b.3 | **Yes** (same probes). The data directory did not exist before the first session; `mkdir -p` in the hook's one line made it, and the `root` file was there for the toolkit to read. In the probe the model's own Bash was refused by the sandbox for expanding a variable, which says nothing about the hook and is why the tests drive the resolver directly. |
 | `plugin.json` `metadata` with a nested object passes `claude plugin validate --strict` without a warning | 1b.3 | **Yes** (same probe): `metadata.rolling` with `repo` and `commit`, validated strictly as a plugin and through its marketplace, no warning. |
 | A `dependencies: ["rolling"]` entry: what `plugin install rallly@rollingstart` does when `rolling` is not installed (installs it, refuses naming it, or installs `rallly` alone), and what it does when it is | 1b.4 | **Installs it** (2026-09-23, 2.1.278, on the host, this repository as a local marketplace): with `rolling` absent, `plugin install rallly@rollingstart` reported `+ 1 dependency: rolling` and both were installed and enabled; with it present, `rallly` installed alone; `plugin uninstall rolling` succeeded with the warning `required by rallly`. One more fact: a plugin installed from a local-directory marketplace loads in place from the checkout (Claude Code says so at install), so on the maintainer's host an edit under `plugins/` is live at the next session start. |
-| A bumped `version` in a map plugin's `plugin.json` reaches an installed learner on `plugin update` and not before, under a marketplace added from GitHub | 1b.7 | |
-| `/plugin marketplace add kurowski/rollingstart` then `/plugin install rolling@rollingstart` and `rallly@rollingstart` in a fresh Rallly clone on a machine that has never seen this repository: the plugin's `bin/` on PATH, the map resolved, a lesson served | 1b.7 | |
+| A plugin's PreToolUse hook answering `allow` for a Bash command lets it run where the session's permissions would otherwise deny it, in print mode and under auto mode's classifier, and a command the hook does not allow is still refused | 1b.5 | **Yes** (2026-09-23, 2.1.278, a scratch plugin under `--plugin-dir`): its hook allowed `probe-cmd one two` and the command's output is in the transcript, in print mode under default permissions (where a prompt is a denial) and again under `--permission-mode auto`; a `touch` the hook was silent about was denied in default mode (auto mode's classifier allowed that one on its own, which says nothing about the hook). |
+| The Skill tool is hookable the same way: a PreToolUse `allow` on `tool_input.skill` lets a skill invoke another with no `allowed-tools` grant for it | 1b.5 | **Yes** (same probes): the event carries `tool_name: Skill` and `tool_input.skill`; an outer skill granting only Read invoked the inner one through the hook's allow, in both modes. |
+| When two hooks decide the same call, a `deny` from one beats an `allow` from the other | 1b.5 | **Yes** (2026-09-23, same scratch plugin, under `--permission-mode auto`): the allow hook and a second hook denying `probe-cmd` both fired; the command did not run, the result listed it as denied, and the model reported the deny hook's reason. So P5's state guard can deny in a coding session what this hook allows everywhere. |
+| A bumped `version` in a map plugin's `plugin.json` reaches an installed learner on `plugin update` and not before, under a marketplace added from GitHub | 1b.8 | |
+| `/plugin marketplace add kurowski/rollingstart` then `/plugin install rolling@rollingstart` and `rallly@rollingstart` in a fresh Rallly clone on a machine that has never seen this repository: the plugin's `bin/` on PATH, the map resolved, a lesson served | 1b.8 | |
 
 Two assumptions of the toolkit that have only ever been checked under
-pnpm, to confirm on Homie in 1b.5 and record in the same table: a held
+pnpm, to confirm on Homie in 1b.6 and record in the same table: a held
 `_test.go` that does not compile on the starting state (it calls what
 the fix adds) is the expected failure `--on-base` wants, since the
 exit is non-zero either way; and `go test`'s arguments (`./internal/config/...`,
@@ -281,7 +285,68 @@ spike's frozen notes, and CI's comment about GitHub's runner. PR #25.
 
 ---
 
-### 1b.5 — The Homie map, in Homie's tree [PENDING]
+### 1b.5 — The toolkit allows its own commands [COMPLETE]
+
+The install is the two `/plugin` lines and nothing else. A PreToolUse
+hook in `rolling`, `rolling-allow`, answers `allow` for a Bash call
+that is a single invocation of one of the toolkit's own executables
+with plain-word arguments (the pen's heredoc form included, a
+trailing `2>&1` tolerated, nothing chained, no other redirection or
+substitution), and for the Skill tool when the skill is
+`rolling:lesson` or `rolling:task`; everything else says nothing and
+falls through to the session's own permissions, so a map's command
+and a destructive operation still ask. The settings block a project
+commits shrinks to the marketplace and the plugin; the `rallly`
+README loses its allow rules and keeps the git identity and the
+restart after install. Branch `p1b.5/allow-hook`; depends on 1b.4.
+Done when the handler's tests drive it with hand-built events (each
+toolkit executable, quoted arguments, a heredoc, `2>&1`, a chained
+command, a substitution, a redirection to a file, a Skill event for
+each of the two skills and for another, a malformed event); the two
+mechanism rows above are filled; `docs/map.md`, `docs/plan.md` § 3,
+and the README say the hook and not the rules; and in the Rallly
+clone on the host with the rules removed from every settings file, a
+lesson runs past a turn that needed the learner's reply with no
+denial and no prompt for a toolkit command. Done: `rolling-allow`
+(`lib/rolling/allow.py`, its contract the module docstring) on
+PreToolUse for Bash and Skill; the command rule is quote-aware, since
+a Next.js route path travels quoted with its brackets and
+parentheses, and inside double quotes `$`, backtick, and backslash
+stay forbidden because the shell still expands them there; an
+unquoted heredoc is not allowed for the same reason. Thirteen tests
+drive the rule with strings (every executable bare, quoted paths, the
+pen's heredoc quoted and unquoted, `2>&1`, chains, substitutions,
+groupings, redirections, a leading path or variable or `sudo`, quoted
+expansions, unterminated quotes) and the handler through its
+executable with hand-built events, malformed ones included. The
+settings block in `docs/map.md` is the marketplace and the plugin;
+the `rallly` README keeps the git identity and the restart; the two
+skills and the plugin README no longer say a later turn asks; `docs/plan.md`
+§ 3 and § 10 say the hook. Checked in a scratch clone of Rallly at
+`v4.15.2` with both plugins loaded from this branch, no allow rule in
+any settings file, and only the map's `pnpm` commands pre-approved
+for the print-mode run: `/rolling:next` opened `billing-and-tiers`
+and walked it through, and the resumed "yes, let's do the exercise"
+had `task` cut the branch, write the task and the reference through
+the pen, prove both ways, keep the task, and hand off to present it,
+with zero permission denials in either turn. The pre-push review,
+briefed as an attacker reviewing an allow-list, found a real bypass:
+after an allowed pen heredoc, anything following the terminator line
+ran as a second command, unprompted, in every mode (`rolling-write
+task <<'EOF'`, a body, `EOF`, then `rm -rf …`); the body is now
+checked to end at the terminator with nothing but blank lines after,
+with the three strings that got through as tests. From the same
+round: the hook handlers are out of the allow-list, since
+`rolling-session-start` from the model would repoint the learner's
+directory; and one note for P5 to inherit knowingly: the Skill allow
+for `lesson` and `task` is unconditional now, in every session and
+repository, where a per-project rule used to be, so the `whoami`
+check 5.2 adds is the only barrier left between a description match
+in a coding session and a claimed stamp. PR #26.
+
+---
+
+### 1b.6 — The Homie map, in Homie's tree [PENDING]
 
 A map for Homie, committed to `github.com/kurowski/homie` as
 `.rolling/` in that repository's own PR, with the `.claude/settings.json`
@@ -314,7 +379,7 @@ toolkit's messages that only made sense under pnpm.
 
 ---
 
-### 1b.6 — The work codebase's map, privately [PENDING]
+### 1b.7 — The work codebase's map, privately [PENDING]
 
 The in-tree route walked where it matters: a map in the work
 codebase's own tree, its `.claude/settings.json` carrying what
@@ -327,16 +392,16 @@ their own sub-scope or as backlog issues.
 
 ---
 
-### 1b.7 — The exit run, and closure [PENDING]
+### 1b.8 — The exit run, and closure [PENDING]
 
 Run the checkpoint's exit criterion honestly and close it out. Branch
-`p1b.7/closure`; depends on 1b.4 and 1b.5. Done when: on a machine or
+`p1b.8/closure`; depends on 1b.4, 1b.5, and 1b.6. Done when: on a machine or
 container that has never seen this repository, the marketplace is
 added from GitHub, `rolling` and `rallly` are installed, and
 `/rolling:next` in a fresh Rallly clone serves a lesson with no map in
 the tree, the session's transcript read for the properties P1a's exit
 run checked; a `write` lesson has run on Homie from the map in its
-tree under `go test` (1b.5's run, or a second if the map changed
+tree under `go test` (1b.6's run, or a second if the map changed
 since); the last two mechanism rows are filled; the retrospective is
 appended here in the register the P1a one set; `CLAUDE.md` § Status,
 `docs/plan.md` § 7, and the README are updated; `docs/workflow.md`
