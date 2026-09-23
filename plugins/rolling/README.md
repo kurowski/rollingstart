@@ -7,9 +7,10 @@ format [`docs/map.md`](../../docs/map.md) defines. A map can come from
 one of two places: an author inside the project commits it at
 `.rolling/` in the repository root, or an author outside it publishes
 the same directory as a map plugin, which the learner installs beside
-this one. In P1a only the first is wired up; the map-plugin route, and
-the resolver that prefers a committed map over an installed one when
-both are present, arrive in P1b.
+this one. The toolkit resolves it one way everywhere
+(`lib/rolling/mapsource.py`): the committed map wins when both are
+present, else the installed map plugin whose manifest declares this
+repository, and `rolling-show map` says which it found.
 
 The skills are `/rolling:start` for intake, `/rolling:next` for the
 next lesson, `/rolling:lesson` for its walkthrough (and to be
@@ -57,7 +58,7 @@ first finishes any held-test revert a killed run left behind.
 |---|---|---|
 | `rolling-session-start` | the SessionStart hook | Exports `ROLLING_DATA` (this plugin's data directory) into the session's environment, so every later command can find the learner's directory. |
 | `rolling-guard` | the PreToolUse hook | The `write`-mode scope guard: denies the tutor an edit inside the open task's scope. |
-| `rolling-show <what>` | skills, inline | One piece of context: `map`, `map-check` (the map's faults in words, or `MAP: ok`), `lessons` (the index), `lesson [slug]`, `profile`, `task`, `reference` (the held answer: the notes and the diff, for the tutor to relay when the learner asks), `evidence [slug]` (what the tutor has noted about the open task's lesson, or the one named), `corpus`, `tree`, `state-dir`. Always exits 0. |
+| `rolling-show <what>` | skills, inline | One piece of context: `map`, `map-check` (where the map came from and its faults in words, `MAP: ok`, or `MAP: none` with what is installed), `lessons` (the index), `lesson [slug]`, `profile`, `task`, `reference` (the held answer: the notes and the diff, for the tutor to relay when the learner asks), `evidence [slug]` (what the tutor has noted about the open task's lesson, or the one named), `corpus`, `tree`, `state-dir`. Always exits 0. |
 | `rolling-claim-session <id>` | skills, inline | Records the session as the tutor's, in the open task or the `session` file. |
 | `rolling-begin-lesson <slug>` | `next` | Records the lesson `next` chose as the open one, before any exercise exists; refuses while a task is open or for a slug the map lacks. |
 | `rolling-report` | `done`, inline | The diff, then the verifier, in that order, from one command. |

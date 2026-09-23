@@ -210,11 +210,15 @@ class Tasks:
 
     def _carry_map(self, origin: str) -> bool:
         """Put .rolling as of ORIGIN into the tree and index, replacing
-        whatever the branch point had there. False when ORIGIN has none."""
+        whatever the branch point had there; when ORIGIN has none, the
+        branch point's is removed all the same, since a map an older
+        commit carried is not the map now (a project that moved its map
+        into a plugin, say), and the tree's map wins wherever it exists.
+        False when ORIGIN has none."""
         repo = self.repo
+        repo.run("rm", "-r", "-q", "--ignore-unmatch", "--", *literal([paths.MAP_DIR]), check=False)
         if not repo.ok("cat-file", "-e", f"{origin}:{paths.MAP_DIR}"):
             return False
-        repo.run("rm", "-r", "-q", "--ignore-unmatch", "--", *literal([paths.MAP_DIR]), check=False)
         repo.checkout_paths(origin, [paths.MAP_DIR])
         return True
 
