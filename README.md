@@ -14,6 +14,12 @@ the toolkit, the write-mode guard, and a ten-lesson map (P1a, done).
 [`docs/plan.md`](docs/plan.md); the checkpoint's record is in
 [`docs/plans/p1a-write-mode.md`](docs/plans/p1a-write-mode.md).
 
+Two codebases have maps today. [Rallly](https://github.com/lukevella/rallly)
+is the demo: its map ships as the `rallly` plugin in this marketplace,
+for any Rallly clone. [Homie](https://github.com/kurowski/homie) has
+built-in support: its map is committed in its own tree, so a Homie
+clone needs only `rolling`.
+
 The [original conception](https://github.com/kurowski/rollingstop), a
 deterministic Go harness, is archived; the plan says what it got wrong
 and what carries over.
