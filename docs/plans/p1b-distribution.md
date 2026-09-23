@@ -55,7 +55,7 @@ P2 (enforced, and measured) follows. Nothing here assumes it.
 | The declaration is manifest metadata, and the hook writes one line | `plugin.json` carries `"metadata": {"rolling": {"repo": "<pattern>", "ref": "<tag, or a sha>"}}`; `hooks.json` has one SessionStart command that writes `${CLAUDE_PLUGIN_ROOT}` to `${CLAUDE_PLUGIN_DATA}/root`, in shell, creating the directory first | Claude Code ignores `metadata` and `--strict` accepts it, so the declaration is reviewed where the manifest is and is never parsed by a hook. The hook's only job is to say where the plugin's copy is, which nothing else can (a plugin's cache path carries its version and moves on update); a line of shell that writes a path needs no Python and no review beyond reading it. The declaration's `repo` is a pattern the repository's `origin` URL must match after normalising (scheme, `.git`, credentials stripped): `github.com/lukevella/rallly`, or `*/rallly` for an author who expects forks. `ref` is the release the map was last checked against, a tag nearly always ("validated against 4.14.0" is a thing a learner can be told, "check out this old sha" is not; the maintainer's point on reading the first draft), a sha only for a project with no releases; an outsider's map is always behind a living repository, and the resolver watches only for the reverse. An in-tree map declares nothing: the tree it is in is its pin. |
 | The resolver is one function with three answers | `paths.resolve_map(top, data)`: the tree's `.rolling/` when it exists; else the registered map plugin whose `repo` matches this repository's remote and whose registered root still exists; else no map, with the registered plugins and their declared repositories listed in the message. Two matches is a refusal naming both. Registrations are the `root` files in the sibling directories of `ROLLING_DATA`, the plugin data root Claude Code keeps at `~/.claude/plugins/data/` | One resolver in one place, as the learner directory has (P1a). `Where.map_dir` is the only thing that changes, so every command, the pen's validators, and the task carry-over see the same answer. A registration whose root is gone (an uninstall with `--keep-data`, a cache purge) is skipped, not an error. Tests build the data root in a temporary directory with the registrations they need. |
 | The tree wins, and the resolver says which it chose | `rolling-show map` and `map-check` say where the map came from (`in tree`, or `plugin rallly@rollingstart 4.14.0`) and add a line when a plugin map's declared `ref` (the release it was checked against) is not in the checkout or not an ancestor of HEAD | § 3: the tree's map wins, so a project can take an outsider's map into its tree by copying the directory in, and the plugin is simply no longer consulted; that is all adoption needs in 1.0, and the `adopt` skill that would do the copy and stamp its source waits for 2.0 (below). The ancestor check is what "the checkout does not contain the declared release" means in git; a checkout behind the map's pin gets pointers that describe a future it has not fetched, which is the stale-pointer wart 1a.8 found from the other side. |
-| Map plugins carry a version, the target's release by convention, bumped on every change | `plugin.json` `version`, semver: the release the map was validated against (`rallly` 4.14.0 for Rallly 4.14.0), the patch bumped for a map change between releases, and the version becoming the new release when the map is revalidated; the marketplace entry carries none | A plugin with a version is pinned to it: the learner keeps the map they installed until `plugin update`, and a lesson in progress does not have its map change under it. A git-sourced plugin without a version would update on every commit of this repository, which is the wrong cadence for content. Matching the target's version is not enforced, but it is what a reader assumes a map's version means (the maintainer, reading the first draft), so the examples keep it and `ref` stays the exact truth. Docs: set the version in one place only; `plugin.json` is that place. |
+| Map plugins carry a version, the target's release by convention, bumped on every change | `plugin.json` `version`, semver: the release the map was validated against (`rallly` 4.15.2 for Rallly 4.15.2), the patch bumped for a map change between releases, and the version becoming the new release when the map is revalidated; the marketplace entry carries none | A plugin with a version is pinned to it: the learner keeps the map they installed until `plugin update`, and a lesson in progress does not have its map change under it. A git-sourced plugin without a version would update on every commit of this repository, which is the wrong cadence for content. Matching the target's version is not enforced, but it is what a reader assumes a map's version means (the maintainer, reading the first draft), so the examples keep it and `ref` stays the exact truth. Docs: set the version in one place only; `plugin.json` is that place. |
 | The Rallly map's source moves to the plugin | `examples/rallly/.rolling/` becomes `plugins/rallly/`; `examples/` goes | One source, and it is the thing that ships. A Rallly clone gets the map by `plugin install`; nothing else copies it anywhere. |
 | `runner/` is retired | Deleted in 1b.4 with its README, its rows in `CLAUDE.md`, and `spike/README.md`'s pointer to it; the maintainer's harness beside this repository is theirs | It existed to keep Node off the host, which meant orchestrating Rallly's toolchain and services around the plugin from inside this repository. Once the map is a plugin, installing Rolling Start into a Rallly clone is the same `plugin install` as anywhere, and how the maintainer runs Rallly (contained, or on the host after all) is as external to this repository as the environment is to the tutor. What the runner did that still matters is documented where it belongs: a git identity and the toolkit's allow rules are the learner's environment and the install notes say so; the proof of a task is the toolkit's `rolling-verify` by hand until P3's `verify`. |
 | Homie's map is in Homie's tree from day one | `.rolling/` committed to `github.com/kurowski/homie` in that repository's own PR, with the `.claude/settings.json` § 3 says an author inside a project commits; nothing of the map in this repository | The maintainer owns Homie, so the lifecycle the plan sketched for it (a plugin here, adopted later) was ceremony: an author inside a project commits the map. Homie is now the internal-author route in public, the same route the work codebase walks in private. Homie assumes no orchestration: a Go toolchain and git, and the map says so. |
@@ -85,7 +85,7 @@ builds on it. The result is recorded here.
 | A plugin with `hooks.json` and no skills installs from a marketplace, its SessionStart hook fires with `CLAUDE_PLUGIN_ROOT` and `CLAUDE_PLUGIN_DATA` for its own id, alongside `rolling`'s hook in the same session, and its data directory is a sibling of `rolling`'s under one plugin data root | 1b.3 | **Yes** (2026-09-22, 2.1.278, on the host). A scratch marketplace under the scratchpad with one hooks-only plugin, `scratchmap`, added and installed at user scope beside the installed `rolling`; one `claude -p` in a scratch repository created `~/.claude/plugins/data/scratchmap-scratchmarket/root` holding the plugin's cache path, next to `rolling-rollingstart/`. Under `--plugin-dir` the same plugin registered as `scratchmap-inline`. Uninstalled and the marketplace removed afterwards. |
 | The hook's shell command can create `${CLAUDE_PLUGIN_DATA}` (the directory may not exist at the first session start) and the `root` it writes is readable from the Bash tool afterwards | 1b.3 | **Yes** (same probes). The data directory did not exist before the first session; `mkdir -p` in the hook's one line made it, and the `root` file was there for the toolkit to read. In the probe the model's own Bash was refused by the sandbox for expanding a variable, which says nothing about the hook and is why the tests drive the resolver directly. |
 | `plugin.json` `metadata` with a nested object passes `claude plugin validate --strict` without a warning | 1b.3 | **Yes** (same probe): `metadata.rolling` with `repo` and `commit`, validated strictly as a plugin and through its marketplace, no warning. |
-| A `dependencies: ["rolling"]` entry: what `plugin install rallly@rollingstart` does when `rolling` is not installed (installs it, refuses naming it, or installs `rallly` alone), and what it does when it is | 1b.4 | |
+| A `dependencies: ["rolling"]` entry: what `plugin install rallly@rollingstart` does when `rolling` is not installed (installs it, refuses naming it, or installs `rallly` alone), and what it does when it is | 1b.4 | **Installs it** (2026-09-23, 2.1.278, on the host, this repository as a local marketplace): with `rolling` absent, `plugin install rallly@rollingstart` reported `+ 1 dependency: rolling` and both were installed and enabled; with it present, `rallly` installed alone; `plugin uninstall rolling` succeeded with the warning `required by rallly`. One more fact: a plugin installed from a local-directory marketplace loads in place from the checkout (Claude Code says so at install), so on the maintainer's host an edit under `plugins/` is live at the next session start. |
 | A bumped `version` in a map plugin's `plugin.json` reaches an installed learner on `plugin update` and not before, under a marketplace added from GitHub | 1b.7 | |
 | `/plugin marketplace add kurowski/rollingstart` then `/plugin install rolling@rollingstart` and `rallly@rollingstart` in a fresh Rallly clone on a machine that has never seen this repository: the plugin's `bin/` on PATH, the map resolved, a lesson served | 1b.7 | |
 
@@ -202,7 +202,7 @@ one-line hook, the resolver's three answers and its one warning);
 `lib/rolling/mapsource.py` is the resolver, with its contract as the
 module docstring, and `Where` in `cli.py` carries what it found, so
 every command reads the same map; `rolling-show map` opens with
-`(map: in tree)` or `(map: plugin rallly@rollingstart 4.14.0)` and the
+`(map: in tree)` or `(map: plugin rallly@rollingstart 4.15.2)` and the
 notes, `map-check` says the source beside its verdict and `MAP: none`
 with the registrations listed when nothing resolves, and
 `rolling-check-map` with no argument exits 1 then. Fifteen tests in
@@ -224,11 +224,12 @@ run only against the scratch plugin. PR #24.
 
 ---
 
-### 1b.4 — The Rallly map as a map plugin, and the runner retired [PENDING]
+### 1b.4 — The Rallly map as a map plugin, and the runner retired [COMPLETE]
 
 `plugins/rallly/`: the map from `examples/rallly/.rolling/` at the
 plugin root, `plugin.json` with the declaration (`*/rallly` or the
-upstream URL, the maintainer's call, and `aab791da`) and a version,
+upstream URL, the maintainer's call, and the release the map was
+checked against) and a version,
 the registration hook, a README that says how to install it, what to
 add to settings (the toolkit's allow rules, a git identity for the
 learner's checkpoints), and which of Rallly's services a lesson
@@ -246,7 +247,37 @@ the plugin's map copied into the clone's `.rolling/` and committed on
 a local branch, the same session says the map is in the tree; `grep
 runner` over the repository finds only history (the P1a plan and the
 spike's notes); and the `dependencies` row of the mechanism table is
-filled.
+filled. Done: `plugins/rallly/` is the map at the plugin root with
+`plugin.json` (`dependencies: ["rolling"]`, the declaration
+`github.com/lukevella/rallly`, the upstream only, and `ref: v4.15.2`,
+with the version 4.15.2 by the convention), the one-line hook, and a README with the install
+steps, the allow rules, the git identity, what the lessons expect
+running, and how updates arrive; the marketplace lists it and CI
+validates it strictly and runs the map check on it; `examples/` and
+`runner/` are gone, and `CLAUDE.md`, `REVIEW.md`, `spike/README.md`,
+and `docs/plan.md` § 3 no longer point at them. Checked in the Rallly
+clone on the host: on a detached HEAD at the pin with no `.rolling/`,
+one session start wrote the plugin's registration, `rolling-show map`
+opened with `plugin rallly@rollingstart 4.15.2`, `map-check` was ok
+from the plugin's directory, and `/rolling:next` with the polls
+orientation seed opened `poll-surfaces` from the plugin's map and
+began the walkthrough; back on the clone's map branch the same
+commands said `in tree`. The pin moved for this: the map had been
+checked at `aab791da`, seventy-eight commits past 4.14.0 and thirteen
+before 4.15.0, so no release described it; it was revalidated at
+`v4.15.2`, the latest release, from the clone's object store (every
+cited path exists there; three router procedures moved by fifteen
+lines, one participants procedure by twenty-three, four sample-env
+lines by five; two facts changed and each lesson concerned says so:
+participant writes refused once a poll leaves `open`, and
+`registration` decoupled from email login), and `CLAUDE.md`'s pin
+follows. The pre-push review found the map still explaining its
+choices as facts about the retired container ("this example's
+environment has no browser"); every such sentence is the map's own
+declaration now, and the README's link to the format is absolute,
+since the README ships alone into the plugin cache. `grep runner` finds the P1a record, this
+plan, P5's plan (which assumed it; its deferred note says so), the
+spike's frozen notes, and CI's comment about GitHub's runner. PR #25.
 
 ---
 
