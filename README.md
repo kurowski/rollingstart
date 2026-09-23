@@ -23,9 +23,3 @@ of external support: its map ships as the `rallly`
 plugin in this marketplace. Clone Rallly then
 [install](https://rollingstart.dev/#install) the Rolling Start and Rallly
 plugins.
-
-The [original conception](https://github.com/kurowski/rollingstop), a
-deterministic Go harness, is archived; the plan says what it got wrong
-and what carries over.
-
-Apache-2.0.
