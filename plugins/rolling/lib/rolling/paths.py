@@ -17,9 +17,11 @@ from pathlib import Path
 from typing import Optional
 
 NO_DATA_MSG = (
-    "the learner directory cannot be resolved: ROLLING_DATA is not set "
-    "(the rolling plugin sets it at session start; a script run outside a "
-    "session needs it set by hand)"
+    "the learner directory cannot be resolved: ROLLING_DATA is not set. "
+    "The plugin sets it when a session starts, so a plugin installed or "
+    "reloaded during this session has not had its session start yet: "
+    "tell the learner to run /clear (or restart Claude Code) and try again. "
+    "A script run outside a session needs it set by hand."
 )
 
 

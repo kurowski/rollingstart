@@ -210,7 +210,8 @@ def resolve(top: Path, data: Optional[Path]) -> Resolved:
         return Resolved(None, "none", None, [], summary)
     summary = f"{tree} does not exist in the tree, and no installed map plugin is declared for this repository"
     if data is None:
-        notes.append("installed map plugins cannot be seen: ROLLING_DATA is not set")
+        notes.append("installed map plugins cannot be seen: ROLLING_DATA is not set, so no session start has run "
+                     "for the plugin yet (installed or reloaded mid-session?); /clear or restart Claude Code, then try again")
     elif not regs:
         notes.append("no map plugin has registered under " + str(data_root(data))
                      + "; one installed during this session registers at the next session start")

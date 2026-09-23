@@ -27,9 +27,10 @@ In a Rallly clone, in Claude Code:
 /plugin install rallly@rollingstart
 ```
 
-Then `/rolling:start`. The map plugin registers itself when a session
-starts, so a plugin installed during a session is found at the next
-one.
+Then `/clear`, or start `claude` again, and `/rolling:start`. Both
+plugins do their setup when a session starts (`/reload-plugins` loads
+them but does not start one), so a plugin installed during a session
+is found at the next; the tutor says so if you skip this.
 
 One thing the tutor needs from the environment and will not set up
 itself: a git identity (`user.name` and `user.email`), so that the
