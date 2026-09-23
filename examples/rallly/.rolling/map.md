@@ -6,6 +6,7 @@ commands:
   typecheck: pnpm type-check
   typecheck-web: pnpm --filter @rallly/web type-check
   typecheck-emails: pnpm --filter @rallly/emails type-check
+  typecheck-billing: pnpm --filter @rallly/billing type-check
   test: pnpm test:unit
   lint: pnpm exec biome check
   structure: pnpm check:structure
@@ -38,8 +39,8 @@ file path, or a fragment of one, straight to vitest, relative to that
 workspace, not the repository root (`test-web
 src/features/poll/invite/utils.test.ts`, never `test-web
 apps/web/src/…`). `typecheck` runs every
-workspace's `tsc`; `typecheck-web` and `typecheck-emails` run one, in
-about fifteen seconds and two. `lint` is Biome with a path appended
+workspace's `tsc`; `typecheck-web`, `typecheck-emails`, and
+`typecheck-billing` run one, in about fifteen seconds, two, and two. `lint` is Biome with a path appended
 (`lint apps/web/src/features/poll`); the whole-tree form developers
 run by hand is `pnpm check`, and it is not on the list because it also
 checks whatever an editor or an agent has dropped in the tree
@@ -115,7 +116,8 @@ test. Everything else requires them.
 1. platform, `working`: `local-dev-setup`, `how-a-change-ships`, then
    `procedures-and-actions`, `emails-and-i18n`, and `flags-and-policy`
    in whatever order the work brings them up
-2. polls, `working`
+2. polls, `working` (`poll-surfaces` first, unless you have used the
+   product)
 3. billing, `working`
 
 For someone who will work across the product. The three platform
@@ -129,10 +131,14 @@ fortnight.
 ### Product engineer
 
 1. platform, `orientation`: `local-dev-setup`, `how-a-change-ships`
-2. polls, `working`: `poll-data-model`, then
+2. polls, `working`: `poll-surfaces` if you have not used Rallly as a
+   host and a voter, then `poll-data-model`, then
    `invites-and-participants` and `poll-lifecycle`
 
-For someone joining to work on polls. The poll lessons lean on
+For someone joining to work on polls. `poll-surfaces` is the look
+around (which page is which, where each screen's code lives) and has
+no exercise; someone who has used the product can take it in ten
+minutes or skip it. The poll lessons lean on
 `procedures-and-actions` (the frozen router and the action clients) and
 `emails-and-i18n` (invites and notifications send mail); take platform
 at `working` later if either keeps coming up, or ask for a detour when
@@ -144,7 +150,10 @@ it does.
 2. billing, `deep`: `billing-and-tiers`, then `stripe-webhook`
 
 Skips polls entirely; the billing lessons require only the opening
-two. The tier rule (`resolveSpaceTier`) sits where billing meets
+two. `billing-and-tiers` is a `write` lesson with its exercise in the
+pricing package's unit seam; `stripe-webhook` is a `direct` lesson,
+served once `direct` mode ships, so until then `deep` here is the
+first lesson and the reading it points at. The tier rule (`resolveSpaceTier`) sits where billing meets
 instance policy, so `flags-and-policy` at platform `working` is worth
 adding if self-hosted behaviour is part of the job. Take polls at
 `orientation` later if the pay wall's gating of poll features starts to
