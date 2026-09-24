@@ -7,12 +7,15 @@ of a codebase, a learner picks a destination, and the tutor, running as
 a Claude Code plugin, points the way: one task at a time, with feedback
 on real work in the learner's own working copy.
 
-The learner's plugin, `rolling`, runs `write` lessons end to end on a
-Rallly clone: the marketplace at the repository root, the four skills,
-the toolkit, the write-mode guard, and a ten-lesson map (P1a, done).
-`direct` mode and distribution as map plugins are next. The plan is in
-[`docs/plan.md`](docs/plan.md); the checkpoint's record is in
-[`docs/plans/p1a-write-mode.md`](docs/plans/p1a-write-mode.md).
+The learner's plugin, `rolling`, runs `write` lessons end to end: intake,
+a route through the author's map, a walkthrough, an exercise built from
+the repository's own history and proved before it is served, and
+feedback against the lesson's rubric (P1a). A map lives in a project's
+own tree, or ships as a map plugin for a repository its author does not
+own, and the tutor finds either (P1b). Next is P2, enforcement and
+evals; `direct` mode is 2.0. The plan is in
+[`docs/plan.md`](docs/plan.md), and each checkpoint's record is in
+[`docs/plans/`](docs/plans/).
 
 Two public codebases have maps today. [Homie](https://github.com/kurowski/homie)
 has built-in support: its map is committed in its own tree, so Claude Code can

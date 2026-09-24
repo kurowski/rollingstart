@@ -24,7 +24,7 @@ before proposing anything structural. Decisions made after it go in its
 - [x] **P0 — Spike.** `spike/`, merged as PR #1. The premise held.
 - [x] **Plan, draft 2.** PR #2.
 - [x] P1a — `write` mode, in-repo map — [`docs/plans/p1a-write-mode.md`](docs/plans/p1a-write-mode.md). PRs #3–#19.
-- [ ] P1b — Distribution: map plugins and the resolver — [`docs/plans/p1b-distribution.md`](docs/plans/p1b-distribution.md)
+- [x] P1b — Distribution: map plugins and the resolver — [`docs/plans/p1b-distribution.md`](docs/plans/p1b-distribution.md). PRs #22–#36.
 - [ ] P2 — Enforced, and measured
 - [ ] P3 — The author's plugin
 - [ ] P4 — Release 1.0

@@ -90,8 +90,8 @@ builds on it. The result is recorded here.
 | A plugin's PreToolUse hook answering `allow` for a Bash command lets it run where the session's permissions would otherwise deny it, in print mode and under auto mode's classifier, and a command the hook does not allow is still refused | 1b.5 | **Yes** (2026-09-23, 2.1.278, a scratch plugin under `--plugin-dir`): its hook allowed `probe-cmd one two` and the command's output is in the transcript, in print mode under default permissions (where a prompt is a denial) and again under `--permission-mode auto`; a `touch` the hook was silent about was denied in default mode (auto mode's classifier allowed that one on its own, which says nothing about the hook). |
 | The Skill tool is hookable the same way: a PreToolUse `allow` on `tool_input.skill` lets a skill invoke another with no `allowed-tools` grant for it | 1b.5 | **Yes** (same probes): the event carries `tool_name: Skill` and `tool_input.skill`; an outer skill granting only Read invoked the inner one through the hook's allow, in both modes. |
 | When two hooks decide the same call, a `deny` from one beats an `allow` from the other | 1b.5 | **Yes** (2026-09-23, same scratch plugin, under `--permission-mode auto`): the allow hook and a second hook denying `probe-cmd` both fired; the command did not run, the result listed it as denied, and the model reported the deny hook's reason. So P5's state guard can deny in a coding session what this hook allows everywhere. |
-| A bumped `version` in a map plugin's `plugin.json` reaches an installed learner on `plugin update` and not before, under a marketplace added from GitHub | 1b.8 | |
-| `/plugin marketplace add kurowski/rollingstart` then `/plugin install rolling@rollingstart` and `rallly@rollingstart` in a fresh Rallly clone on a machine that has never seen this repository: the plugin's `bin/` on PATH, the map resolved, a lesson served | 1b.8 | |
+| A bumped `version` in a map plugin's `plugin.json` reaches an installed learner on `plugin update` and not before, under a marketplace added from GitHub | 1b.8 | **Yes, and it had never been exercised** (2026-09-24, 2.1.281, the exit-run container below). The container installed `rallly` 4.15.2 and `rolling` 0.1.0 from `main` at `06ca4be`; PR #35 bumped them to 4.15.3 and 0.2.0 and merged; a new session still showed the old versions; `/plugin marketplace update` then `/plugin update` brought both to the merge commit `ece1e674`. Preparing it found that `rolling` had been 0.1.0 through 31 commits, so no installed learner had ever been offered an update; the fix is #35's CI check. One more fact: after an update the map plugin's registration still names the old copy until a session starts (its hook writes it), so a learner sees the new map after a `/clear` or a restart, as after an install; the old copy stays in the cache, so nothing breaks in between. |
+| `/plugin marketplace add kurowski/rollingstart` then `/plugin install rolling@rollingstart` and `rallly@rollingstart` in a fresh Rallly clone on a machine that has never seen this repository: the plugin's `bin/` on PATH, the map resolved, a lesson served | 1b.8 | **Yes** (2026-09-24, 2.1.281): a `node:24-trixie` container with Claude Code installed by its own installer, no configuration, and Rallly cloned at `v4.15.2` from GitHub. `/plugin install rallly@rollingstart` brought `rolling` as its dependency; after `/clear` the map plugin had registered, `/rolling:start` found the map through it with no `.rolling/` in the clone, and `/rolling:next` served `local-dev-setup`. With the map copied into a clone's tree and committed, the same install's `rolling-show map-check` reported `in tree` and read the tree's copy. |
 | A held `_test.go` that does not compile on the starting state (it calls what the fix adds) is the expected failure `--on-base` wants | 1b.6 | **Yes** (2026-09-22, in a scratch clone of Homie at `v0.7.0`): the `tool-owned-files` task, held `clonetarget_test.go` from `f3ba646`, which takes two results from a function that returns one on the parent; `--on-base` reported the held line `EXPECTED-FAIL` with the compiler's `assignment mismatch`, and `PROOF: ok`. The same holds for a shown test: `vet` compiles a package's tests, so a shown test calling a function the task adds fails `vet` on its package on the starting state too, and the tutor in the lesson run marked both lines expected. The converse is the author's to know, and the Homie map now says it: when a fix changes a function a held test calls, `vet` on that package fails *with the reference in place*, because the learner's own copy of the test still calls the old form; the task vets the callers' package instead. |
 | `go test`'s and `go vet`'s arguments (`./internal/runner/`, `./cmd/hm/`, `-run`, `TestName`) are words the verifier's argument rule accepts | 1b.6 | **Yes** (same proofs): every Homie task's lines, `test ./internal/packages/ -run TestPacman`, `vet ./internal/render/ ./cmd/hm/`, and the rest, ran as written. A `-run` pattern with `|` in it would not, which the map says: a task needing two tests names their common prefix. |
 | An in-tree map's `.claude/settings.json` (the marketplace and `enabledPlugins`) offers to install `rolling` when a learner trusts the folder | 1b.6 | **Yes, silently, and it needs a `/clear`** (2026-09-23, 2.1.280, a fresh clone of Homie at `22a7e2d` opened under a throwaway `CLAUDE_CONFIG_DIR` with no marketplaces, no plugins, and no trusted folders). The trust dialog asked only to trust the directory, and nothing offered the marketplace or the plugin, but afterwards the `rollingstart` marketplace was known and `rolling` 0.1.0 was in the plugin cache and loaded, from the project's `enabledPlugins` (`installed_plugins.json` stayed empty). The first `/rolling:start` refused with the unset-`ROLLING_DATA` message: the plugin arrived after that session began, so its SessionStart hook had not run. After `/clear`, `/rolling:start` ran intake. So the in-tree install is clone, trust, `/clear`, `/rolling:start`; `docs/map.md` says so. On the maintainer's own host the first attempt showed nothing, because Homie had been trusted before the settings file existed. One more fact: the plugin data root stayed at `~/.claude/plugins/data/` under the throwaway config dir. |
@@ -467,7 +467,7 @@ tool call returned one (#30), which is P2's citation check. PR #34.
 
 ---
 
-### 1b.8 — The exit run, and closure [PENDING]
+### 1b.8 — The exit run, and closure [COMPLETE]
 
 Run the checkpoint's exit criterion honestly and close it out. Branch
 `p1b.8/closure`; depends on 1b.4, 1b.5, and 1b.6. Done when: on a machine or
@@ -483,6 +483,17 @@ appended here in the register the P1a one set; `CLAUDE.md` § Status,
 says to check that the automatic review posted (from P5's deferred
 list, since P1b closes first); and the decisions worth keeping are in
 `docs/plan.md` § 10, dated.
+Done: the exit run is written up in the retrospective below. A container
+that had never seen this repository installed both plugins from GitHub
+and served a lesson from the plugin map to a learner who said they
+were a total beginner; the same install taught from the tree when a
+map was committed there; the version row was tested across PR #35,
+merged mid-run. 1b.6's Homie run stands for the `go test` lesson: the
+map changed since only in the setup lesson's prose, and that change
+came from the run itself. `CLAUDE.md` § Status, `docs/plan.md` § 3,
+§ 7 and § 10, the README, and `docs/workflow.md` (check that the
+automatic review posted, not only that its job is green) are updated.
+PR #36.
 
 ## Explicitly deferred
 
@@ -516,9 +527,10 @@ list, since P1b closes first); and the decisions worth keeping are in
 - **Cancel versus pause** (#20) and **a task with `held:` paths and no
   `held-verify:` line** (#14): backlog, taken if a run here trips on
   them.
-- **The plan's § 3 tree** still lists `docs/decisions/`, `agents/`,
-  `ask`, and `escalate`; it is the design's shape and is corrected at
-  closure with the rest of § 7, not slice by slice.
+- **The plan's § 3 tree** listed `docs/decisions/`, `agents/`, `ask`, and
+  `escalate` as if built; corrected at closure (PR #36): what is not
+  built yet is marked with the phase that builds it, and `docs/` is
+  shown as it is.
 
 ## Verification
 
@@ -536,3 +548,105 @@ list, since P1b closes first); and the decisions worth keeping are in
   repository starts, stops, or configures an environment.
 - A reader of `docs/map.md` can publish a map plugin for a repository
   of their own, or commit one to it, without reading the skills.
+
+## Retrospective
+
+**Planned against delivered.** Eight sub-scopes, delivered as PRs #22
+to #26, #28, #34, #35 and this one, #36, between 2026-09-22 and 09-24,
+with the website (#27) and two fixes pushed straight to `main` beside
+them (an unset `ROLLING_DATA` now names its cause; inline code in the
+site's prose no longer wraps). The resolver, the map-plugin format,
+the Rallly map as a plugin, and the allow hook landed as planned, and
+the runner went. Two maps were written into their own projects' trees,
+Homie's publicly and the work codebase's privately, which the plan had
+as one public adoption and one private map; the Homie decision of
+2026-09-21 made the first. Two things were not planned: the discovery
+at the exit run that no update had ever reached an installed learner,
+and the operations that an in-tree map now carries in `.rolling/`.
+
+**The exit run, as it went.** A fresh container, Claude Code from its
+own installer, Rallly cloned at `v4.15.2`: the marketplace from
+GitHub, `rallly` with `rolling` pulled in as its dependency, `/clear`,
+`/rolling:start`. The learner said "total noob", then "BASIC on an
+Atari, an intern whose boss is keeping me busy". Intake asked two
+questions instead of pushing a course, proposed a route gentler than
+any the map suggests (platform and polls, both at orientation), and
+wrote the profile only after "yes, the gentle route". `next` opened
+the only reachable lesson; the walkthrough checked the machine,
+reported accurately that nothing was set up, explained the terminal
+and a database in the learner's own terms, took the recipe from
+`CONTRIBUTING.md` with the lesson's line references, and said the
+services were someone else's to start, which is what the map says.
+`/rolling:cancel` recorded the stop as unfinished and marked nothing.
+No `.rolling/` was ever in the clone; the clone's tree was untouched.
+Two small misses: intake said the learner starts the services and the
+walkthrough said a teammate does, the map's two phrasings of one idea;
+and the cancel ran the pen and the close as one chained command, which
+the allow hook refuses by design, so it will have asked.
+
+**The two in-tree maps.** Homie (1b.6) was the first map for a codebase
+that is not Node, and it held: `go test` arguments pass the verifier's
+rule, a held test that does not compile on the starting state is the
+expected failure, and the one thing Go taught is for authors (vet
+compiles a package's tests, so it sees a test before the code it
+calls). The work codebase (1b.7) was the first with services,
+persistent test databases, and a monorepo whose apps import built
+packages, and every hard part was the repository around a task's
+starting state rather than the task; its paragraph above is the record.
+Both lesson runs were read; the work codebase's found the tutor quoting
+shell output its tool call never returned (#30), the worst thing any
+run in P1b found.
+
+**Decisions made on the way**, the ones kept in `docs/plan.md` § 10: a
+map plugin declares its repository and the release it was checked
+against, and the tree wins (1b.3); the toolkit allows its own commands
+through a hook (1b.5); a map in the tree may carry the scripts its
+operations run (1b.7); every plugin change bumps the plugin's version,
+enforced in CI (1b.8); and the in-tree install is trusting the folder,
+then `/clear` (1b.6's probe).
+
+**What went wrong, and the fix.** No update had ever reached an
+installed learner: `rolling` sat at 0.1.0 through 31 commits, and
+nothing in the gate or the workflow looked at versions, though
+`docs/map.md` required bumps of maps; found preparing the exit run,
+fixed by #35's bumps and its CI check, whose own automatic review found
+the check's one real gap (a plugin with no version passed as new). The
+allow hook's first version let anything after a heredoc's terminator
+run unprompted, found by its pre-push review (#26). In the Homie proofs,
+a `vet` line failed with the reference in place because the learner's
+copy of the held test still called the old form; in the work codebase's,
+a missing command passed as the expected failure (#31), which was
+caught only by reading the reference run. A plugin that arrives
+mid-session was a repeated trap: `/reload-plugins` does not fire
+SessionStart, so a plugin installed mid-session has no `ROLLING_DATA`
+until `/clear` (fixed on `main` with a message that names the cause),
+the in-tree install needs the same `/clear` after trusting the folder,
+and the update row found the same for a map plugin's registration. The automatic review's second pass on #35
+reported its job green and posted nothing; the workflow now says to
+check.
+
+**Deferred, and where.** Toolkit gaps, as backlog: a missing command
+passing as the expected failure (#31), a reference that adds a
+dependency (#32), and a file ignored today but not on the starting
+state (#33). The tutor reporting a check it did not run (#30), for
+P2's citation check. `done` returning the learner to their branch
+without a second question (#29). Cancel versus pause (#20) and a task
+with `held:` paths and no `held-verify:` line (#14), still. `adopt`
+and `rolling-author`, as planned.
+
+**Carry forward.** A container from a stock image with Claude Code
+installed by its own installer is the fresh machine the plan asked for,
+and it cost minutes; keep it as the exit-run recipe. Proving every task
+both ways before a map ships, in the environment the learner will use,
+found more in the work codebase than any run did. A throwaway
+`CLAUDE_CONFIG_DIR` answers questions about install and trust without
+touching the maintainer's setup, though the plugin data root does not
+move with it.
+
+**What to change.** Test the release mechanics before the release:
+the version row sat in the table from 1b.1 to 1b.8, and one install
+from GitHub at the start of the checkpoint would have shown that
+nothing updated. Read a green review job's output, not its status.
+And when a script's guard is a guess about what a tool prints, run the
+tool: two of this checkpoint's findings (`--no-renames`, the missing
+command) were outputs nobody had looked at.
