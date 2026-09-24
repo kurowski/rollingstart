@@ -55,7 +55,11 @@ the spike's version and what `spike/NOTES.md` says went wrong with it.
    before the push. Prose: a run on the Rallly clone, transcript read,
    written up in the plan.
 7. **PR.** Summary of what and why, a test plan, `Closes #N` if an
-   issue exists. The maintainer merges, with a merge commit, never a
+   issue exists. Then check that the automatic review posted, on every
+   push: its findings, not only its job's status. A green review job
+   has twice meant a review that said nothing (nine PRs of P1a ran the
+   installer's no-op template; the second pass on #35 finished green
+   with its comment stuck at "in progress"). The maintainer merges, with a merge commit, never a
    squash; the branch's own commits are the history. The PR flips
    its own sub-scope to `[COMPLETE]` and records its number there:
    the merge is what makes that true.

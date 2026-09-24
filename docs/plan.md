@@ -155,10 +155,10 @@ rollingstart/                        # the new repo
         task/SKILL.md                # build and prove the exercise, when the learner takes the offer
         cancel/SKILL.md              # stop the open lesson without finishing it; nothing marked, nothing lost
         done/SKILL.md                # run verifiers, capture diff, feedback against the rubric, update profile
-        ask/SKILL.md                 # grounded Q&A outside a lesson; whether it is needed now that lesson answers what is asked is P2's (§ 10)
-        escalate/SKILL.md            # write an escalation with the trace attached
+        ask/SKILL.md                 # (P2) grounded Q&A outside a lesson; whether it is needed now that lesson answers what is asked is P2's (§ 10)
+        escalate/SKILL.md            # (P2) write an escalation with the trace attached
       agents/
-        second-opinion.md            # optional, learner-invoked: fresh eyes on a diff, never a gate
+        second-opinion.md            # (P2) optional, learner-invoked: fresh eyes on a diff, never a gate
       hooks/hooks.json               # every handler opens by reading the open task, if any, and this
                                      #   session's id, then acts on the answer: PreToolUse (write-mode scope
                                      #   guard, tutor only; state-directory guard, every session;
@@ -168,21 +168,25 @@ rollingstart/                        # the new repo
       bin/                           # on PATH while enabled; the shared toolkit both plugins call:
                                      #   verify, diff, begin-task/end-task (the throwaway branch),
                                      #   watch-sessions, export, the hook handlers, map and profile checks
-    rolling-author/                  # the author's plugin: enabled by the author alone; requires rolling
+      lib/rolling/                   # the toolkit's library; bin/ executables are a few lines each over it
+      tests/                         # unittest against scratch repositories
+    rolling-author/                  # (P3) the author's plugin: enabled by the author alone; requires rolling
       .claude-plugin/plugin.json
       skills/
         init/SKILL.md                # draft the map from the repo
         mine/SKILL.md                # turn history into candidate tasks
         verify/SKILL.md              # prove tasks solvable both ways (calls rolling's bin/)
         proposals/SKILL.md           # review detours learners needed → promote
-        adopt/SKILL.md               # move a map plugin into a repo's .rolling/, stamping where it came from
+        adopt/SKILL.md               # (2.0) move a map plugin into a repo's .rolling/, stamping where it came from
     rallly/                          # a map plugin: the Rallly map (below), installable in any Rallly clone
   docs/
-    design.md                        # rewritten from Rolling Stop's, shorter
+    plan.md                          # this file: the design, and § 10, the dated decision record
     map.md                           # the format the author writes (the spec)
     profile.md                       # the format the tutor writes
-    decisions/                       # ADRs, same discipline as before
-  evals/                             # claude plugin eval suites: the tests of a prompt product
+    workflow.md                      # how work happens here
+    plans/                           # one plan per checkpoint: the tracker, then the retrospective
+  site/                              # rollingstart.dev, static, deployed by .github/workflows/pages.yml
+  evals/                             # (P2) claude plugin eval suites: the tests of a prompt product
 ```
 
 **Public plugin, private maps.** The plugin is open source, Apache-2.0
@@ -599,8 +603,9 @@ different region deep, every region at working depth) get three
 different routes, and two seeded backgrounds with the *same* destination
 still diverge; nothing the tutor writes is in the tree.
 
-*P1b, distribution.* The plan is
-[`docs/plans/p1b-distribution.md`](plans/p1b-distribution.md). Opens
+*P1b, distribution. Done* (2026-09-22 to 09-24; PRs #22 to #36; the
+record and the retrospective are in
+[`docs/plans/p1b-distribution.md`](plans/p1b-distribution.md)). Opened
 with the map and the skills after the
 first fresh learner's four lessons: the setup lesson confirming the
 environment's state rather than quizzing about it and using the
@@ -1067,3 +1072,36 @@ before the next checkpoint; the run is written up in its PR):
   what permission systems exist to stop, and still a step to know
   about. The install is the two `/plugin` lines and a restart, on
   either route.
+
+**Closing P1b** (2026-09-24):
+
+- **The in-tree install is trusting the folder, then `/clear`**
+  (probed 2026-09-23). A project's `.claude/settings.json` naming the
+  marketplace and enabling `rolling` installs both silently when a
+  learner trusts the folder: no offer, no `/plugin` line. The plugin
+  arrives after that first session has started, so its hooks have not
+  run and `/rolling:start` asks for a `/clear` first. A folder trusted
+  before the settings existed gets nothing, and needs the two
+  `/plugin` lines; a project's onboarding notes should say both.
+- **A map in the tree may carry the scripts its operations run**
+  (2026-09-23). An operation runs on the task's starting state, which
+  is often older than any script the project would add for it, so a
+  script kept elsewhere in the repository is absent there. The toolkit
+  carries `.rolling/` onto every task branch, so a script in it exists
+  on every starting state. A map plugin's directory is not in the
+  learner's tree, so a plugin map cannot do this; `docs/map.md` says
+  both. The work codebase's map carries two: a reset of the test
+  databases, and a reinstall that clears the links a package manager
+  leaves behind across commits.
+- **Every change to a plugin bumps its version, and CI enforces it**
+  (2026-09-24). A plugin with a version is pinned to it, and `/plugin
+  update` offers a new copy only when the version differs; `rolling`
+  sat at 0.1.0 through 31 commits, so no installed learner had ever
+  been offered an update, and nothing in the gate looked. Considered:
+  dropping `rolling`'s version so it follows `main`, which is simpler
+  but lets code change under a lesson in progress, which P1b decided
+  against for maps. So `rolling` takes a minor bump per change until
+  1.0, a map follows `docs/map.md`, the version lives in `plugin.json`
+  and not in `marketplace.json`, and CI's `versions` job refuses a pull
+  request that changes a plugin, outside its `tests/`, without a new
+  version, or leaves a plugin with none (PR #35).
