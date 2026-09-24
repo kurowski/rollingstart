@@ -10,7 +10,6 @@
       "name": "rolling",
       "source": "./plugins/rolling",
       "description": "The learner's plugin: the tutor's skills, its hooks, and the toolkit they call.",
-      "version": "0.1.0",
       "category": "learning"
     },
     {
