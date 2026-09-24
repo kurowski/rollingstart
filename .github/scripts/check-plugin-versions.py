@@ -11,8 +11,10 @@ of P1b that way, and this check is how it cannot happen again.
 For every plugin directory under `plugins/` that the pull request
 changes, outside its `tests/` (which no learner runs), the version at
 HEAD must differ from the version on the base branch. A plugin that
-does not exist on the base branch is new and needs no bump. Run from
-the repository root with the base ref as the argument:
+does not exist on the base branch is new and needs no bump, but every
+plugin at HEAD must have a version: one without is never offered an
+update, and would pass this check as "new" on every pull request. Run
+from the repository root with the base ref as the argument:
 
     python3 .github/scripts/check-plugin-versions.py origin/main
 
@@ -24,20 +26,21 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 def git(*args: str) -> str:
     return subprocess.run(["git", *args], check=True, capture_output=True, text=True).stdout
 
 
-def version_at(ref: str, plugin: str) -> Optional[str]:
-    """The plugin's version at REF, or None when the plugin is not there."""
+def manifest_at(ref: str, plugin: str) -> Optional[Dict[str, Any]]:
+    """The plugin's plugin.json at REF, or None when the plugin is not there."""
     path = f"plugins/{plugin}/.claude-plugin/plugin.json"
     shown = subprocess.run(["git", "show", f"{ref}:{path}"], capture_output=True, text=True)
     if shown.returncode != 0:
         return None
-    return json.loads(shown.stdout).get("version")
+    manifest: Dict[str, Any] = json.loads(shown.stdout)
+    return manifest
 
 
 def changed_plugins(base: str) -> List[str]:
@@ -64,13 +67,19 @@ def main(argv: List[str]) -> int:
     merge_base = git("merge-base", base, "HEAD").strip()
     stale = []
     for plugin in changed_plugins(base):
-        before = version_at(merge_base, plugin)
-        if before is None:
-            print(f"{plugin}: new plugin, no bump needed")
-            continue
-        after = version_at("HEAD", plugin)
-        if after is None:
+        head = manifest_at("HEAD", plugin)
+        if head is None:
             print(f"{plugin}: removed")
+            continue
+        after = head.get("version")
+        if after is None:
+            stale.append(plugin)
+            print(f"{plugin}: plugin.json has no version")
+            continue
+        base_manifest = manifest_at(merge_base, plugin)
+        before = None if base_manifest is None else base_manifest.get("version")
+        if base_manifest is None:
+            print(f"{plugin}: new plugin at {after}")
         elif after == before:
             stale.append(plugin)
             print(f"{plugin}: changed, but its version is still {before}")
@@ -78,7 +87,7 @@ def main(argv: List[str]) -> int:
             print(f"{plugin}: {before} -> {after}")
     if stale:
         print(
-            "Bump the version in plugins/<name>/.claude-plugin/plugin.json for: "
+            "Set or bump the version in plugins/<name>/.claude-plugin/plugin.json for: "
             + ", ".join(stale)
             + ". Without a bump, /plugin update never offers the change to a learner who"
             " already installed the plugin (CLAUDE.md, Conventions).",
