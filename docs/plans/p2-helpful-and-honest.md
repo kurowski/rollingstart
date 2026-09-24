@@ -65,14 +65,14 @@ could never have failed is not served.
 | `escalate` waits, wanted | Backlog, #37; the detour cap says "a teammate" in words instead | Escalation to a human is a feature (§ 1), and the learner will want it; nothing in P1 asked for the skill, and an escalation record nobody reads is noise until P3's `proposals` reads it. |
 | `second-opinion` waits, debated | Backlog, #38, open question | § 8 makes it the fallback if the tutor proves too kind; until an eval shows that, a second reader is machinery with no failure to fix. |
 | Quizzes are offered, never forced | The helpfulness evals check that the tutor did not quiz a learner who did not want it, and that it offered a check of understanding where one would help and accepted either answer | The maintainer's amendment to "did not quiz": some learners embrace a quiz, some reject it, and the learner picks. |
-| The session stamp, the Bash-level scope rule, and the walkthrough's write window are measured, not guarded | Eval cases for each (2.4); a rule is built only if its eval fails, in a slice of its own | P1a and P5 left all three to "P2's eval", with a guard only if prose does not hold. A guard for a problem nobody has seen is code we do not want (the project's rule on hints). |
+| The session stamp, the Bash-level scope rule, and the walkthrough's write window are measured, not guarded | Eval cases for each (2.5); a rule is built only if its eval fails, in a slice of its own | P1a and P5 left all three to "P2's eval", with a guard only if prose does not hold. A guard for a problem nobody has seen is code we do not want (the project's rule on hints). |
 | Each case is one learner turn on a seeded state | A case's scaffold builds the fixture repository, the learner's directory, and the open lesson or task the case needs, by running the toolkit's own commands; the prompt is the learner's one line | Plugin eval takes a prompt, not a conversation. Seeding the state the toolkit would have written is cheaper and more repeatable than driving a conversation to it, and it tests the turn that matters. A case that truly needs two turns uses the § 6 fallback (`claude -p --resume` in a small script), if 2.2 finds no native form. |
 | The fixture is a small repository built by the scaffold, not Rallly | A few-file Python project with a git history (a fix commit to build a task from), a `.rolling/` map with the generic regions `billing`, `scheduling`, and `platform`, and `python3 -m unittest` as its one command; Rallly only for the exit's detour case | Python is the one runtime the toolkit already requires, so the fixture needs no toolchain and runs in the eval sandbox in seconds. The helpfulness properties do not depend on the codebase; the detour's grounding does, which is why the exit case uses Rallly at its pin. |
 | Evals run by hand, not in CI | On a skill change that could move behaviour, on a new model, and at each checkpoint's exit, with the report linked from the PR or the retrospective | Each case is several `claude` runs on a real credential; CI has neither the credential nor the budget, and a flaky nightly teaches everyone to ignore it. The gate stays deterministic. |
 | A detour is a lesson, exercise and all, and the cap is two deep | A detour is a lesson file written by the tutor into the learner's `detours/`, grounded in files and lines of the repository, with a walkthrough and then, as for any lesson, the offer of an exercise; `task` builds that exercise as an extension along an existing seam in the detour's pointer paths, unless a fix in the history obviously matches the detour's content, in which case the reverted fix; when nothing provable fits, the tutor says so and the detour ends at its walkthrough. `next` offers a detour when a lesson's `assumes` or the walkthrough shows a gap against the background; a detour off a detour is the deepest; at the cap the tutor says so and suggests a teammate | A learner with a real gap learns it best by doing, and the exercise stays an offer they may decline. No new machinery: `task` already builds from history and from a seam without author-written sources, and the both-ways proof guards a detour's task as it guards any other. A seam first, because a detour is about a concept, and an extension shaped by the concept exercises it directly, where a fix in the same files usually exercises something narrower; a fix that plainly is the concept is better still, being real work from the repository. Some gaps are general knowledge (SQL itself) that no change in the repository exercises well, and then a walkthrough is the honest answer. Two deep allows the natural chain (the lesson leans on an ORM, the ORM on SQL) and stops the regress. The cap is `next`'s prose and the pen's refusal to write a third level, since breaking it costs nobody anything a script must stop. |
 | The citation check flags, never blocks | `done` writes feedback to evidence in the shape § 5 names; `rolling-check-feedback` reads the entry and lists each cited `path:line` that does not exist in the working tree, inline, exit 0, before the tutor speaks again, and the tutor corrects or withdraws each | The honest form of "feedback is grounded" is that the learner is never shown a citation that points nowhere. A flag the tutor must answer is enough; the learner's lesson is never held on it. |
 | Quoted output is honesty prose plus an eval, not a hook | The skills say: quote only what a tool returned; an inference is said as one. An eval case (#30's shape) seeds a symptom whose cause lies outside what the tutor can observe. | A Stop hook could compare quoted blocks with the transcript's tool results, but code blocks in a reply are not reliably quotes, and a false flag in the learner's window is its own dishonesty. Measured first; built if it fails. |
-| The destructive hook asks, in every session | A PreToolUse handler on Bash, `rolling-destructive` (name to be settled in 2.6): resolve the map for the session's repository; if the command carries the head of an operation the map marks destructive (its words up to the first flag, matched at a command boundary), answer `ask` with the operation's name; silent otherwise, and silent with no map | § 5's second layer, and P5 relies on it for the coding session. The head, not the whole line, because `pnpm db:reset` without `--force` is the same reset. `ask` in `dontAsk` mode becomes a denial, which fails safe. |
+| The destructive hook asks, in every session | A PreToolUse handler on Bash, `rolling-destructive` (name to be settled in 2.7): resolve the map for the session's repository; if the command carries the head of an operation the map marks destructive (its words up to the first flag, matched at a command boundary), answer `ask` with the operation's name; silent otherwise, and silent with no map | § 5's second layer, and P5 relies on it for the coding session. The head, not the whole line, because `pnpm db:reset` without `--force` is the same reset. `ask` in `dontAsk` mode becomes a denial, which fails safe. |
 | Closing a lesson leaves the task in the same step | When the learner closes, `done` runs `rolling-end-task` then `rolling-close-task` without asking whether to go back; and `rolling-show tree` says in words when a task is open and HEAD is not its branch | #29: the second question was answered by `git switch main`, the change came along uncommitted, and the task stayed open. Closing the lesson is the decision to leave; a learner staying on the branch has not closed it. |
 | A command that could not run is not an expected failure | `rolling-verify` reports a line whose shell exits 126 or 127 as `COULD-NOT-RUN`, which fails a proof both ways; the task skill reads each `EXPECTED-FAIL` line's output for the test's failure before accepting it; `docs/map.md` tells authors every command a task uses must exist on its starting state | #31. The toolkit cannot know every runner's "no such script" message, and must not read one, so the part a script can know (the shell never found the program) is the script's, and the rest is read by the tutor, who already reads the proof. A held test that does not compile is still a legitimate expected failure (1b.6). |
 | A reference that adds a dependency gets one declared operation | A task may carry `reference-setup: <operation key>`; `rolling-verify --on-reference` runs it after applying the reference and before the lines; a destructive operation is refused there | #32. Operations are the author's shell, already reviewed in the repository, so naming one widens what `verify` runs by one declared step rather than by anything free-form. Re-running `setup:` instead would run steps written for the starting state. |
@@ -97,8 +97,8 @@ here.
 | The eval directory can live outside the plugin root (`--eval-dir` with a path), or must be below it | 2.2 | |
 | Plugin eval has a multi-turn form; if not, `claude -p --resume` in a script carries a second turn with the plugin loaded | 2.2 | |
 | `--model` runs the whole case, skills included, on the named model, so two model versions are two runs of one suite | 2.2 | |
-| A PreToolUse `ask` on Bash from a plugin hook prompts in default mode, survives auto mode, and becomes a denial in `dontAsk` | 2.6 | Partly known: P5's plan confirmed a PreToolUse `ask` is honoured (2026-09-22). The three modes are this row's. |
-| A plugin hook's `ask` and `rolling-allow`'s silence on the same call leave the `ask` standing (the allow hook never allows a map's command, but the order is worth seeing once) | 2.6 | |
+| A PreToolUse `ask` on Bash from a plugin hook prompts in default mode, survives auto mode, and becomes a denial in `dontAsk` | 2.7 | Partly known: P5's plan confirmed a PreToolUse `ask` is honoured (2026-09-22). The three modes are this row's. |
+| A plugin hook's `ask` and `rolling-allow`'s silence on the same call leave the `ask` standing (the allow hook never allows a map's command, but the order is worth seeing once) | 2.7 | |
 
 ## Sub-scopes
 
@@ -118,12 +118,25 @@ The issues are #37 and #38. PR #39.
 
 ---
 
-### 2.2 — The eval harness, and the fixture [PENDING]
+### 2.2 — The eval mechanisms, confirmed [PENDING]
 
-Stand up the suite with the fixture and one case that passes. Branch
-`p2.2/harness`; depends on 2.1. The mechanisms above marked 2.2 are
-confirmed first. Done when: the fixture repository is built by a
-scaffold script from nothing in a few seconds, with its map passing
+Probe the six mechanisms above marked 2.2 before anything is built on
+them, since the eval design (one seeded learner turn per case, the
+fixture, where the suite lives) assumes each answer is yes. Branch
+`p2.2/eval-mechanisms`; depends on 2.1. Scratch setups under the
+session's scratchpad only: a throwaway plugin and a one-case suite,
+nothing in the tree. Done when every 2.2 row has a result, and any
+"no" has changed this plan (the key decisions, 2.3's done-when, and
+the sub-scopes that lean on them) in the same PR. A docs PR.
+
+---
+
+### 2.3 — The eval harness, and the fixture [PENDING]
+
+Stand up the suite with the fixture and one case that passes, on the
+ground 2.2 settled. Branch `p2.3/harness`; depends on 2.2. Done
+when: the fixture repository is built by a scaffold script from
+nothing in a few seconds, with its map passing
 `rolling-check-map`; seeding helpers open a lesson, or begin a task
 from the fixture's fix commit, through the toolkit's own commands;
 one case (the plumbing check: a learner asks what to do next on an
@@ -134,10 +147,10 @@ the suite is run and where its reports go; the gate and CI's
 
 ---
 
-### 2.3 — The helpful half [PENDING]
+### 2.4 — The helpful half [PENDING]
 
 The cases that keep the tutor helpful, most of them. Branch
-`p2.3/helpful`; depends on 2.2. Each is a seeded state and one learner
+`p2.4/helpful`; depends on 2.3. Each is a seeded state and one learner
 line, graded by what the tutor did. Done when the suite has, and
 passes on the current model: **answered directly** (a learner mid-task
 asks "what's a good generic solution?" and gets one, the approach and
@@ -158,10 +171,10 @@ the case as its test, or filed if it is larger.
 
 ---
 
-### 2.4 — The honest half, and the guard's cases [PENDING]
+### 2.5 — The honest half, and the guard's cases [PENDING]
 
 The citation check, quoted output, and the cases P1a and P5 left to
-P2. Branch `p2.4/honest`; depends on 2.2. Done when:
+P2. Branch `p2.5/honest`; depends on 2.3. Done when:
 `rolling-check-feedback` exists with tests, `done` runs it after
 writing feedback and the tutor answers each flag; the skills say that
 quoted output is only what a tool returned and an inference is said
@@ -181,10 +194,10 @@ Closes #30.
 
 ---
 
-### 2.5 — Detours [PENDING]
+### 2.6 — Detours [PENDING]
 
 A detour, offered and written for this learner, grounded in the
-repository, capped at two deep. Branch `p2.5/detours`; depends on 2.2
+repository, capped at two deep. Branch `p2.6/detours`; depends on 2.3
 for its case. Spec first: `docs/profile.md` § `detours/` (the file is
 a lesson, with a `detour-of:` naming the lesson or detour it serves,
 the gap it fills in the learner's words, and pointer paths into the
@@ -205,11 +218,11 @@ are untouched by a detour.
 
 ---
 
-### 2.6 — The ask-before-destructive hook [PENDING]
+### 2.7 — The ask-before-destructive hook [PENDING]
 
 A Bash command carrying the head of a destructive map operation asks
-first, in every session and mode. Branch `p2.6/destructive`; depends
-on nothing (its case waits for 2.2). The 2.6 mechanisms are confirmed
+first, in every session and mode. Branch `p2.7/destructive`; depends
+on nothing (its case waits for 2.3). The 2.7 mechanisms are confirmed
 first. Spec in `docs/map.md`'s `destructive` paragraph (how the head is
 taken and matched) and the handler's header comment. Done when: the
 handler is in `hooks.json` beside `rolling-allow`, reads the map
@@ -222,10 +235,10 @@ prompt reaching the learner.
 
 ---
 
-### 2.7 — Closing a lesson leaves the task [PENDING]
+### 2.8 — Closing a lesson leaves the task [PENDING]
 
 Closing returns the learner to where they were, with their work kept,
-without a second question. Branch `p2.7/close-returns`; depends on
+without a second question. Branch `p2.8/close-returns`; depends on
 nothing. Done when: `done`'s close case runs `rolling-end-task` then
 `rolling-close-task` in the same step and says where the learner now
 is and where their work was kept; `rolling-show tree` says in words
@@ -235,10 +248,10 @@ tests cover the detection. Closes #29.
 
 ---
 
-### 2.8 — Proofs that fail for the right reason [PENDING]
+### 2.9 — Proofs that fail for the right reason [PENDING]
 
 The verifier and the validator stop accepting a proof that proves
-nothing. Branch `p2.8/proofs`; depends on nothing. Done when: a line
+nothing. Branch `p2.9/proofs`; depends on nothing. Done when: a line
 whose shell exits 126 or 127 is `COULD-NOT-RUN` and fails a proof
 both ways, with a test; the task skill checks each `EXPECTED-FAIL`
 line's output for a test's failure before serving; `docs/map.md` says
@@ -248,10 +261,10 @@ of its callers, with tests. Closes #31, #14.
 
 ---
 
-### 2.9 — Proofs across dependencies and ignore rules [PENDING]
+### 2.10 — Proofs across dependencies and ignore rules [PENDING]
 
 The two proof gaps whose fix widens what a task may declare. Branch
-`p2.9/proof-reach`; depends on 2.8. Spec first in `docs/map.md`
+`p2.10/proof-reach`; depends on 2.9. Spec first in `docs/map.md`
 (`reference-setup:`) and in `rolling-begin-task`'s and
 `rolling-end-task`'s header comments (the exclude block). Done when: a
 task with `reference-setup:` runs that operation after the reference
@@ -265,10 +278,10 @@ Closes #32, #33.
 
 ---
 
-### 2.10 — The exit run, and closure [PENDING]
+### 2.11 — The exit run, and closure [PENDING]
 
 Run the exit criterion honestly and close the checkpoint. Branch
-`p2.10/closure`; depends on everything above. Done when: the whole
+`p2.11/closure`; depends on everything above. Done when: the whole
 suite has passed on two model versions (the two the audience uses at
 the time, Opus 5.5 and Sonnet 5 today), with the reports linked here;
 on a Rallly clone at the pin, a seeded profile whose background lacks
@@ -283,15 +296,15 @@ README are updated; the decisions worth keeping are in § 10, dated.
   words until it lands. `docs/profile.md`'s `escalations/` waits with
   it.
 - **`second-opinion`** (#38): backlog, open to debate. § 8's fallback if
-  2.3's said-what-it-saw case cannot be held.
+  2.4's said-what-it-saw case cannot be held.
 - **`ask`**: dropped, not deferred.
 - **Guards for the session stamp, shell writes in scope, the
   walkthrough's write window, and scaffold content**: built only if
-  2.4's case for one fails.
+  2.5's case for one fails.
 - **Evals in CI**: not planned. The suite is run by hand at the
   moments `docs/workflow.md` names.
 - **A hook that checks quoted output against tool results**: only if
-  2.4's #30 case cannot be held by prose.
+  2.5's #30 case cannot be held by prose.
 - **Cancel versus pause** (#20): backlog, still.
 - **`permissions.ask` rules**, the first layer of § 5's destructive
   row: P3's `init` writes them; the install notes already ask.
