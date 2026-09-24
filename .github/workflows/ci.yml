@@ -36,9 +36,11 @@ jobs:
       - name: Which python
         run: python3 --version
       - name: Byte-compile with warnings as errors
-        run: python3 -W error -m compileall -q plugins/rolling/lib plugins/rolling/tests .github/scripts
+        run: python3 -W error -m compileall -q plugins/rolling/lib plugins/rolling/tests .github/scripts evals
       - name: Toolkit tests
         run: cd plugins/rolling/tests && python3 -W error::ResourceWarning -m unittest discover -s . -p 'test_*.py' -v
+      - name: Eval harness tests
+        run: cd evals/tests && python3 -W error::ResourceWarning -m unittest discover -s . -p 'test_*.py' -v
 
   validate:
     runs-on: ubuntu-latest

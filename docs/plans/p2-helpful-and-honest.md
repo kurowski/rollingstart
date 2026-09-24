@@ -100,8 +100,8 @@ here.
 | `--model` runs the whole case, skills included, on the named model, so two model versions are two runs of one suite | 2.2 | **Yes** (same probes): the session's init record names the override, and skills run in that session. The harness passes `--model` to `claude -p` the same way. |
 | A PreToolUse `ask` on Bash from a plugin hook prompts in default mode, survives auto mode, and becomes a denial in `dontAsk` | 2.7 | Partly known: P5's plan confirmed a PreToolUse `ask` is honoured (2026-09-22). The three modes are this row's. |
 | A plugin hook's `ask` and `rolling-allow`'s silence on the same call leave the `ask` standing (the allow hook never allows a map's command, but the order is worth seeing once) | 2.7 | |
-| A throwaway `CLAUDE_CONFIG_DIR` can be authenticated for `claude -p` without touching the maintainer's own config (a long-lived token in the environment, from `claude setup-token`, or another documented route) | 2.3 | Needed: on 2026-09-24 a throwaway config dir answered "Not logged in". If none works, the harness runs in the real config and has to keep the installed `rolling` out of the session some other way. |
-| Under `--plugin-dir` in a throwaway config, `rolling`'s hooks all fire (the allow hook included) and plugin data lands inside that config dir | 2.3 | Partly known: with a probe plugin on 2026-09-24, `CLAUDE_PLUGIN_DATA` was `<config>/plugins/data/<name>-inline` and the plugin's `bin/` was on PATH. |
+| A throwaway `CLAUDE_CONFIG_DIR` can be authenticated for `claude -p` without touching the maintainer's own config (a long-lived token in the environment, from `claude setup-token`, or another documented route) | 2.3 | **Yes, with a token** (2026-09-24, 2.1.281): a token from `claude setup-token`, kept in `~/.config/rolling-evals/token` (mode 600) and passed as `CLAUDE_CODE_OAUTH_TOKEN`, logs in a throwaway config dir. The maintainer chose the token for now; it is per machine and expires eventually. The way to drop it, if that is ever wanted, is untested: `--setting-sources` without `user` in the real config might keep the installed plugins out of the session instead. |
+| Under `--plugin-dir` in a throwaway config, `rolling`'s hooks all fire (the allow hook included) and plugin data lands inside that config dir | 2.3 | **Yes** (same day, the first case's runs on Opus 5.5): the data directory was `<config>/plugins/data/rolling-inline`, the seed written there was what the `lesson` skill read, the turn had no permission denials, and the maintainer's `~/.claude` (plugin data, settings, installs, projects) was unchanged afterwards. |
 
 ## Sub-scopes
 
@@ -139,7 +139,7 @@ PR #40.
 
 ---
 
-### 2.3 — The eval harness, and the fixture [PENDING]
+### 2.3 — The eval harness, and the fixture [COMPLETE]
 
 Stand up the harness, the fixture, and one case that passes, on the
 ground 2.2 settled. Branch `p2.3/harness`; depends on 2.2. The
@@ -157,6 +157,11 @@ runs out of three on the current model; the maintainer's own config,
 installed plugins, and plugin data are untouched after a run; and
 `docs/workflow.md` says when and how the suite is run and where its
 summaries go.
+Done: `evals/run`, the fixture ("Ledger": `billing/`, `scheduling/`,
+`platform`, a quantity bug and its fix), seeding through the toolkit
+with the session id the run will use, and the first case,
+`plumbing-stays-hidden`, three out of three on Opus 5.5 at $0.28, each
+run read. PR #41.
 
 ---
 
