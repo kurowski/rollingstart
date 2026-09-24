@@ -25,7 +25,7 @@ before proposing anything structural. Decisions made after it go in its
 - [x] **Plan, draft 2.** PR #2.
 - [x] P1a — `write` mode, in-repo map — [`docs/plans/p1a-write-mode.md`](docs/plans/p1a-write-mode.md). PRs #3–#19.
 - [x] P1b — Distribution: map plugins and the resolver — [`docs/plans/p1b-distribution.md`](docs/plans/p1b-distribution.md). PRs #22–#36.
-- [ ] P2 — Enforced, and measured
+- [ ] P2 — Helpful and honest, measured — [`docs/plans/p2-helpful-and-honest.md`](docs/plans/p2-helpful-and-honest.md)
 - [ ] P3 — The author's plugin
 - [ ] P4 — Release 1.0
 - [ ] P5 — `direct` mode (2.0) — [`docs/plans/p5-direct-mode.md`](docs/plans/p5-direct-mode.md), written and its mechanisms confirmed
@@ -45,7 +45,7 @@ before proposing anything structural. Decisions made after it go in its
 | `docs/plans/` | One plan per checkpoint, the tracker for its work, with a retrospective at the end |
 | `spike/` | P0, kept as a record. None of it is the plugin. |
 | `site/` | The website at rollingstart.dev: static HTML and CSS, no build step, deployed to GitHub Pages by `.github/workflows/pages.yml`. Its look follows `docs/design-brief.md` |
-| `evals/` | `claude plugin eval` suites, the tests of a prompt product. (P2) |
+| `evals/` | `claude plugin eval` suites, the tests of a prompt product; where they live is settled in P2's 2.2. (P2) |
 | `../rallly` | Rallly reference checkout, pinned at release `v4.15.2` (`f61c0970`), the release the `rallly` map declares. Read-only. |
 | `../rallly-spike` | A writable Rallly clone at the same pin, where lessons and proofs run; how Rallly's toolchain and services run there is the maintainer's environment, not this repository's |
 | `../homie` | The maintainer's Go CLI, the toolchain-diversity target; its map is committed in its own tree (P1b) |

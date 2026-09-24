@@ -50,7 +50,7 @@ repository's tooling; that is the point of its location.
   tasks/<lesson>/<stamp>.md  # tasks the tutor built and kept for reuse
   evidence/<lesson>.md     # feedback, observations, interventions, appended
   detours/<slug>.md        # lessons the tutor created for this learner (P2)
-  escalations/<stamp>.md   # what went to a human, with the trace (P2)
+  escalations/<stamp>.md   # what went to a human, with the trace (backlog)
 ```
 
 ## `profile.md`
@@ -360,7 +360,7 @@ its location, rule, and provenance, and the outcome: `closed by the
 learner` with the tutor's view, met or what it did not see, or `open`
 with what the learner chose to keep going on).
 
-## `detours/<slug>.md` and `escalations/<stamp>.md` (P2)
+## `detours/<slug>.md` (P2) and `escalations/<stamp>.md` (backlog)
 
 A detour is a lesson the tutor wrote for this learner, in the lesson
 format, off the map; the author promotes the ones several learners
@@ -379,7 +379,7 @@ examiner:
   `## Satisfied` then, and only then. The tutor's view goes to
   evidence, what it did not see included, and never holds the lesson
   open; a learner who wants to keep going says so, and a learner who
-  wants a second opinion asks for one (P2).
+  wants a second opinion asks for one (backlog).
 - **Observations** go to evidence and never satisfy anything on their
   own.
 - A lesson the learner **stops** (`/rolling:cancel`, or saying so at

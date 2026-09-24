@@ -129,7 +129,7 @@ or a skill says is a hint, and no script enforces a hint.
 | Role | Who | Claude Code mechanism |
 |---|---|---|
 | **Author** | A staff engineer who knows the codebase | Author-side skills (`/rolling-author:init`, `/rolling-author:mine`, `/rolling-author:verify`, `/rolling-author:proposals`, `/rolling-author:adopt`) that draft a **map** of the codebase from the repo and its history for the author to edit, and keep it honest afterwards. Output is committed files in the target repo, or a map plugin. The author describes; the author does not decide where any learner ends up. |
-| **Tutor** | Claude Code running the learner-side plugin | Learner-side skills: `/rolling:start` (intake), `/rolling:next` (chooses the lesson and hands off to) `/rolling:lesson` (the walkthrough, the offer of an exercise, and the coaching rules once one is open), `/rolling:task` (builds the exercise when the learner takes the offer), `/rolling:done`, `/rolling:cancel` (stops a lesson without finishing it), `/rolling:ask`, `/rolling:escalate`; a small set of hooks; and a profile on disk. One conversation: the coaching and the feedback are the same voice. In a `direct` lesson it also watches the learner's coding session as it happens, from a log the plugin's hooks write. |
+| **Tutor** | Claude Code running the learner-side plugin | Learner-side skills: `/rolling:start` (intake), `/rolling:next` (chooses the lesson and hands off to) `/rolling:lesson` (the walkthrough, the offer of an exercise, and the coaching rules once one is open), `/rolling:task` (builds the exercise when the learner takes the offer), `/rolling:done`, `/rolling:cancel` (stops a lesson without finishing it), and later `/rolling:escalate`; a small set of hooks; and a profile on disk. One conversation: the coaching and the feedback are the same voice. In a `direct` lesson it also watches the learner's coding session as it happens, from a log the plugin's hooks write. |
 | **Learner** | The engineer being onboarded | Starts from the author's suggested course at intake and bends it: drops a region, adds one, changes a depth, says why. Works in Claude Code as usual; in a `direct` lesson that means a second, ordinary Claude Code session they direct themselves. The plugin changes how the tutor's session behaves *during a lesson*, logs the coding session in a `direct` one, and does nothing else. |
 
 The tutor is one voice. What keeps it honest is not a second examiner
@@ -155,10 +155,9 @@ rollingstart/                        # the new repo
         task/SKILL.md                # build and prove the exercise, when the learner takes the offer
         cancel/SKILL.md              # stop the open lesson without finishing it; nothing marked, nothing lost
         done/SKILL.md                # run verifiers, capture diff, feedback against the rubric, update profile
-        ask/SKILL.md                 # (P2) grounded Q&A outside a lesson; whether it is needed now that lesson answers what is asked is P2's (§ 10)
-        escalate/SKILL.md            # (P2) write an escalation with the trace attached
+        escalate/SKILL.md            # (backlog, wanted) write an escalation with the trace attached
       agents/
-        second-opinion.md            # (P2) optional, learner-invoked: fresh eyes on a diff, never a gate
+        second-opinion.md            # (backlog, debated) optional, learner-invoked: fresh eyes on a diff, never a gate
       hooks/hooks.json               # every handler opens by reading the open task, if any, and this
                                      #   session's id, then acts on the answer: PreToolUse (write-mode scope
                                      #   guard, tutor only; state-directory guard, every session;
@@ -473,7 +472,7 @@ learner, in conversation, never by the tutor on its own.
 | Feedback is formative and in the loop | The `done` skill is a step in the same conversation. Its inline commands run the verifier and capture the diff before the model's turn begins, so the deterministic result is on the table before any opinion is. Those inline commands always exit zero and report in text: a non-zero exit aborts the skill, which is the opposite of what a failing verifier needs. They also run under the Bash tool's two-minute timeout, so a task's verifier is scoped to a workspace and a file, never a whole suite; a verifier that cannot fit runs as the skill's first action instead, still before any opinion. |
 | Feedback is grounded | Every point of feedback carries a file, a line, a rule, and a provenance label (this repo's convention, or the language's norm). The skill has the tutor write the feedback to evidence in that shape; a script checks each cited path exists at the cited line and flags the ones that do not. Structure, not a second reader, is what stops hand-waving. |
 | The human's ledger (`direct`) | Before the learner's direction or review is read, the verifier's findings are taken off the table: a type error, a lint failure, a failing test are the checks' job, and the only thing on the learner's ledger about them is whether they asked for the checks before saying done. What the tutor reads and says something about is what a person directing an agent is responsible for: placement, convention, scope, whether a test was written and tests the right thing, a design that will not age, and the steering that got there; said once, as a colleague would, with the learner closing the lesson as in a `write` one. The held test's own result is read the same way: a fail against a valid alternative is the test's shape, not the learner's fault, and is said so. The spike's first `direct` run graded the learner on things the tests catch; that was wrong and this is the correction. |
-| A second opinion is available, never required | An optional `second-opinion` subagent with fresh context and read-only tools, invoked by the learner when they want fresh eyes on a diff (or by the tutor when the two disagree). It advises; it does not satisfy or block anything. |
+| A second opinion is available, never required | In the backlog since planning P2, open to debate (§ 10). An optional `second-opinion` subagent with fresh context and read-only tools, invoked by the learner when they want fresh eyes on a diff (or by the tutor when the two disagree). It advises; it does not satisfy or block anything. |
 | The learner drives | The tutor answers what is asked, the approach and the reference included, and notes what it gave so `done` reads the change with that in mind; a rubric is read against the change and never turned into questions, and a lesson's `## Talk through` items are offered once and dropped; the learner closes a lesson, and the tutor's reservations go to evidence rather than holding it open. Prose in P1; P2's eval measures whether the tutor said what it saw and then deferred. The one hard line is the write guard, which defines the mode rather than polices the learner: a learner who wants the change written for them is asking for a `direct` lesson, and the tutor offers one. |
 | Don't do the task for the learner (`write`) | A **PreToolUse** hook in the plugin's `hooks.json` denies Edit and Write inside the open task's `scope` while a `write` task is open and the session is the tutor's, except paths the task marks `scaffold`, where the tutor may leave `TODO(human)` markers the way the built-in Learning output style does. It lives in `hooks.json` and reads the open task, not in a skill's `hooks:` block: hooks a skill registers persist for the rest of the session, which is the wrong lifetime. The hook is the one rule that must hold even when the learner asks nicely. |
 | The coding session is a real session (`direct`) | The learner's coding agent is an ordinary Claude Code session in the same repo, not a subagent of the tutor and not primed by it. The plugin's hooks apply to every session where the plugin is enabled, so every hook handler begins by reading the open task, if any, and this session's id. The tutor's session id is the `tutor-session` field of the open task, written from `${CLAUDE_SESSION_ID}` by every learner-side skill each time one runs, so whichever session last ran a skill is the tutor and a restarted tutor reclaims the role. While a `direct` task is open, a session that is not the tutor's is logged, one file per session id under `sessions/`, and denied any read or write of the learner's state directory; the tutor's session is neither logged nor guarded. Nothing is injected into any session at start. Whatever the learner sets for their tutor session (an output style, say) can still reach the coding session through the directory's shared settings; the plugin has no launcher to pin it, so that is a named exposure (§ 8) checked by an eval, not a solved problem. |
@@ -486,7 +485,7 @@ learner, in conversation, never by the tutor on its own.
 | Tasks are solvable | The both-ways check applies the reference and the held test on the starting branch, runs the verifier, restores the committed starting state, applies the held test alone, and runs it again; a task whose held test does not fail on the starting state or pass on the reference is discarded and the failure logged for the author. |
 | The tutor points the way, and only the way | The `next` skill serves lessons inside the learner's destination and detours off them; it never serves a region the learner did not choose, and never edits the destination. It justifies each choice against the profile in one line written to evidence. A route that reads as a fixed order across learners with the same destination and different backgrounds is a failing eval. |
 | Any editor | The learner's edits in their own editor are the normal case, not an exception. The tutor reads the working copy directly with Read and Grep, so a file saved in Vim is as visible as one Claude wrote. At `done`, the change is the working tree against the task's base commit, taken by script; nothing has to be committed or staged. The write-mode hook governs only what Claude writes; what the learner writes is theirs. |
-| Detours are bounded | Detour depth capped in the next skill; at the cap, offer a human rather than another detour. |
+| Detours are bounded | A detour is a walkthrough written for this learner, and a detour off a detour is the deepest: `next` says so and the pen refuses a third level; at the cap, the tutor suggests a teammate rather than another detour. |
 | Profile survives | In the plugin's data directory, keyed by repo, per user, never in the tree (§ 3). Skills load it themselves through their inline commands; no hook injects it, since a hook cannot know at session start whether a session will be the tutor's. One hazard, named: the data directory is deleted when the plugin is uninstalled from its last scope, profile and evidence with it, so `rolling` gets an `export` that writes the learner's state somewhere they choose, and `/rolling:start` says so once. |
 
 Two notes on permissions, since Claude Code's default mode moved to
@@ -626,21 +625,24 @@ from the map in its tree under `go test`; a Rallly clone with the
 plugin installed and the map committed in its tree is taught from the
 tree.
 
-**P2 — Enforced, and measured.** Feedback shape enforced by the
-citation check; the ask-before-destructive hook (the second layer of
-§ 5's row, a hook on Bash that asks for a command carrying the head of
-a destructive map operation, in every session and mode);
-`second-opinion`; the `escalate` skill, and `ask` if `lesson` answering
-what is asked leaves anything for it; detours with the depth cap.
-First eval suite, on the properties the spike and the first fresh
-learner showed matter: did the tutor write the solution in a `write`
-lesson; did it cite code; did a failing verifier ever get waved
-through; did it withhold an answer the learner asked for, or hold a
-lesson open on something they did not ask for; did any of the tutor's
-plumbing reach the learner. *Exit:*
-evals pass on two model versions; a seeded *gap in the learner's
-background* (a seeded profile, not a planted mistake) earns a correctly
-named detour grounded in Rallly's own code.
+**P2 — Helpful and honest, measured.** Reshaped while planning it
+(2026-09-24, § 10); the plan is
+[`docs/plans/p2-helpful-and-honest.md`](plans/p2-helpful-and-honest.md).
+The first eval suite, weighted toward helpfulness: did the tutor answer
+a direct question directly, adapt to the background, offer to skip what
+the learner knows, offer a quiz without forcing one, close a lesson when
+told, say what it saw in the change, and keep its plumbing to itself;
+and toward honesty: did it cite code that is there, quote only output
+it received (#30), and never wave a failing check through. The citation
+check; detours with the depth cap; the ask-before-destructive hook (the
+second layer of § 5's row, a hook on Bash that asks for a command
+carrying the head of a destructive map operation, in every session and
+mode); closing a lesson returning the learner to their branch in the
+same step (#29); and proofs that fail for the right reason (#14, #31,
+#32, #33). `escalate` and `second-opinion` wait in the backlog, and
+`ask` is dropped. *Exit:* evals pass on two model versions; a seeded
+*gap in the learner's background* (a seeded profile, not a planted
+mistake) earns a correctly named detour grounded in Rallly's own code.
 
 **P3 — The author's plugin.** `rolling-author`: `init` drafts the map
 from a bare repo (regions from the module structure and history,
@@ -1105,3 +1107,30 @@ before the next checkpoint; the run is written up in its PR):
   and not in `marketplace.json`, and CI's `versions` job refuses a pull
   request that changes a plugin, outside its `tests/`, without a new
   version, or leaves a plugin with none (PR #35).
+
+**Planning P2** (2026-09-24):
+
+- **P2 is "helpful and honest, measured", not "enforced".** Most of
+  what the entry listed made the tutor stricter, and P1 had already
+  corrected a tutor that withheld an answer and held a lesson open on
+  questions nobody asked (2026-09-21). The tutor is a helpful
+  assistant to a professional, so a rule that must hold is framed by
+  whom it protects: the learner's work (the destructive hook, closing a
+  lesson returning them to their branch) or the learner's trust in what
+  the tutor says it saw (citations, quoted output, proofs). The eval
+  suite is weighted toward helpfulness, and an eval that would make the
+  tutor withhold, quiz, or gate is suspect by construction. A quiz is
+  offered where it would help and never forced: some learners want
+  one and some do not, and the learner picks.
+- **`ask` is dropped; `escalate` and `second-opinion` go to the
+  backlog.** `lesson` answers what is asked, and outside a lesson the
+  learner asks plain Claude Code in the same session. `escalate` is
+  wanted and not urgent: until it lands the detour cap names a
+  teammate in words. `second-opinion` is open to debate: § 8 makes it
+  the fallback if the tutor proves too kind, and no eval has shown
+  that yet.
+- **The session stamp, the Bash-level scope rule, and the
+  walkthrough's write window are measured, not guarded.** P1a and P5
+  left each to P2's eval with a guard only if prose fails; P2 keeps
+  that order, and a guard for one is a slice of its own if its case
+  fails.
