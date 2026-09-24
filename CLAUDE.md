@@ -45,7 +45,7 @@ before proposing anything structural. Decisions made after it go in its
 | `docs/plans/` | One plan per checkpoint, the tracker for its work, with a retrospective at the end |
 | `spike/` | P0, kept as a record. None of it is the plugin. |
 | `site/` | The website at rollingstart.dev: static HTML and CSS, no build step, deployed to GitHub Pages by `.github/workflows/pages.yml`. Its look follows `docs/design-brief.md` |
-| `evals/` | `claude plugin eval` suites, the tests of a prompt product; where they live is settled in P2's 2.2. (P2) |
+| `evals/` | The eval harness (a runner around `claude -p`) and its cases, the tests of a prompt product. (P2) |
 | `../rallly` | Rallly reference checkout, pinned at release `v4.15.2` (`f61c0970`), the release the `rallly` map declares. Read-only. |
 | `../rallly-spike` | A writable Rallly clone at the same pin, where lessons and proofs run; how Rallly's toolchain and services run there is the maintainer's environment, not this repository's |
 | `../homie` | The maintainer's Go CLI, the toolchain-diversity target; its map is committed in its own tree (P1b) |

@@ -35,9 +35,10 @@ in what the tutor tells them. So P2 is reshaped around two words
   returned (#30), a failing check is never waved through, and a task's
   proof fails for the reason it claims (#31, #14).
 
-And **measured**: a `claude plugin eval` suite, weighted toward the
-helpful half, run on two model versions, is the regression test the
-plan has promised since § 6. An eval that would make the tutor
+And **measured**: an eval suite, run by a small harness of our own
+around `claude -p` (2.2 found `claude plugin eval` cannot host the
+toolkit), weighted toward the helpful half and run on two model
+versions, is the regression test the plan has promised since § 6. An eval that would make the tutor
 withhold, quiz, or gate is suspect by construction.
 
 Two things that protect the learner's work come with it: the
@@ -66,8 +67,8 @@ could never have failed is not served.
 | `second-opinion` waits, debated | Backlog, #38, open question | § 8 makes it the fallback if the tutor proves too kind; until an eval shows that, a second reader is machinery with no failure to fix. |
 | Quizzes are offered, never forced | The helpfulness evals check that the tutor did not quiz a learner who did not want it, and that it offered a check of understanding where one would help and accepted either answer | The maintainer's amendment to "did not quiz": some learners embrace a quiz, some reject it, and the learner picks. |
 | The session stamp, the Bash-level scope rule, and the walkthrough's write window are measured, not guarded | Eval cases for each (2.5); a rule is built only if its eval fails, in a slice of its own | P1a and P5 left all three to "P2's eval", with a guard only if prose does not hold. A guard for a problem nobody has seen is code we do not want (the project's rule on hints). |
-| Each case is one learner turn on a seeded state | A case's scaffold builds the fixture repository, the learner's directory, and the open lesson or task the case needs, by running the toolkit's own commands; the prompt is the learner's one line | Plugin eval takes a prompt, not a conversation. Seeding the state the toolkit would have written is cheaper and more repeatable than driving a conversation to it, and it tests the turn that matters. A case that truly needs two turns uses the § 6 fallback (`claude -p --resume` in a small script), if 2.2 finds no native form. |
-| The fixture is a small repository built by the scaffold, not Rallly | A few-file Python project with a git history (a fix commit to build a task from), a `.rolling/` map with the generic regions `billing`, `scheduling`, and `platform`, and `python3 -m unittest` as its one command; Rallly only for the exit's detour case | Python is the one runtime the toolkit already requires, so the fixture needs no toolchain and runs in the eval sandbox in seconds. The helpfulness properties do not depend on the codebase; the detour's grounding does, which is why the exit case uses Rallly at its pin. |
+| Each case is one learner turn on a seeded state | The harness builds the fixture repository, the learner's directory, and the open lesson or task the case needs, by running the toolkit's own commands; the prompt is the learner's one line; a case that needs a second turn resumes the session with `--resume` | Seeding the state the toolkit would have written is cheaper and more repeatable than driving a conversation to it, and it tests the turn that matters. |
+| The fixture is a small repository built by the harness, not Rallly | A few-file Python project with a git history (a fix commit to build a task from), a `.rolling/` map with the generic regions `billing`, `scheduling`, and `platform`, and `python3 -m unittest` as its one command; Rallly only for the exit's detour case | Python is the one runtime the toolkit already requires, so the fixture needs no toolchain and builds in seconds. The helpfulness properties do not depend on the codebase; the detour's grounding does, which is why the exit case uses Rallly at its pin. |
 | Evals run by hand, not in CI | On a skill change that could move behaviour, on a new model, and at each checkpoint's exit, with the report linked from the PR or the retrospective | Each case is several `claude` runs on a real credential; CI has neither the credential nor the budget, and a flaky nightly teaches everyone to ignore it. The gate stays deterministic. |
 | A detour is a lesson, exercise and all, and the cap is two deep | A detour is a lesson file written by the tutor into the learner's `detours/`, grounded in files and lines of the repository, with a walkthrough and then, as for any lesson, the offer of an exercise; `task` builds that exercise as an extension along an existing seam in the detour's pointer paths, unless a fix in the history obviously matches the detour's content, in which case the reverted fix; when nothing provable fits, the tutor says so and the detour ends at its walkthrough. `next` offers a detour when a lesson's `assumes` or the walkthrough shows a gap against the background; a detour off a detour is the deepest; at the cap the tutor says so and suggests a teammate | A learner with a real gap learns it best by doing, and the exercise stays an offer they may decline. No new machinery: `task` already builds from history and from a seam without author-written sources, and the both-ways proof guards a detour's task as it guards any other. A seam first, because a detour is about a concept, and an extension shaped by the concept exercises it directly, where a fix in the same files usually exercises something narrower; a fix that plainly is the concept is better still, being real work from the repository. Some gaps are general knowledge (SQL itself) that no change in the repository exercises well, and then a walkthrough is the honest answer. Two deep allows the natural chain (the lesson leans on an ORM, the ORM on SQL) and stops the regress. The cap is `next`'s prose and the pen's refusal to write a third level, since breaking it costs nobody anything a script must stop. |
 | The citation check flags, never blocks | `done` writes feedback to evidence in the shape § 5 names; `rolling-check-feedback` reads the entry and lists each cited `path:line` that does not exist in the working tree, inline, exit 0, before the tutor speaks again, and the tutor corrects or withdraws each | The honest form of "feedback is grounded" is that the learner is never shown a citation that points nowhere. A flag the tutor must answer is enough; the learner's lesson is never held on it. |
@@ -77,7 +78,7 @@ could never have failed is not served.
 | A command that could not run is not an expected failure | `rolling-verify` reports a line whose shell exits 126 or 127 as `COULD-NOT-RUN`, which fails a proof both ways; the task skill reads each `EXPECTED-FAIL` line's output for the test's failure before accepting it; `docs/map.md` tells authors every command a task uses must exist on its starting state | #31. The toolkit cannot know every runner's "no such script" message, and must not read one, so the part a script can know (the shell never found the program) is the script's, and the rest is read by the tutor, who already reads the proof. A held test that does not compile is still a legitimate expected failure (1b.6). |
 | A reference that adds a dependency gets one declared operation | A task may carry `reference-setup: <operation key>`; `rolling-verify --on-reference` runs it after applying the reference and before the lines; a destructive operation is refused there | #32. Operations are the author's shell, already reviewed in the repository, so naming one widens what `verify` runs by one declared step rather than by anything free-form. Re-running `setup:` instead would run steps written for the starting state. |
 | Files the learner's branch ignores stay ignored on the task branch | `rolling-begin-task` appends the return-to branch's ignore patterns to `.git/info/exclude` between two marker lines, and `rolling-end-task` removes them | #33. The clean-tree check and `end-task`'s commit of what the learner left both see the tree the way the learner's branch does, so generated directories are neither dirt nor committed onto the task branch. `.git/info/exclude` is not in the tree, so nothing the tutor writes reaches it; the markers make a crash between begin and end repairable by the next begin. |
-| Evals live beside the plugin they test | `plugins/rolling/evals/`, if 2.2 confirms the eval tool cannot take a directory outside the plugin; CI's `versions` job exempts `evals/` as it exempts `tests/` | `claude plugin eval` looks for the eval directory below the plugin. `CLAUDE.md` lists `evals/` at the root; the table is corrected to whatever 2.2 finds. |
+| The suite is our own harness around `claude -p`, at the root | `evals/`: one standard-library Python runner and a directory per case (its seed, the learner's line, its graders), its contract in the runner's header comment. Each run gets a temporary directory holding the fixture and a throwaway `CLAUDE_CONFIG_DIR`, so the learner's own settings and installed plugins stay out and the plugin data lands inside it; `claude -p --plugin-dir plugins/rolling --model <m> --output-format stream-json`, with PATH carrying the plugin's `bin/` and no installed plugin's. Graders read the transcript: patterns in the tutor's text, which tools ran and on what, the tree and the learner's state afterwards, and an LLM judge (`claude -p` with a rubric and a JSON answer) for what only a reader can tell. A summary per run, kept out of the tree | `claude plugin eval` blocks `git` and hides the plugin data directory from the session's Bash (2.2's probes), deliberately, and the toolkit needs both; § 6 named this fallback. What it costs: the eval tool's report and its with/without-plugin arm, neither of which these cases need. What it buys: git, permissions, and the hooks behave as they do for a learner. At the root, not under the plugin, so it never ships to a learner and a change to it bumps no version. Python and the standard library, like the toolkit, and reviewed like a script. |
 
 A decision that would have to be re-derived if forgotten also goes to
 `docs/plan.md` § 10, dated, when the checkpoint ends; the reshaping
@@ -91,14 +92,16 @@ here.
 
 | Mechanism | Sub-scope | Result |
 |---|---|---|
-| `claude plugin eval` runs the plugin's SessionStart hook in each case's sandbox, so `ROLLING_DATA` is set and the toolkit is on PATH | 2.2 | |
-| A case's scaffold can write the learner's directory where that session's `ROLLING_DATA` will point (or the scaffold can learn the path), so a profile and an open task can be seeded | 2.2 | |
-| A case's prompt that is a skill invocation (`/rolling:done`) runs a `disable-model-invocation` skill in the eval's print mode | 2.2 | |
-| The eval directory can live outside the plugin root (`--eval-dir` with a path), or must be below it | 2.2 | |
-| Plugin eval has a multi-turn form; if not, `claude -p --resume` in a script carries a second turn with the plugin loaded | 2.2 | |
-| `--model` runs the whole case, skills included, on the named model, so two model versions are two runs of one suite | 2.2 | |
+| `claude plugin eval` runs the plugin's SessionStart hook in each case's sandbox, so `ROLLING_DATA` is set and the toolkit is on PATH | 2.2 | **The hook fires; the toolkit is not on PATH** (2026-09-24, 2.1.281, a throwaway probe plugin under the scratchpad, Haiku 4.5). `CLAUDE_PLUGIN_DATA` is `<sandbox>/config/plugins/data/<name>-inline`, and a variable the hook writes to `CLAUDE_ENV_FILE` reaches a skill's inline commands. But the session's PATH is the caller's, verbatim: the plugin's `bin/` is not added (under plain `claude -p --plugin-dir` it is), and the maintainer's installed `rolling` 0.1.0 `bin/` was on it, inherited from the shell. Prefixing PATH at launch works around it. |
+| A case's scaffold can write the learner's directory where that session's `ROLLING_DATA` will point (or the scaffold can learn the path), so a profile and an open task can be seeded | 2.2 | **No, decisively** (same probes). The scaffold runs in the sandbox with `HOME` set and can write the file (`$(dirname $HOME)/config/plugins/data/<name>-inline/seed` was there afterwards), but the session's Bash cannot see the config directory at all: `ls`, `cat`, and a write all fail with "No such file or directory". And `git` is refused outright ("Permission denied" on `/usr/bin/git`), by design: the sandbox denies `git` and `ps` to the plugin under test, and an operator grant of `Bash(git:*)` does not lift it. The toolkit keeps its state in the data directory and runs on git, so plugin eval cannot host it. Hence our own harness (the decision above). |
+| A case's prompt that is a skill invocation (`/rolling:done`) runs a `disable-model-invocation` skill in the eval's print mode | 2.2 | **Yes** (same probes). The session runs in `dontAsk` mode, with Bash absent from its tools unless the operator grants it (`--allow-tools`); a skill's own `allowed-tools` grant does not bring it back. Under plain `claude -p` the same prompt runs the skill with an `--allowedTools` grant. |
+| The eval directory can live outside the plugin root (`--eval-dir` with a path), or must be below it | 2.2 | **Moot**: the suite is our own harness, at `evals/` in the root. |
+| Plugin eval has a multi-turn form; if not, `claude -p --resume` in a script carries a second turn with the plugin loaded | 2.2 | **Yes, by resuming** (read from the 2.1.281 binary's case schema): `context.history_file` names a recorded session, which the run resumes with `--resume`, and the case's prompt is the next turn. The harness does the same with `--resume`. |
+| `--model` runs the whole case, skills included, on the named model, so two model versions are two runs of one suite | 2.2 | **Yes** (same probes): the session's init record names the override, and skills run in that session. The harness passes `--model` to `claude -p` the same way. |
 | A PreToolUse `ask` on Bash from a plugin hook prompts in default mode, survives auto mode, and becomes a denial in `dontAsk` | 2.7 | Partly known: P5's plan confirmed a PreToolUse `ask` is honoured (2026-09-22). The three modes are this row's. |
 | A plugin hook's `ask` and `rolling-allow`'s silence on the same call leave the `ask` standing (the allow hook never allows a map's command, but the order is worth seeing once) | 2.7 | |
+| A throwaway `CLAUDE_CONFIG_DIR` can be authenticated for `claude -p` without touching the maintainer's own config (a long-lived token in the environment, from `claude setup-token`, or another documented route) | 2.3 | Needed: on 2026-09-24 a throwaway config dir answered "Not logged in". If none works, the harness runs in the real config and has to keep the installed `rolling` out of the session some other way. |
+| Under `--plugin-dir` in a throwaway config, `rolling`'s hooks all fire (the allow hook included) and plugin data lands inside that config dir | 2.3 | Partly known: with a probe plugin on 2026-09-24, `CLAUDE_PLUGIN_DATA` was `<config>/plugins/data/<name>-inline` and the plugin's `bin/` was on PATH. |
 
 ## Sub-scopes
 
@@ -118,7 +121,7 @@ The issues are #37 and #38. PR #39.
 
 ---
 
-### 2.2 — The eval mechanisms, confirmed [PENDING]
+### 2.2 — The eval mechanisms, confirmed [COMPLETE]
 
 Probe the six mechanisms above marked 2.2 before anything is built on
 them, since the eval design (one seeded learner turn per case, the
@@ -128,22 +131,32 @@ session's scratchpad only: a throwaway plugin and a one-case suite,
 nothing in the tree. Done when every 2.2 row has a result, and any
 "no" has changed this plan (the key decisions, 2.3's done-when, and
 the sub-scopes that lean on them) in the same PR. A docs PR.
+Done: the answers are in the table. The one that mattered was no:
+`claude plugin eval` refuses `git` and hides the plugin data
+directory from the session, so it cannot host the toolkit, and the
+suite is a harness of our own around `claude -p` (the decision above).
+PR #40.
 
 ---
 
 ### 2.3 — The eval harness, and the fixture [PENDING]
 
-Stand up the suite with the fixture and one case that passes, on the
-ground 2.2 settled. Branch `p2.3/harness`; depends on 2.2. Done
-when: the fixture repository is built by a scaffold script from
-nothing in a few seconds, with its map passing
+Stand up the harness, the fixture, and one case that passes, on the
+ground 2.2 settled. Branch `p2.3/harness`; depends on 2.2. The
+mechanisms above marked 2.3 are confirmed first. Done when: the
+runner's header comment is the contract (a case's layout, the
+graders, what a run leaves behind); the fixture repository is built
+from nothing in a few seconds, with its map passing
 `rolling-check-map`; seeding helpers open a lesson, or begin a task
 from the fixture's fix commit, through the toolkit's own commands;
-one case (the plumbing check: a learner asks what to do next on an
-open task, and no script, task file, or profile path reaches them)
-passes three runs out of three; `docs/workflow.md` says when and how
-the suite is run and where its reports go; the gate and CI's
-`versions` job know where the suite lives.
+the runner's own logic (building the fixture, reading a transcript,
+the deterministic graders) has unit tests the gate runs; one case
+(the plumbing check: a learner asks what to do next on an open task,
+and no script, task file, or profile path reaches them) passes three
+runs out of three on the current model; the maintainer's own config,
+installed plugins, and plugin data are untouched after a run; and
+`docs/workflow.md` says when and how the suite is run and where its
+summaries go.
 
 ---
 

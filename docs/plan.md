@@ -185,7 +185,7 @@ rollingstart/                        # the new repo
     workflow.md                      # how work happens here
     plans/                           # one plan per checkpoint: the tracker, then the retrospective
   site/                              # rollingstart.dev, static, deployed by .github/workflows/pages.yml
-  evals/                             # (P2) claude plugin eval suites: the tests of a prompt product
+  evals/                             # (P2) the eval harness and its cases: the tests of a prompt product
 ```
 
 **Public plugin, private maps.** The plugin is open source, Apache-2.0
@@ -524,11 +524,14 @@ Being honest about the trade:
   turns each line into a notification. Fired on events, offering rather
   than asserting, exactly as Rolling Stop specified it and never built.
 - **A tool of our own to test.** Go had `go test`. The tests of this
-  product are `claude plugin eval` suites (fresh `claude -p` sandbox per
-  case, graders of type `regex`, `tool_used`, `tool_order`, `file_exists`,
-  `llm`, and a with/without-plugin baseline) plus script unit tests.
-  Plugin eval is generally available now; a small script around
-  `claude -p --bare` covers any case it cannot express.
+  product are eval cases plus script unit tests. The plan was
+  `claude plugin eval`, with a small script around `claude -p` for any
+  case it could not express; P2's probes found that its sandbox refuses
+  `git` and hides the plugin's data directory, which the toolkit needs,
+  so the script is the harness (2026-09-24, § 10): each case a fixture
+  and a seeded learner in a temporary directory, `claude -p` with the
+  plugin loaded, and graders over the transcript, an LLM judge among
+  them.
 
 ## 7. Phases
 
@@ -1142,3 +1145,14 @@ before the next checkpoint; the run is written up in its PR):
   `task` prefers an extension along an existing seam, since the
   detour is about a concept, unless a fix obviously matches its
   content.
+- **The eval suite is a harness of our own around `claude -p`.**
+  Probed in 2.2: `claude plugin eval` runs the plugin's hooks and
+  skills, and supports resumed sessions and a model override, but its
+  sandbox refuses `git` to the plugin under test and hides the plugin
+  data directory from the session's Bash, deliberately, and an
+  operator grant does not lift either. The toolkit runs on git and
+  keeps the learner's state in that directory. So the suite is a
+  standard-library Python runner at `evals/`, the fallback § 6 named,
+  which runs `claude -p --plugin-dir` in a temporary directory with a
+  throwaway config, so git, permissions, and hooks behave as they do
+  for a learner.
