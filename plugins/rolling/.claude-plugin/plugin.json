@@ -1,6 +1,6 @@
 {
   "name": "rolling",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "The Rolling Start tutor: learn a codebase by doing real work in it, one task at a time, with feedback in your own working copy.",
   "author": { "name": "Brandt Kurowski", "url": "https://github.com/kurowski" },
   "homepage": "https://github.com/kurowski/rollingstart",
