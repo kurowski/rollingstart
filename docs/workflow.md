@@ -20,6 +20,7 @@ demonstrating.
 | [`docs/plan.md`](plan.md) | Design and decision record. Decisions made after it go in § 10, dated. |
 | [`docs/map.md`](map.md), [`docs/profile.md`](profile.md) | The formats: what the author writes, what the tutor writes (P1a.2) |
 | [`docs/plans/`](plans/) | One plan per checkpoint (P1a, P1b, …, P5): its sub-scopes, a paragraph each, are the tracker; each PR flips its own to `[COMPLETE]`, and the plan ends with a retrospective. Detail lives in the artifact a sub-scope describes, not in the plan. |
+| [`evals/`](../evals/) | The eval harness and its cases: the tests of the tutor's behaviour (P2) |
 | [`spike/NOTES.md`](../spike/NOTES.md) | What P0 found, as it happened; the register a retrospective is written in |
 
 GitHub carries the PRs. Issues are a backlog, not a tracker: file one
@@ -74,6 +75,29 @@ Something the sub-scope did not anticipate goes into the same PR only
 if it is small, clearly part of the sub-scope, and noted in the PR
 body. Otherwise it is a backlog issue or a line in the plan's deferred
 list.
+
+## The eval suite
+
+The tests of the tutor's behaviour, as distinct from its scripts:
+`evals/run`, a harness around `claude -p` (its contract is the header
+of `evals/harness/runner.py`). Each case seeds a learner in a small
+fixture repository, gives the tutor one learner line or a few, and
+grades what came back; an LLM judge reads what only a reader can
+tell.
+
+Run it by hand, never in CI: on a change to a skill that could move
+the tutor's behaviour, on a new model, and at a checkpoint's exit.
+It costs real money and a few minutes a case. `evals/run --model
+<id>` for each model the audience uses, `--case <glob>` to run a few;
+a summary lands in `evals/results/<stamp>/summary.md`, which is
+ignored by git, and the PR or the retrospective quotes it. It needs a
+credential for the throwaway configuration each run uses: `claude
+setup-token`, saved to `~/.config/rolling-evals/token`, mode 600. The
+harness's own logic has unit tests in `evals/tests/`, and those are
+part of the gate.
+
+A failing case is a finding about a skill, or about the case. Read
+the run's `conversation.md` before deciding which.
 
 ## When a checkpoint ends
 

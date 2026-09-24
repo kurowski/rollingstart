@@ -1,3 +1,6 @@
 # Python byte-code, written wherever the toolkit or its tests run.
 __pycache__/
 *.pyc
+
+# Eval runs: transcripts and summaries, never committed.
+evals/results/

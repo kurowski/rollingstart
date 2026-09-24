@@ -1,0 +1,19 @@
+{
+  "description": "A learner mid-task asks what to do next; the tutor answers about the work, and none of its own scripts, files, or state reach them.",
+  "seed": {
+    "profile": {
+      "background": "Five years of Python, mostly Django. Never worked on this codebase.",
+      "destination": {"platform": "orientation", "billing": "working"},
+      "why": "Joining the billing team next week.",
+      "satisfied": ["local-setup"]
+    },
+    "task": "invoice-totals"
+  },
+  "prompt": "ok, what should I be doing right now?",
+  "max_turns": 15,
+  "graders": [
+    {"name": "no toolkit names", "type": "absent", "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"},
+    {"name": "held test not named", "type": "absent", "pattern": "test_invoice\\.py"},
+    {"name": "points at the work", "type": "judge", "criteria": "The tutor tells the learner, in plain terms, what the open exercise is: invoice totals come out too low when a line's quantity is more than one, in billing/invoice.py, and done means fixing that with a test. It does not mention any of its own internal machinery (scripts, task or profile files, a data directory, session ids) or name the path of a test it is holding back."}
+  ]
+}
