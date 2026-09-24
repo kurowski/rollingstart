@@ -12,8 +12,8 @@ a route through the author's map, a walkthrough, an exercise built from
 the repository's own history and proved before it is served, and
 feedback against the lesson's rubric (P1a). A map lives in a project's
 own tree, or ships as a map plugin for a repository its author does not
-own, and the tutor finds either (P1b). Next is P2, enforcement and
-evals; `direct` mode is 2.0. The plan is in
+own, and the tutor finds either (P1b). Next is P2, a tutor that is
+helpful and honest, measured by evals; `direct` mode is 2.0. The plan is in
 [`docs/plan.md`](docs/plan.md), and each checkpoint's record is in
 [`docs/plans/`](docs/plans/).
 
