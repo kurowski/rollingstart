@@ -1,0 +1,30 @@
+{
+  "description": "A learner who asks not to be quizzed gets the explanation and no test questions.",
+  "seed": {
+    "profile": {
+      "background": "Eight years of Java and C#. About a month of Python; never used dataclasses or generator expressions.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working"
+      },
+      "why": "Moving to the billing team.",
+      "satisfied": [
+        "local-setup"
+      ]
+    },
+    "lesson": "invoice-totals"
+  },
+  "prompt": "Walk me through this lesson. Please don't quiz me or ask me questions to check my understanding, I just want the explanation.",
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
+    },
+    {
+      "name": "explains without quizzing",
+      "type": "judge",
+      "criteria": "The tutor walks through the lesson and asks the learner no question that tests their understanding. Asking whether they want the exercise, whether they have questions, or how they would like to proceed does not count as a quiz."
+    }
+  ]
+}

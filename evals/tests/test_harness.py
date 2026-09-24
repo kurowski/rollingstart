@@ -66,6 +66,12 @@ class SeedTest(World):
         seed.apply({"profile": PROFILE, "lesson": "slot-overlap"}, self.fx, BIN, self.data, SID)
         self.assertIn("slot-overlap", toolkit(self.fx, self.data, "show", "lesson"))
 
+    def test_edits_are_the_learners_uncommitted_work(self) -> None:
+        done = seed.apply({"task": "invoice-totals", "edits": {"billing/invoice.py": "x = 1\n"}}, self.fx, BIN, self.data, SID)
+        self.assertEqual(done[-1], "learner edited billing/invoice.py")
+        status = subprocess.run(["git", "status", "--porcelain"], cwd=str(self.fx.top), capture_output=True, text=True, check=True).stdout
+        self.assertEqual(status.strip(), "M billing/invoice.py")
+
     def test_lesson_and_task_are_exclusive(self) -> None:
         with self.assertRaises(seed.SeedError):
             seed.apply({"lesson": "slot-overlap", "task": "invoice-totals"}, self.fx, BIN, self.data, SID)
@@ -146,10 +152,39 @@ class GraderTest(World):
         (self.fx.top / "billing" / "invoice.py").write_text("changed\n")
         self.assertFalse(graders.unchanged({"name": "u", "under": ["billing"]}, self.fx.top).passed)
 
+    def test_learner_file(self) -> None:
+        learner = self.root / "learner"
+        (learner / "evidence").mkdir(parents=True)
+        (learner / "lesson").write_text("slot-overlap\n")
+        g = {"name": "l", "file": "lesson", "pattern": "^slot-overlap$"}
+        self.assertTrue(graders.learner_file(g, learner).passed)
+        self.assertFalse(graders.learner_file(dict(g, pattern="^invoice-totals$"), learner).passed)
+        self.assertFalse(graders.learner_file(dict(g, absent=True), learner).passed)
+        missing = {"name": "m", "file": "task.md", "pattern": "."}
+        self.assertFalse(graders.learner_file(missing, learner).passed)
+        self.assertTrue(graders.learner_file(dict(missing, absent=True), learner).passed)
+        self.assertFalse(graders.learner_file(g, None).passed)
+        self.assertFalse(graders.learner_file(dict(missing, absent=True), None).passed)
+        (learner / "evidence" / "a.md").write_text("Feedback.\n")
+        (learner / "evidence" / "b.md").write_text("**Route.** because\n")
+        self.assertTrue(graders.learner_file({"name": "r", "file": "evidence/*.md", "pattern": "Route"}, learner).passed)
+        self.assertFalse(graders.learner_file({"name": "r", "file": "evidence/*.md", "pattern": "Route", "absent": True}, learner).passed)
+
     def test_judge_verdicts(self) -> None:
         t = self.t(say("hi"))
         ok = graders.judge({"name": "j", "criteria": "says hi"}, t, lambda p: {"pass": True, "reason": "said hi"})
         self.assertEqual((ok.passed, ok.reason), (True, "said hi"))
+        learner = self.root / "learner"
+        (learner / "evidence").mkdir(parents=True)
+        (learner / "evidence" / "x.md").write_text("**Route.** new to money\n")
+        seen = []
+        graders.judge({"name": "j", "criteria": "c", "notes": "evidence/*.md"}, t, lambda p: seen.append(p) or {"pass": True, "reason": ""}, learner)
+        self.assertIn("<tutor_notes", seen[0])
+        self.assertIn("new to money", seen[0])
+        graders.judge({"name": "j", "criteria": "c"}, t, lambda p: seen.append(p) or {"pass": True, "reason": ""}, learner)
+        self.assertNotIn("<tutor_notes", seen[1])
+        graders.judge({"name": "j", "criteria": "c", "notes": "evidence/*.md"}, t, lambda p: seen.append(p) or {"pass": True, "reason": ""}, None)
+        self.assertIn("not found", seen[2])
         broken = graders.judge({"name": "j", "criteria": "says hi"}, t, lambda p: {"error": "timed out"})
         self.assertFalse(broken.passed)
         self.assertIn("timed out", broken.reason)
@@ -178,6 +213,18 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(first[first.index("--session-id") + 1], SID)
         self.assertEqual(again[again.index("--resume") + 1], SID)
         self.assertNotIn("--session-id", again)
+
+
+class ReservationPatternTest(unittest.TestCase):
+    def test_matches_a_missing_test_and_not_a_passing_one(self) -> None:
+        case = runner.load_cases(["done-over-reservation"])["done-over-reservation"]
+        pattern = next(g["pattern"] for g in case["graders"] if g["name"] == "reservation in evidence")
+        import re
+        for said in ("Tests: missing from the change.", "The change adds no test for a quantity above one.",
+                     "Closed without a test, at the learner's word."):
+            self.assertRegex(said.lower(), pattern, said)
+        for said in ("Verifier: 1 passed; the held test passed.", "Run the test command."):
+            self.assertIsNone(re.search(pattern, said, re.IGNORECASE), said)
 
 
 class RunnerTest(unittest.TestCase):

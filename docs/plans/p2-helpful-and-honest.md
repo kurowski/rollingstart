@@ -165,7 +165,7 @@ run read. PR #41.
 
 ---
 
-### 2.4 — The helpful half [PENDING]
+### 2.4 — The helpful half [COMPLETE]
 
 The cases that keep the tutor helpful, most of them. Branch
 `p2.4/helpful`; depends on 2.3. Each is a seeded state and one learner
@@ -186,6 +186,22 @@ once, located; the too-kind half of § 8's risk); **routes diverge**
 lessons from `next`, and neither is offered a region outside it). Any
 case that fails is a finding about a skill, fixed in this slice with
 the case as its test, or filed if it is larger.
+Done: ten cases under `evals/cases/`, 28 of 30 on Opus 5.5 at three
+runs each, and the two that failed passed nine of nine (with the
+third route case rerun alongside) once dealt with. One was the tutor's: `done` restated its
+reservation in a summary line and again at close, one run in three,
+against its own "say it once"; the skill now says once means once
+(rolling 0.3.0), and the case passed three of three after. The other
+was the case's: the route cases asked the tutor to tell the learner
+why it chose a lesson, which `next` does not do (the reason goes to
+a Route note), so the judge now reads the note. The two backgrounds
+with one destination diverged in every run: the payments engineer
+got `slot-overlap` first, the scheduling engineer `invoice-totals`,
+each starting with the region they did not know. #29 reproduced in
+the done case and became its own case, `close-leaves-the-task`,
+2.8's test, which fails until 2.8 lands. The harness grew seeded
+learner edits, a `learner_file` grader, and judge `notes`. About $7
+of tutor sessions in all. PR #42.
 
 ---
 
@@ -262,7 +278,8 @@ nothing. Done when: `done`'s close case runs `rolling-end-task` then
 is and where their work was kept; `rolling-show tree` says in words
 when a task is open and HEAD is not on its branch, with what is
 uncommitted, and `next`, `lesson` and `done` offer to put it right;
-tests cover the detection. Closes #29.
+tests cover the detection; and `evals/cases/close-leaves-the-task`,
+which reproduces #29 and fails until this lands, passes. Closes #29.
 
 ---
 

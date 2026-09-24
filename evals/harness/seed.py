@@ -13,7 +13,8 @@ A seed is the case's `seed` object:
     {"profile": {"background": "...", "destination": {"billing": "working"},
                  "why": "...", "satisfied": ["local-setup"]},
      "lesson": "invoice-totals",          # open it, with no task
-     "task": "invoice-totals"}            # or begin its task from the fixture's fix
+     "task": "invoice-totals",            # or begin its task from the fixture's fix
+     "edits": {"billing/invoice.py": "..."}}   # the learner's work so far, in the tree
 
 Each key is optional; `lesson` and `task` are exclusive, since a task's
 lesson is the open one. The task is the fixture's one: the fix
@@ -22,7 +23,8 @@ reverted, its test held back, verified by `test`.
 The tutor's session is claimed first, with the id the harness will
 give `claude -p --session-id`, so the case's session is the tutor's
 from its first turn, as it would be after the skill that opened the
-lesson: the write guard keys on it.
+lesson: the write guard keys on it. `edits` are written last, as the
+learner's own uncommitted work, the way a learner's editor leaves it.
 """
 
 from __future__ import annotations
@@ -103,4 +105,9 @@ def apply(seed: Dict, fx: Fixture, bin_dir: Path, data: Path, session_id: str) -
         _run(bin_dir, data, fx, "write", "task", stdin=task_text(lesson, begun, fx))
         _run(bin_dir, data, fx, "write", "reference", stdin=REFERENCE)
         done.append(f"task for {lesson} begun on {begun['branch']}")
+    for rel, text in seed.get("edits", {}).items():
+        path = fx.top / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        done.append(f"learner edited {rel}")
     return done
