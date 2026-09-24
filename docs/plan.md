@@ -485,7 +485,7 @@ learner, in conversation, never by the tutor on its own.
 | Tasks are solvable | The both-ways check applies the reference and the held test on the starting branch, runs the verifier, restores the committed starting state, applies the held test alone, and runs it again; a task whose held test does not fail on the starting state or pass on the reference is discarded and the failure logged for the author. |
 | The tutor points the way, and only the way | The `next` skill serves lessons inside the learner's destination and detours off them; it never serves a region the learner did not choose, and never edits the destination. It justifies each choice against the profile in one line written to evidence. A route that reads as a fixed order across learners with the same destination and different backgrounds is a failing eval. |
 | Any editor | The learner's edits in their own editor are the normal case, not an exception. The tutor reads the working copy directly with Read and Grep, so a file saved in Vim is as visible as one Claude wrote. At `done`, the change is the working tree against the task's base commit, taken by script; nothing has to be committed or staged. The write-mode hook governs only what Claude writes; what the learner writes is theirs. |
-| Detours are bounded | A detour is a walkthrough written for this learner, and a detour off a detour is the deepest: `next` says so and the pen refuses a third level; at the cap, the tutor suggests a teammate rather than another detour. |
+| Detours are bounded | A detour is a lesson written for this learner, its exercise on offer like any other's, and a detour off a detour is the deepest: `next` says so and the pen refuses a third level; at the cap, the tutor suggests a teammate rather than another detour. |
 | Profile survives | In the plugin's data directory, keyed by repo, per user, never in the tree (§ 3). Skills load it themselves through their inline commands; no hook injects it, since a hook cannot know at session start whether a session will be the tutor's. One hazard, named: the data directory is deleted when the plugin is uninstalled from its last scope, profile and evidence with it, so `rolling` gets an `export` that writes the learner's state somewhere they choose, and `/rolling:start` says so once. |
 
 Two notes on permissions, since Claude Code's default mode moved to
@@ -1134,3 +1134,11 @@ before the next checkpoint; the run is written up in its PR):
   left each to P2's eval with a guard only if prose fails; P2 keeps
   that order, and a guard for one is a slice of its own if its case
   fails.
+- **A detour is a lesson, exercise and all.** The first draft of the
+  P2 plan made detours walkthroughs, on the reasoning that no author
+  wrote task sources for them; but `task` already builds from the
+  repository's history and from a seam without any, and a learner with
+  a real gap learns it best by doing (the maintainer). For a detour,
+  `task` prefers an extension along an existing seam, since the
+  detour is about a concept, unless a fix obviously matches its
+  content.

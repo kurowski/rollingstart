@@ -69,7 +69,7 @@ could never have failed is not served.
 | Each case is one learner turn on a seeded state | A case's scaffold builds the fixture repository, the learner's directory, and the open lesson or task the case needs, by running the toolkit's own commands; the prompt is the learner's one line | Plugin eval takes a prompt, not a conversation. Seeding the state the toolkit would have written is cheaper and more repeatable than driving a conversation to it, and it tests the turn that matters. A case that truly needs two turns uses the § 6 fallback (`claude -p --resume` in a small script), if 2.2 finds no native form. |
 | The fixture is a small repository built by the scaffold, not Rallly | A few-file Python project with a git history (a fix commit to build a task from), a `.rolling/` map with the generic regions `billing`, `scheduling`, and `platform`, and `python3 -m unittest` as its one command; Rallly only for the exit's detour case | Python is the one runtime the toolkit already requires, so the fixture needs no toolchain and runs in the eval sandbox in seconds. The helpfulness properties do not depend on the codebase; the detour's grounding does, which is why the exit case uses Rallly at its pin. |
 | Evals run by hand, not in CI | On a skill change that could move behaviour, on a new model, and at each checkpoint's exit, with the report linked from the PR or the retrospective | Each case is several `claude` runs on a real credential; CI has neither the credential nor the budget, and a flaky nightly teaches everyone to ignore it. The gate stays deterministic. |
-| Detours are walkthroughs, and the cap is two deep | A detour is a lesson file with `exercise: none`, written by the tutor into the learner's `detours/`, grounded in files and lines of the repository; `next` offers one when a lesson's `assumes` or the walkthrough shows a gap against the background; a detour off a detour is the deepest; at the cap the tutor says so and suggests a teammate | A detour exists to fill in what a lesson leans on, which a walkthrough does; building and proving an exercise for a lesson with no author-written task sources is a larger problem than P2 needs to solve. Two deep allows the natural chain (the lesson leans on an ORM, the ORM on SQL) and stops the regress. The cap is `next`'s prose and the pen's refusal to write a third level, since breaking it costs nobody anything a script must stop. |
+| A detour is a lesson, exercise and all, and the cap is two deep | A detour is a lesson file written by the tutor into the learner's `detours/`, grounded in files and lines of the repository, with a walkthrough and then, as for any lesson, the offer of an exercise; `task` builds that exercise as an extension along an existing seam in the detour's pointer paths, unless a fix in the history obviously matches the detour's content, in which case the reverted fix; when nothing provable fits, the tutor says so and the detour ends at its walkthrough. `next` offers a detour when a lesson's `assumes` or the walkthrough shows a gap against the background; a detour off a detour is the deepest; at the cap the tutor says so and suggests a teammate | A learner with a real gap learns it best by doing, and the exercise stays an offer they may decline. No new machinery: `task` already builds from history and from a seam without author-written sources, and the both-ways proof guards a detour's task as it guards any other. A seam first, because a detour is about a concept, and an extension shaped by the concept exercises it directly, where a fix in the same files usually exercises something narrower; a fix that plainly is the concept is better still, being real work from the repository. Some gaps are general knowledge (SQL itself) that no change in the repository exercises well, and then a walkthrough is the honest answer. Two deep allows the natural chain (the lesson leans on an ORM, the ORM on SQL) and stops the regress. The cap is `next`'s prose and the pen's refusal to write a third level, since breaking it costs nobody anything a script must stop. |
 | The citation check flags, never blocks | `done` writes feedback to evidence in the shape § 5 names; `rolling-check-feedback` reads the entry and lists each cited `path:line` that does not exist in the working tree, inline, exit 0, before the tutor speaks again, and the tutor corrects or withdraws each | The honest form of "feedback is grounded" is that the learner is never shown a citation that points nowhere. A flag the tutor must answer is enough; the learner's lesson is never held on it. |
 | Quoted output is honesty prose plus an eval, not a hook | The skills say: quote only what a tool returned; an inference is said as one. An eval case (#30's shape) seeds a symptom whose cause lies outside what the tutor can observe. | A Stop hook could compare quoted blocks with the transcript's tool results, but code blocks in a reply are not reliably quotes, and a false flag in the learner's window is its own dishonesty. Measured first; built if it fails. |
 | The destructive hook asks, in every session | A PreToolUse handler on Bash, `rolling-destructive` (name to be settled in 2.6): resolve the map for the session's repository; if the command carries the head of an operation the map marks destructive (its words up to the first flag, matched at a command boundary), answer `ask` with the operation's name; silent otherwise, and silent with no map | § 5's second layer, and P5 relies on it for the coding session. The head, not the whole line, because `pnpm db:reset` without `--force` is the same reset. `ask` in `dontAsk` mode becomes a denial, which fails safe. |
@@ -186,17 +186,22 @@ Closes #30.
 A detour, offered and written for this learner, grounded in the
 repository, capped at two deep. Branch `p2.5/detours`; depends on 2.2
 for its case. Spec first: `docs/profile.md` § `detours/` (the file is
-a lesson with `exercise: none`, a `detour-of:` naming the lesson or
-detour it serves, and the gap it fills in the learner's words) and
-`docs/map.md`'s `assumes` paragraph. Then the pen (`rolling-write
-detour <slug>`, refusing a third level), `rolling-show` and
-`rolling-begin-lesson` treating a detour as a lesson, and `next` and
-`lesson` offering one: `next` against a lesson's `assumes`, `lesson`
-when the walkthrough turns one up, as an offer the learner may
-decline. Done when the tests cover the pen and the cap, a case on the
-fixture has a seeded background missing an `assumes` word and the
-tutor offers a detour for that word, and the learner's `## Satisfied`
-and destination are untouched by a detour.
+a lesson, with a `detour-of:` naming the lesson or detour it serves,
+the gap it fills in the learner's words, and pointer paths into the
+repository) and `docs/map.md`'s `assumes` paragraph. Then the pen
+(`rolling-write detour <slug>`, refusing a third level),
+`rolling-show`, `rolling-begin-lesson` and `rolling-begin-task`
+treating a detour as a lesson, `next` and `lesson` offering one
+(`next` against a lesson's `assumes`, `lesson` when the walkthrough
+turns one up, as an offer the learner may decline), and `task`
+preferring, for a detour, an extension along a seam in its pointer
+paths over a reverted fix unless a fix obviously matches the detour's
+content. Done when the tests cover the pen, the cap, and a task begun
+and ended on a detour; a case on the fixture has a seeded background
+missing an `assumes` word and the tutor offers a detour for that word;
+closing a detour, with or without its exercise, returns the learner to
+the lesson it serves; and the learner's `## Satisfied` and destination
+are untouched by a detour.
 
 ---
 
@@ -280,9 +285,6 @@ README are updated; the decisions worth keeping are in § 10, dated.
 - **`second-opinion`** (#38): backlog, open to debate. § 8's fallback if
   2.3's said-what-it-saw case cannot be held.
 - **`ask`**: dropped, not deferred.
-- **Exercises for detours**: a detour is a walkthrough in P2. An
-  exercise needs task sources nobody authored; P3's `mine` is where
-  they come from, if detours ever want them.
 - **Guards for the session stamp, shell writes in scope, the
   walkthrough's write window, and scaffold content**: built only if
   2.4's case for one fails.
