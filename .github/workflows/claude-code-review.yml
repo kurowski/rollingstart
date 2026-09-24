@@ -57,6 +57,13 @@ jobs:
           # and tool output, and this repository is public anyway.
           track_progress: true
           show_full_output: true
+          # The review skill launches its agents in the background, and in
+          # print mode the first result arrives before they finish; the
+          # action takes that result and exits (#1646), so PRs #39 and #41
+          # got a green check and no review. Disabling background tasks
+          # makes the Agent tool run in the foreground, and the session's
+          # one result is the finished review (probed locally, 2.1.281).
+          settings: '{"env": {"CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1"}}'
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
           prompt: '/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
