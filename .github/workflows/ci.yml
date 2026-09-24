@@ -36,7 +36,7 @@ jobs:
       - name: Which python
         run: python3 --version
       - name: Byte-compile with warnings as errors
-        run: python3 -W error -m compileall -q plugins/rolling/lib plugins/rolling/tests
+        run: python3 -W error -m compileall -q plugins/rolling/lib plugins/rolling/tests .github/scripts
       - name: Toolkit tests
         run: cd plugins/rolling/tests && python3 -W error::ResourceWarning -m unittest discover -s . -p 'test_*.py' -v
 
@@ -57,3 +57,16 @@ jobs:
         run: claude plugin validate --strict plugins/rallly
       - name: Check the rallly map
         run: plugins/rolling/bin/rolling-check-map plugins/rallly
+
+  versions:
+    # A change to a plugin reaches an installed learner only through a
+    # new version (/plugin update compares versions), so a pull request
+    # that changes one must bump it. See the script's header.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Every changed plugin has a new version
+        run: python3 .github/scripts/check-plugin-versions.py origin/${{ github.base_ref }}
