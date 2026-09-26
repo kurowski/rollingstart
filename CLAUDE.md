@@ -183,10 +183,14 @@ skill. The analogy the project started from stays in conversation.
   version in its `.claude-plugin/plugin.json`, in the same pull
   request: `/plugin update` compares versions, so an unbumped change
   never reaches a learner who installed before it. `rolling` takes a
-  minor bump per change until 1.0; a map plugin follows `docs/map.md`
-  (the target's release, a patch bump per change). The version lives
-  in `plugin.json` only, never in `marketplace.json`. CI's `versions`
-  job refuses a pull request that forgets.
+  patch bump when the bump is only to reach installed copies, which is
+  most changes; a change that adds a feature may warrant a minor bump,
+  and whether it does is the maintainer's call, so ask; a major bump
+  is not expected before P5 or P6 is finished, and is asked about
+  then. A map plugin follows `docs/map.md` (the target's release, a
+  patch bump per change). The version lives in `plugin.json` only,
+  never in `marketplace.json`. CI's `versions` job refuses a pull
+  request that forgets.
 - **Skills.** `disable-model-invocation: true` on every learner-facing
   skill except two: `lesson`, which gives the walkthrough or re-presents
   the open task and is how `next` and `task` hand off, and `task`,
