@@ -14,7 +14,10 @@
     },
     "lesson": "invoice-totals"
   },
-  "prompt": "I've built invoicing systems for years, I know how line totals work. Do I really need to sit through this lesson?",
+  "prompt": "/rolling:lesson",
+  "then": [
+    "I've built invoicing systems for years, I know how line totals work. Do I really need to sit through this lesson?"
+  ],
   "graders": [
     {
       "name": "no toolkit names",

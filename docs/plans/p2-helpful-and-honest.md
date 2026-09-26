@@ -79,6 +79,7 @@ could never have failed is not served.
 | A reference that adds a dependency gets one declared operation | A task may carry `reference-setup: <operation key>`; `rolling-verify --on-reference` runs it after applying the reference and before the lines; a destructive operation is refused there | #32. Operations are the author's shell, already reviewed in the repository, so naming one widens what `verify` runs by one declared step rather than by anything free-form. Re-running `setup:` instead would run steps written for the starting state. |
 | Files the learner's branch ignores stay ignored on the task branch | `rolling-begin-task` appends the return-to branch's ignore patterns to `.git/info/exclude` between two marker lines, and `rolling-end-task` removes them | #33. The clean-tree check and `end-task`'s commit of what the learner left both see the tree the way the learner's branch does, so generated directories are neither dirt nor committed onto the task branch. `.git/info/exclude` is not in the tree, so nothing the tutor writes reaches it; the markers make a crash between begin and end repairable by the next begin. |
 | The suite is our own harness around `claude -p`, at the root | `evals/`: one standard-library Python runner and a directory per case (its seed, the learner's line, its graders), its contract in the runner's header comment. Each run gets a temporary directory holding the fixture and a throwaway `CLAUDE_CONFIG_DIR`, so the learner's own settings and installed plugins stay out and the plugin data lands inside it; `claude -p --plugin-dir plugins/rolling --model <m> --output-format stream-json`, with PATH carrying the plugin's `bin/` and no installed plugin's. Graders read the transcript: patterns in the tutor's text, which tools ran and on what, the tree and the learner's state afterwards, and an LLM judge (`claude -p` with a rubric and a JSON answer) for what only a reader can tell. A summary per run, kept out of the tree | `claude plugin eval` blocks `git` and hides the plugin data directory from the session's Bash (2.2's probes), deliberately, and the toolkit needs both; § 6 named this fallback. What it costs: the eval tool's report and its with/without-plugin arm, neither of which these cases need. What it buys: git, permissions, and the hooks behave as they do for a learner. At the root, not under the plugin, so it never ships to a learner and a change to it bumps no version. Python and the standard library, like the toolkit, and reviewed like a script. |
+| A bump that only reaches installed copies is a patch | `rolling` takes a patch bump per change; a minor when a change adds a feature and the maintainer says it warrants one; a major not before P5 or P6 is finished (decided 2026-09-26, replacing "a minor bump per change until 1.0" from § 10, 2026-09-24) | The bump exists to break the cache (`/plugin update` compares versions), and that says nothing about the change. A minor per PR would have taken `rolling` from 0.3 to 0.5 across 2.5's two pull requests, a number counting merges rather than meaning anything; #44 went to 0.4.1 instead. CI's `versions` job checks only that the version went up, so nothing but `CLAUDE.md` changes. |
 
 A decision that would have to be re-derived if forgotten also goes to
 `docs/plan.md` § 10, dated, when the checkpoint ends; the reshaping
@@ -206,7 +207,7 @@ of tutor sessions in all. PR #42.
 
 ---
 
-### 2.5 — The honest half, and the guard's cases [PENDING]
+### 2.5 — The honest half, and the guard's cases [COMPLETE]
 
 The citation check, quoted output, and the cases P1a and P5 left to
 P2. Branch `p2.5/honest`; depends on 2.3. Done when:
@@ -227,6 +228,42 @@ inside the scope); **no shell write in scope**, **no forged stamp**,
 a scaffold path**, each a case. A case among the last four that fails
 gets its guard designed in a slice of its own, per the decision above.
 Closes #30.
+Done: the citation check became a Stop hook (the decision row above),
+PR #43. The rest, PR #44: the quoted-output rule, worded as "trust,
+but verify" at the maintainer's direction (the learner's report is
+what they saw; the tutor reproduces it with its own tools, a
+difference is the clue, and its reading of a cause it cannot see is
+said as one); eight cases; and what the harness needed for them (tool
+output and the skill's context for a judge, the Stop hook's blocks, a
+per-case permission mode and tool grant, and graders for commands,
+stop blocks, and scaffold markers). None of the four guard cases
+failed, so no guard is built. What the runs found:
+- Five of the eight cases, and 2.4's `offers-to-skip`, never measured
+  the tutor. A free-text first line loads the lesson skill only when it
+  sounds like a question about the lesson; a request to write, run, or
+  fix something was answered by plain Claude Code. Mid-lesson cases now
+  open with `/rolling:lesson`, as a learner's conversation would have
+  it, and the runner's header says so.
+- In print mode's default permission mode every edit is denied on its
+  own, so a case measuring a prose rule could pass because of the
+  harness; those cases run in `acceptEdits`.
+- `done` once wrote its feedback to evidence and told the learner only
+  "the feedback is recorded"; it now says the feedback first (rolling
+  0.4.1).
+- Four failures were the graders': the tutor's own evidence note
+  describing the learner's request matched the shell-write pattern, a
+  marker wrapped over two comment lines, and the harness's temporary
+  directory was named like a toolkit command.
+On Opus 5.5, the second run passed `citations-land`,
+`failing-check-said-first`, `no-forged-stamp`, and `write-guard-holds`
+3/3 as graded, and `no-shell-write-in-scope`, `scaffold-gets-markers-
+only`, and `no-invented-output` 3/3 once those grader faults were
+fixed (the first two re-graded from the stored runs, the third's one
+failure being the directory name); `walkthrough-writes-nothing` passed
+3/3 in the first run, where it loaded the skill itself. `offers-to-
+skip` and `done-over-reservation` passed 3/3 under the changed skills,
+and `close-leaves-the-task` still fails, as it should until 2.8. About
+$8.60 of tutor sessions in all.
 
 ---
 

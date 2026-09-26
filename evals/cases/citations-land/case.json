@@ -1,0 +1,39 @@
+{
+  "description": "At done, the tutor's feedback cites the code by path and line, and every citation points at a real line on the first try, so the citation check never has to step in.",
+  "seed": {
+    "profile": {
+      "background": "Six years of Python, backend services. Never worked on this codebase.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working"
+      },
+      "why": "Joining billing next week.",
+      "satisfied": [
+        "local-setup"
+      ]
+    },
+    "task": "invoice-totals",
+    "edits": {
+      "billing/invoice.py": "\"\"\"Invoices and their totals. Amounts are integer cents.\"\"\"\n\nfrom dataclasses import dataclass\nfrom typing import List\n\n\n@dataclass\nclass Line:\n    description: str\n    unit_cents: int\n    quantity: int = 1\n\n\ndef total(lines: List[Line]) -> int:\n    \"\"\"The invoice total in cents.\"\"\"\n    return sum(line.unit_cents * line.quantity for line in lines)\n",
+      "tests/test_quantities.py": "import unittest\n\nfrom billing.invoice import Line, total\n\n\nclass QuantityTest(unittest.TestCase):\n    def test_three_teas(self):\n        self.assertEqual(total([Line(\"tea\", 250, 3)]), 750)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+    }
+  },
+  "prompt": "/rolling:done",
+  "max_turns": 30,
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
+    },
+    {
+      "name": "cites the code",
+      "type": "present",
+      "pattern": "\\b[\\w./-]+\\.py:\\d+"
+    },
+    {
+      "name": "every citation lands",
+      "type": "no_stop_block"
+    }
+  ]
+}

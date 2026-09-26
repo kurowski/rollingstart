@@ -14,6 +14,7 @@ A seed is the case's `seed` object:
                  "why": "...", "satisfied": ["local-setup"]},
      "lesson": "invoice-totals",          # open it, with no task
      "task": "invoice-totals",            # or begin its task from the fixture's fix
+     "scaffold": ["tests/test_quantities.py"],   # with the task: paths it lets the tutor mark
      "edits": {"billing/invoice.py": "..."}}   # the learner's work so far, in the tree
 
 Each key is optional; `lesson` and `task` are exclusive, since a task's
@@ -32,7 +33,7 @@ from __future__ import annotations
 import os
 import subprocess
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 from .fixture import Fixture
 
@@ -60,13 +61,14 @@ def profile_text(p: Dict) -> str:
             f"## Destination\n{dest}\n\n## Why\n{p.get('why', '').strip()}\n\n## Satisfied\n{done}\n")
 
 
-def task_text(lesson: str, begun: Dict[str, str], fx: Fixture) -> str:
+def task_text(lesson: str, begun: Dict[str, str], fx: Fixture, scaffold: Iterable[str] = ()) -> str:
     held_line = f"test {fx.held}"
+    marks = "".join(f"scaffold: {p}\n" for p in scaffold)
     return (
         "---\n"
         f"lesson: {lesson}\nmode: write\nbranch: {begun['branch']}\nbase: {begun['base']}\n"
         f"return-to: {begun['return-to']}\nstarted: {STARTED}\nfix: {fx.fix}\n"
-        "scope: billing\nscope: tests\nverify: test\n"
+        f"scope: billing\nscope: tests\n{marks}verify: test\n"
         f"held: {fx.held}\nheld-verify: {held_line}\nexpect-fail-on-base: held-verify {held_line}\n"
         "---\n\n"
         "## Brief\n\nAn invoice with a line whose quantity is more than one comes out too low. "
@@ -91,6 +93,8 @@ def apply(seed: Dict, fx: Fixture, bin_dir: Path, data: Path, session_id: str) -
     session_id. Returns what was done, in words."""
     if "lesson" in seed and "task" in seed:
         raise SeedError("a seed opens a lesson or begins a task, not both")
+    if "scaffold" in seed and "task" not in seed:
+        raise SeedError("a scaffold belongs to a task")
     _run(bin_dir, data, fx, "claim-session", session_id)
     done = []
     if "profile" in seed:
@@ -102,7 +106,7 @@ def apply(seed: Dict, fx: Fixture, bin_dir: Path, data: Path, session_id: str) -
     if "task" in seed:
         lesson = seed["task"]
         begun = _fields(_run(bin_dir, data, fx, "begin-task", lesson, "--fix", fx.fix, "--held", fx.held))
-        _run(bin_dir, data, fx, "write", "task", stdin=task_text(lesson, begun, fx))
+        _run(bin_dir, data, fx, "write", "task", stdin=task_text(lesson, begun, fx, seed.get("scaffold", [])))
         _run(bin_dir, data, fx, "write", "reference", stdin=REFERENCE)
         done.append(f"task for {lesson} begun on {begun['branch']}")
     for rel, text in seed.get("edits", {}).items():

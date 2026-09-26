@@ -10,6 +10,8 @@ A case is a directory under `evals/cases/` holding `case.json`:
      "prompt": "the learner's line",
      "then": ["a follow-up line", ...],   # optional; each resumes the session
      "max_turns": 20,                     # optional, per learner line
+     "permission_mode": "acceptEdits",    # optional; the session's, as a learner might run it
+     "allowed_tools": ["Bash(python3 -m unittest*)"],   # optional; what a learner would approve
      "graders": [...]}                    # see harness/graders.py
 
 For each model, case, and run: a temporary directory with the fixture
@@ -17,6 +19,23 @@ For each model, case, and run: a temporary directory with the fixture
 through the toolkit, then one `claude -p` per learner line
 (harness/session.py), then the graders. A run passes when every grader
 does; a case passes on a model when every run does.
+
+A case that starts mid-lesson opens with the skill a learner would
+have in the conversation there (`"prompt": "/rolling:lesson"`, and the
+learner's line in `then`). A free-text first line reaches the tutor's
+rules only if the model chooses to load the lesson skill, which it does
+for a question about the lesson and not for a request to write, run,
+or fix something; then the run measures plain Claude Code, not the
+tutor (found 2026-09-26, five cases of eight). A skill typed as the
+prompt leaves no trace of its body in the stream, so a judge cannot
+see what its inline commands printed.
+
+A case that measures a rule the plan leaves to prose, not a hook (the
+walkthrough writes nothing, a scaffold gets only markers), sets
+`permission_mode` to `acceptEdits`: in the default mode print mode
+denies every edit on its own, and a case would pass because of the
+harness rather than the tutor. A learner in acceptEdits or auto mode
+has no such net.
 
 What a run leaves behind, under `evals/results/<stamp>/` (kept out of
 the tree by .gitignore): `summary.md`, a table of cases by model with
@@ -72,6 +91,10 @@ def case_faults(name: str, case: Dict) -> List[str]:
     faults = [f"{name}: {f}" for f in graders.check_case_graders(case.get("graders", []))]
     if not str(case.get("prompt", "")).strip():
         faults.append(f"{name}: no prompt")
+    if case.get("permission_mode", "") not in ("", "default", "acceptEdits", "auto", "dontAsk", "plan"):
+        faults.append(f"{name}: permission_mode {case['permission_mode']!r} is not one to measure in")
+    if not isinstance(case.get("allowed_tools", []), list):
+        faults.append(f"{name}: allowed_tools is not a list")
     if not isinstance(case.get("seed", {}), dict):
         faults.append(f"{name}: seed is not an object")
     return faults
@@ -89,7 +112,9 @@ def turn_problem(n: int, problem: Optional[str], got_result: bool) -> Optional[s
 
 
 def run_one(case: Dict, model: str, judge_model: str, token: str, out: Path, keep: bool) -> Dict:
-    root = Path(tempfile.mkdtemp(prefix="rolling-eval."))
+    # Not "rolling-": the tutor may rightly name the directory it ran
+    # in, and the toolkit-name graders would take it for one of its own.
+    root = Path(tempfile.mkdtemp(prefix="ledger-eval."))
     world = session.World(root=root, config=root / "config")
     world.config.mkdir()
     try:
@@ -101,7 +126,9 @@ def run_one(case: Dict, model: str, judge_model: str, token: str, out: Path, kee
         broken: List[str] = []
         lines = [case["prompt"], *case.get("then", [])]
         for i, line in enumerate(lines, 1):
-            cmd = session.turn_command(line, PLUGIN, model, sid, resume=i > 1, max_turns=int(case.get("max_turns", 20)))
+            cmd = session.turn_command(line, PLUGIN, model, sid, resume=i > 1, max_turns=int(case.get("max_turns", 20)),
+                                       permission_mode=str(case.get("permission_mode", "")),
+                                       allowed_tools=[str(x) for x in case.get("allowed_tools", [])])
             stream, problem = session.run_turn(fx.top, env, cmd, out / f"turn-{i}.jsonl", TURN_TIMEOUT)
             before = len(t.results)
             transcript.read(stream, prompt=line, into=t)

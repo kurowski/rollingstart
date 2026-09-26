@@ -53,6 +53,9 @@ task was open; that is expected.
   a point yet. Cite code where it stands in the working tree; a point
   about something the change removed cites the place it is missing
   from now.
+- Quote only what a tool returned: the report below, or a command you
+  ran. An explanation of why a check failed that goes beyond its
+  output is your inference, and you say it as one.
 - Read the rubric as the author wrote it and show the learner the
   parts of it you are reading against. The rubric is the author's; you
   do not add to it. It is a reviewer's checklist for the change, never
@@ -119,9 +122,11 @@ reservation, which you record.
 
 ## Recording
 
-Note a **Feedback** entry with `rolling-note <lesson>` (shape below):
-the verifier's summary line, your feedback as given, every point with
-its location and provenance, and the outcome. Then:
+Say your feedback to the learner first, in the conversation; the
+entry is the record of what you said, never a substitute for saying
+it. Then note a **Feedback** entry with `rolling-note <lesson>` (shape
+below): the verifier's summary line, your feedback as given, every
+point with its location and provenance, and the outcome. Then:
 
 - **Closed, because the learner said so:** rewrite the profile with
   `- <lesson> (<YYYY-MM-DD>)` appended under `## Satisfied` and nothing

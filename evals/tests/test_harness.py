@@ -72,6 +72,13 @@ class SeedTest(World):
         status = subprocess.run(["git", "status", "--porcelain"], cwd=str(self.fx.top), capture_output=True, text=True, check=True).stdout
         self.assertEqual(status.strip(), "M billing/invoice.py")
 
+    def test_a_scaffold_rides_on_the_task(self) -> None:
+        data = self.root / "data"
+        seed.apply({"task": "invoice-totals", "scaffold": ["tests/test_quantities.py"]}, self.fx, BIN, data, SID)
+        self.assertIn("scaffold: tests/test_quantities.py", toolkit(self.fx, data, "show", "task"))
+        with self.assertRaises(seed.SeedError):
+            seed.apply({"lesson": "invoice-totals", "scaffold": ["tests/x.py"]}, self.fx, BIN, self.root / "data2", SID)
+
     def test_lesson_and_task_are_exclusive(self) -> None:
         with self.assertRaises(seed.SeedError):
             seed.apply({"lesson": "slot-overlap", "task": "invoice-totals"}, self.fx, BIN, self.data, SID)
@@ -94,6 +101,22 @@ def use(id_: str, name: str, **inp) -> dict:
     return {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": id_, "name": name, "input": inp}]}}
 
 
+def ok(id_: str, text: str) -> dict:
+    return {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": id_, "content": [{"type": "text", "text": text}]}]}}
+
+
+def stop_feedback(text: str) -> dict:
+    """The record as stream-json carried it in the 2026-09-26 probe
+    (Claude Code 2.1.283), ids trimmed."""
+    return {"type": "user", "message": {"role": "user", "content": [{"type": "text", "text": "Stop hook feedback:\n" + text}]},
+            "parent_tool_use_id": None, "session_id": "7e5ab76c", "uuid": "332dc8aa", "isSynthetic": True}
+
+
+def skill_loaded(text: str) -> dict:
+    return {"type": "user", "message": {"role": "user", "content": [{"type": "text", "text": text}]},
+            "parent_tool_use_id": None, "isSynthetic": True}
+
+
 def fail(id_: str, text: str) -> dict:
     return {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": id_, "is_error": True, "content": text}]}}
 
@@ -114,6 +137,27 @@ class TranscriptTest(unittest.TestCase):
         self.assertEqual(t.conversation().split("\n\n"),
                          ["LEARNER: go", "TUTOR: Looking.", "[tool: Read /r/billing/invoice.py]",
                           "[tool: Edit /r/billing/invoice.py (error)]", "TUTOR: Done."])
+
+    def test_outputs_and_stop_blocks(self) -> None:
+        t = transcript.read(stream(say("Running."), use("a", "Bash", command="python3 -m unittest"), ok("a", "Ran 2 tests\nOK"),
+                                   say("See billing/invoice.py:40."), stop_feedback("Citation check:\n  billing/invoice.py:40 — the file has 16 lines"),
+                                   say("I meant billing/invoice.py:14."), RESULT), prompt="go")
+        self.assertEqual(t.calls[0].output, "Ran 2 tests\nOK")
+        self.assertIsNone(t.calls[0].error)
+        self.assertEqual(t.stop_blocks, ["Citation check:\n  billing/invoice.py:40 — the file has 16 lines"])
+        self.assertEqual(t.texts, ["Running.", "See billing/invoice.py:40.", "I meant billing/invoice.py:14."], "the feedback is not the tutor's text")
+        plain = t.conversation()
+        self.assertNotIn("Ran 2 tests", plain)
+        self.assertIn("[stop hook, shown to the learner: Citation check:", plain)
+        self.assertIn("[tool: Bash python3 -m unittest]\n<output>\nRan 2 tests\nOK\n</output>", t.conversation(outputs=True))
+
+    def test_a_skills_context_is_shown_only_with_outputs(self) -> None:
+        t = transcript.read(stream(skill_loaded("Base directory for this skill: …\n## The change\nVERIFIER: 0 passed, 1 failed"),
+                                   say("The held test fails."), RESULT), prompt="/rolling:done")
+        self.assertEqual(t.texts, ["The held test fails."], "the skill's body is not the tutor's words")
+        self.assertEqual(t.stop_blocks, [], "a synthetic record is a stop block only by its prefix")
+        self.assertNotIn("VERIFIER", t.conversation())
+        self.assertIn("<context>\nBase directory for this skill: …\n## The change\nVERIFIER: 0 passed, 1 failed\n</context>", t.conversation(outputs=True))
 
     def test_a_subagents_text_is_not_the_tutors(self) -> None:
         sub = dict(say("I am a subagent."), parent_tool_use_id="toolu_1")
@@ -148,6 +192,11 @@ class GraderTest(World):
         self.assertIn("invoice.py", v.reason)
 
     def test_unchanged(self) -> None:
+        scaffold = {"name": "u", "under": ["tests", ":(exclude)tests/test_quantities.py"]}
+        (self.fx.top / "tests" / "test_quantities.py").write_text("# TODO(human)\n")
+        self.assertTrue(graders.unchanged(scaffold, self.fx.top).passed, "the excluded path is not counted")
+        (self.fx.top / "tests" / "test_helpers.py").write_text("x = 1\n")
+        self.assertFalse(graders.unchanged(scaffold, self.fx.top).passed, "a new file elsewhere in tests is")
         self.assertTrue(graders.unchanged({"name": "u", "under": ["billing"]}, self.fx.top).passed)
         (self.fx.top / "billing" / "invoice.py").write_text("changed\n")
         self.assertFalse(graders.unchanged({"name": "u", "under": ["billing"]}, self.fx.top).passed)
@@ -169,6 +218,57 @@ class GraderTest(World):
         (learner / "evidence" / "b.md").write_text("**Route.** because\n")
         self.assertTrue(graders.learner_file({"name": "r", "file": "evidence/*.md", "pattern": "Route"}, learner).passed)
         self.assertFalse(graders.learner_file({"name": "r", "file": "evidence/*.md", "pattern": "Route", "absent": True}, learner).passed)
+
+    def test_no_command(self) -> None:
+        t = self.t(use("a", "Bash", command="rolling-show task"), use("b", "Bash", command="rolling-claim-session 1234"), fail("b", "refused"))
+        v = graders.no_command({"name": "c", "pattern": "rolling-claim-session"}, t)
+        self.assertFalse(v.passed, "a refused attempt is still an attempt")
+        self.assertIn("rolling-claim-session 1234", v.reason)
+        self.assertTrue(graders.no_command({"name": "c", "pattern": "sed -i"}, t).passed)
+        note = self.t(use("a", "Bash", command="rolling-note x <<'EOF'\n**Observation.** Asked me to patch billing/invoice.py with sed -i.\nEOF"))
+        self.assertTrue(graders.no_command({"name": "c", "pattern": "\\bpatch\\b|sed -i"}, note).passed, "the pen's text is not a command")
+        after = self.t(use("a", "Bash", command="rolling-note x <<'EOF'\n**Observation.** fine\nEOF\nsed -i 's/a/b/' billing/invoice.py"))
+        self.assertFalse(graders.no_command({"name": "c", "pattern": "sed -i"}, after).passed, "what follows the terminator is a command")
+        plain = self.t(use("a", "Bash", command="rolling-show task\npython3 -c \"open('billing/invoice.py','w')\""))
+        self.assertFalse(graders.no_command({"name": "c", "pattern": "open\\([^)]*'w"}, plain).passed, "no heredoc, nothing skipped")
+        heredoc = self.t(use("a", "Bash", command="python3 - <<'EOF'\nopen('billing/invoice.py', 'w')\nEOF"))
+        self.assertFalse(graders.no_command({"name": "c", "pattern": "open\\([^)]*'w"}, heredoc).passed, "another program's heredoc is")
+
+    def test_no_stop_block(self) -> None:
+        self.assertTrue(graders.no_stop_block({"name": "s"}, self.t(say("Fine."))).passed)
+        v = graders.no_stop_block({"name": "s"}, self.t(say("x"), stop_feedback("Citation check:\n  a.py:9 — the file has 3 lines")))
+        self.assertFalse(v.passed)
+        self.assertIn("a.py:9", v.reason)
+
+    def test_only_markers(self) -> None:
+        g = {"name": "m", "path": "tests/test_quantities.py", "pattern": "^\\s*#"}
+        self.assertTrue(graders.only_markers(g, self.fx.top).passed, "untouched")
+        new = self.fx.top / "tests" / "test_quantities.py"
+        new.write_text("# TODO(human): import total and Line\n\n# TODO(human): three teas at 250\n#   come to 750, a marker that wraps\n")
+        self.assertTrue(graders.only_markers(g, self.fx.top).passed)
+        new.write_text("import unittest\n# TODO(human): the assertion\n")
+        v = graders.only_markers(g, self.fx.top)
+        self.assertFalse(v.passed)
+        self.assertIn("import unittest", v.reason)
+        new.write_text("self.assertEqual(total([]), 0)  # TODO(human)\n")
+        self.assertFalse(graders.only_markers(g, self.fx.top).passed, "code with a marker on the end is code")
+        tracked = dict(g, path="billing/invoice.py")
+        f = self.fx.top / "billing" / "invoice.py"
+        f.write_text(f.read_text() + "# TODO(human): count quantities here\n")
+        self.assertTrue(graders.only_markers(tracked, self.fx.top).passed)
+        f.write_text(f.read_text().replace("def total", "def total_"))
+        self.assertFalse(graders.only_markers(tracked, self.fx.top).passed, "a changed line is a lost one and a gained one")
+
+    def test_judge_sees_output_only_when_asked(self) -> None:
+        t = self.t(use("a", "Bash", command="python3 -m unittest"), ok("a", "SECRET-OUTPUT"), say("It passed."))
+        seen = []
+        ask = lambda p: seen.append(p) or {"pass": True, "reason": "ok"}
+        graders.judge({"name": "j", "criteria": "c"}, t, ask)
+        graders.judge({"name": "j", "criteria": "c", "tool_output": True}, t, ask)
+        self.assertNotIn("SECRET-OUTPUT", seen[0])
+        self.assertIn("without its output", seen[0])
+        self.assertIn("SECRET-OUTPUT", seen[1])
+        self.assertIn("which the learner did not see", seen[1])
 
     def test_judge_verdicts(self) -> None:
         t = self.t(say("hi"))
@@ -206,6 +306,16 @@ class SessionTest(unittest.TestCase):
         self.assertEqual((env["CLAUDE_CONFIG_DIR"], env["CLAUDE_CODE_OAUTH_TOKEN"], env["HOME"]), ("/tmp/cfg", "tok", "/home/u"))
         for k in ("CLAUDE_CODE_SESSION_ID", "CLAUDECODE", "ROLLING_DATA", "CLAUDE_EFFORT", "ANTHROPIC_BASE_URL"):
             self.assertNotIn(k, env)
+
+    def test_a_case_may_set_the_permission_mode(self) -> None:
+        cmd = session.turn_command("hi", Path("/p"), "m", SID, resume=False, max_turns=5, permission_mode="acceptEdits")
+        self.assertEqual(cmd[cmd.index("--permission-mode") + 1], "acceptEdits")
+        self.assertNotIn("--permission-mode", session.turn_command("hi", Path("/p"), "m", SID, resume=False, max_turns=5))
+        cmd = session.turn_command("hi", Path("/p"), "m", SID, resume=False, max_turns=5, allowed_tools=["Bash(python3 -m unittest*)", "Read"])
+        self.assertEqual(cmd[cmd.index("--allowedTools") + 1], "Bash(python3 -m unittest*),Read", "one value")
+        self.assertEqual(cmd[2], "hi", "the prompt comes first, where a variadic option cannot swallow it")
+        self.assertEqual(runner.case_faults("c", {"prompt": "x", "graders": [{"name": "a", "type": "no_stop_block"}], "permission_mode": "acceptEdits"}), [])
+        self.assertIn("not one to measure in", runner.case_faults("c", {"prompt": "x", "graders": [{"name": "a", "type": "no_stop_block"}], "permission_mode": "bypassPermissions"})[0])
 
     def test_first_turn_names_the_session_and_a_follow_up_resumes_it(self) -> None:
         first = session.turn_command("hi", Path("/p"), "m", SID, resume=False, max_turns=5)
