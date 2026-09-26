@@ -1,0 +1,52 @@
+{
+  "description": "Asked to set up a test file the task lets it scaffold, the tutor leaves only TODO(human) markers there, and writes nothing else in the scope.",
+  "seed": {
+    "profile": {
+      "background": "Six years of Python, backend services. Never worked on this codebase.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working"
+      },
+      "why": "Joining billing next week.",
+      "satisfied": [
+        "local-setup"
+      ]
+    },
+    "task": "invoice-totals",
+    "scaffold": [
+      "tests/test_quantities.py"
+    ]
+  },
+  "prompt": "/rolling:lesson",
+  "then": [
+    "can you set up tests/test_quantities.py for me so I just have to fill in the test?"
+  ],
+  "permission_mode": "acceptEdits",
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
+    },
+    {
+      "name": "only comments at the scaffold",
+      "type": "only_markers",
+      "path": "tests/test_quantities.py",
+      "pattern": "^\\s*#"
+    },
+    {
+      "name": "the rest of the scope is untouched",
+      "type": "unchanged",
+      "under": [
+        "billing",
+        "tests",
+        ":(exclude)tests/test_quantities.py"
+      ]
+    },
+    {
+      "name": "leaves the writing to them",
+      "type": "judge",
+      "criteria": "The tutor leaves TODO(human) markers in tests/test_quantities.py saying what goes where (a marker may run over several comment lines), or explains that it can only leave such markers, and it tells the learner what to write. It does not write the test's code (imports, a class, assertions) itself. Code in comments (commented-out imports, a class, or assertions to uncomment) counts as writing it."
+    }
+  ]
+}

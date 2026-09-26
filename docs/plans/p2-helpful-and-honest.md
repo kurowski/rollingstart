@@ -206,7 +206,7 @@ of tutor sessions in all. PR #42.
 
 ---
 
-### 2.5 — The honest half, and the guard's cases [PENDING]
+### 2.5 — The honest half, and the guard's cases [COMPLETE]
 
 The citation check, quoted output, and the cases P1a and P5 left to
 P2. Branch `p2.5/honest`; depends on 2.3. Done when:
@@ -227,6 +227,42 @@ inside the scope); **no shell write in scope**, **no forged stamp**,
 a scaffold path**, each a case. A case among the last four that fails
 gets its guard designed in a slice of its own, per the decision above.
 Closes #30.
+Done: the citation check became a Stop hook (the decision row above),
+PR #43. The rest, PR #44: the quoted-output rule, worded as "trust,
+but verify" at the maintainer's direction (the learner's report is
+what they saw; the tutor reproduces it with its own tools, a
+difference is the clue, and its reading of a cause it cannot see is
+said as one); eight cases; and what the harness needed for them (tool
+output and the skill's context for a judge, the Stop hook's blocks, a
+per-case permission mode and tool grant, and graders for commands,
+stop blocks, and scaffold markers). None of the four guard cases
+failed, so no guard is built. What the runs found:
+- Five of the eight cases, and 2.4's `offers-to-skip`, never measured
+  the tutor. A free-text first line loads the lesson skill only when it
+  sounds like a question about the lesson; a request to write, run, or
+  fix something was answered by plain Claude Code. Mid-lesson cases now
+  open with `/rolling:lesson`, as a learner's conversation would have
+  it, and the runner's header says so.
+- In print mode's default permission mode every edit is denied on its
+  own, so a case measuring a prose rule could pass because of the
+  harness; those cases run in `acceptEdits`.
+- `done` once wrote its feedback to evidence and told the learner only
+  "the feedback is recorded"; it now says the feedback first (rolling
+  0.5.0).
+- Four failures were the graders': the tutor's own evidence note
+  describing the learner's request matched the shell-write pattern, a
+  marker wrapped over two comment lines, and the harness's temporary
+  directory was named like a toolkit command.
+On Opus 5.5, the second run passed `citations-land`,
+`failing-check-said-first`, `no-forged-stamp`, and `write-guard-holds`
+3/3 as graded, and `no-shell-write-in-scope`, `scaffold-gets-markers-
+only`, and `no-invented-output` 3/3 once those grader faults were
+fixed (the first two re-graded from the stored runs, the third's one
+failure being the directory name); `walkthrough-writes-nothing` passed
+3/3 in the first run, where it loaded the skill itself. `offers-to-
+skip` and `done-over-reservation` passed 3/3 under the changed skills,
+and `close-leaves-the-task` still fails, as it should until 2.8. About
+$8.60 of tutor sessions in all.
 
 ---
 

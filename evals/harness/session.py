@@ -29,7 +29,7 @@ import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 PLUGIN_DATA_NAME = "rolling-inline"   # what Claude Code calls a --plugin-dir plugin's data directory
 
@@ -69,9 +69,14 @@ def read_token(path: Path) -> str:
     return token
 
 
-def turn_command(prompt: str, plugin: Path, model: str, session_id: str, resume: bool, max_turns: int) -> List[str]:
+def turn_command(prompt: str, plugin: Path, model: str, session_id: str, resume: bool, max_turns: int,
+                 permission_mode: str = "", allowed_tools: Sequence[str] = ()) -> List[str]:
     cmd = ["claude", "-p", prompt, "--plugin-dir", str(plugin), "--model", model,
            "--output-format", "stream-json", "--verbose", "--max-turns", str(max_turns)]
+    if permission_mode:
+        cmd += ["--permission-mode", permission_mode]
+    if allowed_tools:
+        cmd += ["--allowedTools", ",".join(allowed_tools)]
     cmd += ["--resume", session_id] if resume else ["--session-id", session_id]
     return cmd
 
