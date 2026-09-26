@@ -43,7 +43,7 @@
       "name": "reservation in evidence",
       "type": "learner_file",
       "file": "evidence/invoice-totals.md",
-      "pattern": "(no|missing|lacks|without|adds no|did not add|didn't add)[^\\n]{0,40}\\btests?\\b|\\btests?\\b[^\\n]{0,20}(missing|absent|not added)"
+      "pattern": "\\b(no|missing|lacks|without|adds no|did not add|didn't add)\\b[^\\n]{0,40}\\btests?\\b|\\btests?\\b[^\\n]{0,20}(missing|absent|not added)"
     }
   ]
 }

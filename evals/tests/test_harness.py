@@ -223,7 +223,8 @@ class ReservationPatternTest(unittest.TestCase):
         for said in ("Tests: missing from the change.", "The change adds no test for a quantity above one.",
                      "Closed without a test, at the learner's word."):
             self.assertRegex(said.lower(), pattern, said)
-        for said in ("Verifier: 1 passed; the held test passed.", "Run the test command."):
+        for said in ("Verifier: 1 passed; the held test passed.", "Run the test command.",
+                     "I noted the held test passed.", "It adds another test file."):
             self.assertIsNone(re.search(pattern, said, re.IGNORECASE), said)
 
 
