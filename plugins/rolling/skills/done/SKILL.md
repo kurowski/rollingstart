@@ -50,7 +50,9 @@ task was open; that is expected.
   what the rule is, and its provenance, either **this repository's
   convention** (say where the repository follows it) or **the
   language's or framework's norm**. A point you cannot locate is not
-  a point yet.
+  a point yet. Cite code where it stands in the working tree; a point
+  about something the change removed cites the place it is missing
+  from now.
 - Read the rubric as the author wrote it and show the learner the
   parts of it you are reading against. The rubric is the author's; you
   do not add to it. It is a reviewer's checklist for the change, never

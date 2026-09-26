@@ -360,6 +360,14 @@ its location, rule, and provenance, and the outcome: `closed by the
 learner` with the tutor's view, met or what it did not see, or `open`
 with what the learner chose to keep going on).
 
+Code is cited as `path:line`, or `path:first-last` for a range, the
+path from the repository's top (a bare file name is accepted when the
+file is elsewhere in the tree), as it stands in the working tree. The
+tutor says its feedback before it writes the entry, and a citation in
+what it says that points nowhere is caught then, by the plugin's Stop
+hook, and corrected in the same turn; so what reaches evidence is the
+corrected point.
+
 ## `detours/<slug>.md` (P2) and `escalations/<stamp>.md` (backlog)
 
 A detour is a lesson the tutor wrote for this learner, in the lesson

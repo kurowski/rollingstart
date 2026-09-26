@@ -152,6 +152,12 @@ class Repo:
         out = self.run_bytes("ls-files", "-z", "--others", "--exclude-standard").decode("utf-8", "surrogateescape")
         return [name for name in out.split("\0") if name]
 
+    def files(self) -> List[str]:
+        """Tracked and untracked files, ignored ones left out, by their
+        real names; a tracked file deleted from the tree is still listed."""
+        out = self.run_bytes("ls-files", "-z", "--cached", "--others", "--exclude-standard").decode("utf-8", "surrogateescape")
+        return [name for name in out.split("\0") if name]
+
     def branch_exists(self, name: str) -> bool:
         return self.ok("show-ref", "--verify", "-q", f"refs/heads/{name}")
 

@@ -59,6 +59,7 @@ first finishes any held-test revert a killed run left behind.
 |---|---|---|
 | `rolling-session-start` | the SessionStart hook | Exports `ROLLING_DATA` (this plugin's data directory) into the session's environment, so every later command can find the learner's directory. |
 | `rolling-guard` | the PreToolUse hook | The `write`-mode scope guard: denies the tutor an edit inside the open task's scope. |
+| `rolling-check-reply` | the Stop hook | Checks the `path:line` citations in the tutor's turn and, when one points nowhere, has the tutor correct it before the learner answers (Hooks, below). |
 | `rolling-allow` | the PreToolUse hook, on Bash and Skill | Allows one plain invocation of a toolkit executable (word arguments, the pen's quoted heredoc, a trailing `2>&1`; nothing chained, substituted, or redirected) and the two hand-off skills; silent about everything else, which the session's own permissions decide. What makes the install two `/plugin` lines and no settings. |
 | `rolling-show <what>` | skills, inline | One piece of context: `map`, `map-check` (where the map came from and its faults in words, `MAP: ok`, or `MAP: none` with what is installed), `lessons` (the index), `lesson [slug]`, `profile`, `task`, `reference` (the held answer: the notes and the diff, for the tutor to relay when the learner asks), `evidence [slug]` (what the tutor has noted about the open task's lesson, or the one named), `corpus`, `tree`, `state-dir`. Always exits 0. |
 | `rolling-claim-session <id>` | skills, inline | Records the session as the tutor's, in the open task or the `session` file. |
@@ -115,7 +116,7 @@ docker run --rm -v "$PWD/plugins:/w/plugins:ro" -w /w python:3.9-alpine sh -c '
 
 ## Hooks
 
-`hooks/hooks.json` registers two handlers, both Python in `bin/`:
+`hooks/hooks.json` registers four handlers, all Python in `bin/`:
 
 - **SessionStart** runs `rolling-session-start`, which exports the
   plugin's data directory into the session's environment (above).
@@ -132,3 +133,13 @@ docker run --rm -v "$PWD/plugins:/w/plugins:ro" -w /w python:3.9-alpine sh -c '
   state is allowed, including anything the handler cannot make sense of; the
   rule that must hold when the learner asks nicely is held by this
   hook, not by prose, and it holds in every permission mode.
+- **PreToolUse** on Bash and Skill runs `rolling-allow` (above).
+- **Stop** runs `rolling-check-reply`: when the tutor's session ends a
+  turn, every `path:line` the turn's text cites is checked against the
+  working tree, and if one points nowhere (no such file, or fewer lines
+  than cited) the stop is blocked with the flags as its reason, so the
+  tutor corrects or withdraws it in the same turn, before the learner
+  can answer. It errs silent on what may not be a path (a host, an
+  identifier, a counter at zero), never checks another session, never
+  blocks the turn after a correction, and lets the turn end on any
+  failure of its own.
