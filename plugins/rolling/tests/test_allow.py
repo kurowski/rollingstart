@@ -22,7 +22,7 @@ class ExecutablesTest(unittest.TestCase):
         self.assertIn("rolling-write", NAMES)
         self.assertIn("rolling-begin-task", NAMES)
         self.assertTrue(all(n.startswith("rolling-") for n in NAMES))
-        for handler in ("rolling-allow", "rolling-guard", "rolling-session-start"):
+        for handler in ("rolling-allow", "rolling-check-reply", "rolling-guard", "rolling-session-start"):
             self.assertNotIn(handler, NAMES, "hook handlers are run by hooks.json, never by the model")
         self.assertEqual(len(NAMES), 16)
 

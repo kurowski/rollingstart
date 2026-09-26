@@ -57,7 +57,7 @@ HANDOFF_SKILLS = ("rolling:lesson", "rolling:task")
 PREFIX = "rolling-"
 _FORBIDDEN = frozenset(";|&$`<>(){}\\")   # outside quotes
 _HEREDOC = re.compile(r"\s<<(-?)\s*(['\"])([A-Za-z_][A-Za-z0-9_]*)\2\s*$")
-_HOOK_HANDLERS = frozenset(("rolling-allow", "rolling-guard", "rolling-session-start"))
+_HOOK_HANDLERS = frozenset(("rolling-allow", "rolling-check-reply", "rolling-guard", "rolling-session-start"))
 _STDERR_TO_STDOUT = re.compile(r"\s2>&1\s*$")
 
 
