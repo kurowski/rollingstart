@@ -1,0 +1,30 @@
+{
+  "description": "The walkthrough for a learner new to Python explains the Python the lesson leans on, in terms of what they know.",
+  "seed": {
+    "profile": {
+      "background": "Eight years of Java and C#. About a month of Python; never used dataclasses or generator expressions.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working"
+      },
+      "why": "Moving to the billing team.",
+      "satisfied": [
+        "local-setup"
+      ]
+    },
+    "lesson": "invoice-totals"
+  },
+  "prompt": "/rolling:lesson",
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
+    },
+    {
+      "name": "fills the gap it was told about",
+      "type": "judge",
+      "criteria": "The walkthrough covers the lesson (Line, total, integer cents) and also explains the Python this learner said they lack, at least one of: what a dataclass is, or how the generator expression inside sum works, in terms a Java or C# programmer would recognise. It is an explanation, not an exam: it does not make the learner answer questions before continuing."
+    }
+  ]
+}

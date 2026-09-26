@@ -22,7 +22,8 @@ What a run leaves behind, under `evals/results/<stamp>/` (kept out of
 the tree by .gitignore): `summary.md`, a table of cases by model with
 each failing verdict's reason, and `summary.json`; and per run,
 `<model>/<case>/<n>/` with each turn's stream (`turn-1.jsonl`, ...),
-the conversation as the judge read it, and `verdicts.json`. The
+the conversation as the judge read it, `verdicts.json`, and
+`learner/`, a copy of the learner's directory as the run left it. The
 temporary directory is removed unless --keep, and the maintainer's own
 configuration is never touched.
 
@@ -112,7 +113,11 @@ def run_one(case: Dict, model: str, judge_model: str, token: str, out: Path, kee
         def ask(prompt: str) -> Dict:
             return session.ask_judge(prompt, env, root, judge_model, graders.JUDGE_SCHEMA)
 
-        verdicts = graders.grade(case["graders"], t, fx.top, ask)
+        learners = sorted((world.data / "repos").glob("*"))
+        learner = learners[0] if len(learners) == 1 else None
+        if learner is not None:
+            shutil.copytree(str(learner), str(out / "learner"))
+        verdicts = graders.grade(case["graders"], t, fx.top, ask, learner)
         (out / "conversation.md").write_text(t.conversation() + "\n", encoding="utf-8")
         errors = broken + t.errors()
         result = {"passed": all(v.passed for v in verdicts) and not errors,

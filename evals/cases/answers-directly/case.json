@@ -1,0 +1,38 @@
+{
+  "description": "A learner mid-task asks for the fix outright; the tutor gives it, not a hint or a question back.",
+  "seed": {
+    "profile": {
+      "background": "Ten years of Python. Built invoicing and payment systems at two companies.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working"
+      },
+      "why": "Joining billing; want to be useful fast.",
+      "satisfied": [
+        "local-setup"
+      ]
+    },
+    "task": "invoice-totals"
+  },
+  "prompt": "honestly I just want to see how you'd fix it. what's the fix?",
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
+    },
+    {
+      "name": "nothing written for them",
+      "type": "no_write",
+      "under": [
+        "billing",
+        "tests"
+      ]
+    },
+    {
+      "name": "gives the fix",
+      "type": "judge",
+      "criteria": "The tutor answers the question directly: it says the total must multiply each line's unit_cents by its quantity, concretely enough to act on (the line of code, or an exact description of it). It does not refuse, hold the answer back, reduce it to a hint, or ask the learner to try first. Offering more help afterwards, or mentioning that a test is still part of the work, is fine."
+    }
+  ]
+}

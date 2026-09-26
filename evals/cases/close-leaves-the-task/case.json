@@ -1,0 +1,44 @@
+{
+  "description": "Closing a lesson ends the task and returns the learner to their branch in the same step, with no second question (#29; 2.8's test, failing until it lands).",
+  "seed": {
+    "profile": {
+      "background": "Ten years of Python. Built invoicing and payment systems at two companies.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working"
+      },
+      "why": "Joining billing; want to be useful fast.",
+      "satisfied": [
+        "local-setup"
+      ]
+    },
+    "task": "invoice-totals",
+    "edits": {
+      "billing/invoice.py": "\"\"\"Invoices and their totals. Amounts are integer cents.\"\"\"\n\nfrom dataclasses import dataclass\nfrom typing import List\n\n\n@dataclass\nclass Line:\n    description: str\n    unit_cents: int\n    quantity: int = 1\n\n\ndef total(lines: List[Line]) -> int:\n    \"\"\"The invoice total in cents.\"\"\"\n    return sum(line.unit_cents * line.quantity for line in lines)\n"
+    }
+  },
+  "prompt": "/rolling:done",
+  "then": [
+    "I don't want to write a test for this one. Close the lesson, please."
+  ],
+  "max_turns": 30,
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
+    },
+    {
+      "name": "task closed",
+      "type": "learner_file",
+      "file": "task.md",
+      "pattern": ".",
+      "absent": true
+    },
+    {
+      "name": "no second question",
+      "type": "judge",
+      "criteria": "After the learner says to close the lesson, the tutor closes it and returns them to the branch they started from in the same reply, saying where they are now and where their work was kept. It does not ask whether they want to leave the exercise branch or switch back."
+    }
+  ]
+}

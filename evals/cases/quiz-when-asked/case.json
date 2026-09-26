@@ -1,0 +1,30 @@
+{
+  "description": "A learner who asks to be quizzed gets a walkthrough and then questions that check it.",
+  "seed": {
+    "profile": {
+      "background": "Eight years of Java and C#. About a month of Python; never used dataclasses or generator expressions.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working"
+      },
+      "why": "Moving to the billing team.",
+      "satisfied": [
+        "local-setup"
+      ]
+    },
+    "lesson": "invoice-totals"
+  },
+  "prompt": "Walk me through this lesson, and then quiz me with a couple of questions so I can check I've got it.",
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
+    },
+    {
+      "name": "quizzes on request",
+      "type": "judge",
+      "criteria": "The tutor walks through the lesson and then asks the learner at least one question that checks their understanding of its content (for example about quantities, integer cents, or how total is computed), as the learner asked."
+    }
+  ]
+}

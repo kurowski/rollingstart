@@ -10,6 +10,12 @@ read the transcript and the repository after the run:
         paths succeeded (a refused one is the guard holding, and passes)
     {"name": "...", "type": "unchanged", "under": ["billing"]}
         the working tree under those paths is as the seed left it
+    {"name": "...", "type": "learner_file", "file": "profile.md", "pattern": "<regex>"}
+        a file in the learner's directory, after the run, matches;
+        with "absent": true, no such file exists or none matches.
+        `file` may be a glob (`evidence/*.md`), and then any file it
+        names may match. The files: `lesson`, the open lesson's slug;
+        `evidence/<lesson>.md`; `profile.md`; `task.md`
 
 Patterns are Python regular expressions, matched case-insensitively.
 The judge is the one grader that reads like a person:
@@ -19,7 +25,10 @@ The judge is the one grader that reads like a person:
 It is `claude -p` with no tools, given the conversation as the learner
 saw it and the criteria, answering with JSON (`pass`, `reason`). It
 never sees the tutor's tool output, only which tools it called, since
-the question is always what the learner was told.
+the question is usually what the learner was told. When it is instead
+what the tutor recorded (`next`'s Route note, which the learner never
+sees), `"notes": "<glob>"` adds those files from the learner's
+directory, marked as the tutor's own notes.
 """
 
 from __future__ import annotations
@@ -73,6 +82,24 @@ def no_write(g: Dict, t: Transcript, top: Path) -> Verdict:
     return Verdict(g["name"], True, f"no write landed ({len(refused)} refused)" if refused else "no write attempted")
 
 
+def _learner_files(learner: Optional[Path], pattern: str) -> List[Path]:
+    return sorted(p for p in learner.glob(pattern) if p.is_file()) if learner else []
+
+
+def learner_file(g: Dict, learner: Optional[Path]) -> Verdict:
+    if learner is None:   # never a pass: an absence the harness could not look for is not an absence
+        return Verdict(g["name"], False, "no learner directory was found")
+    files = _learner_files(learner, g["file"])
+    want = not g.get("absent", False)
+    if not files:
+        return Verdict(g["name"], not want, f"{g['file']} does not exist")
+    for f in files:
+        found = re.search(g["pattern"], f.read_text(encoding="utf-8"), re.IGNORECASE | re.MULTILINE)
+        if found:
+            return Verdict(g["name"], want, f"found in {f.name}: {found.group(0)!r}")
+    return Verdict(g["name"], not want, f"not found in {', '.join(f.name for f in files)}")
+
+
 def unchanged(g: Dict, top: Path) -> Verdict:
     out = subprocess.run(["git", "status", "--porcelain", "--", *g["under"]], cwd=str(top),
                          capture_output=True, text=True, check=False).stdout.strip()
@@ -91,17 +118,26 @@ Answer with pass true only if the run clearly meets the criteria. In reason, quo
 
 <conversation>
 {conversation}
-</conversation>"""
+</conversation>{notes}"""
 
 
-def judge(g: Dict, t: Transcript, ask: Callable[[str], Dict]) -> Verdict:
-    answer = ask(JUDGE_PROMPT.format(criteria=g["criteria"].strip(), conversation=t.conversation()))
+def judge(g: Dict, t: Transcript, ask: Callable[[str], Dict], learner: Optional[Path] = None) -> Verdict:
+    notes = ""
+    if g.get("notes"):
+        files = _learner_files(learner, g["notes"])
+        if learner is None:
+            body = "(the learner directory was not found)"
+        else:
+            body = "\n\n".join(f"## {f.relative_to(learner)}\n{f.read_text(encoding='utf-8')}" for f in files) or "(none were written)"
+        notes = f"\n\n<tutor_notes description=\"what the tutor recorded for itself; the learner never sees these\">\n{body}\n</tutor_notes>"
+    answer = ask(JUDGE_PROMPT.format(criteria=g["criteria"].strip(), conversation=t.conversation(), notes=notes))
     if "pass" not in answer:
         return Verdict(g["name"], False, f"the judge did not answer: {answer.get('error', answer)}")
     return Verdict(g["name"], bool(answer["pass"]), str(answer.get("reason", "")))
 
 
-def grade(graders: List[Dict], t: Transcript, top: Path, ask: Optional[Callable[[str], Dict]]) -> List[Verdict]:
+def grade(graders: List[Dict], t: Transcript, top: Path, ask: Optional[Callable[[str], Dict]],
+          learner: Optional[Path] = None) -> List[Verdict]:
     out = []
     for g in graders:
         kind = g.get("type")
@@ -113,8 +149,10 @@ def grade(graders: List[Dict], t: Transcript, top: Path, ask: Optional[Callable[
             out.append(no_write(g, t, top))
         elif kind == "unchanged":
             out.append(unchanged(g, top))
+        elif kind == "learner_file":
+            out.append(learner_file(g, learner))
         elif kind == "judge":
-            out.append(judge(g, t, ask) if ask else Verdict(g["name"], False, "no judge available"))
+            out.append(judge(g, t, ask, learner) if ask else Verdict(g["name"], False, "no judge available"))
         else:
             raise CaseError(f"grader {g.get('name')!r} has unknown type {kind!r}")
     return out
@@ -124,7 +162,7 @@ def check_case_graders(graders: List[Dict]) -> List[str]:
     """Faults in a case's grader list, before anything runs."""
     faults = []
     need = {"absent": ("pattern",), "present": ("pattern",), "no_write": ("under",),
-            "unchanged": ("under",), "judge": ("criteria",)}
+            "unchanged": ("under",), "judge": ("criteria",), "learner_file": ("file", "pattern")}
     names = set()
     for i, g in enumerate(graders):
         name = g.get("name") or f"#{i + 1}"

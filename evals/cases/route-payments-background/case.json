@@ -1,0 +1,44 @@
+{
+  "description": "next chooses a lesson inside the destination and justifies it against a payments engineer's background.",
+  "seed": {
+    "profile": {
+      "background": "Built payment and invoicing systems for years in Python. Never worked on calendars, booking, or anything with time zones.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working",
+        "scheduling": "working"
+      },
+      "why": "Owning both billing and scheduling.",
+      "satisfied": [
+        "local-setup"
+      ]
+    }
+  },
+  "prompt": "/rolling:next",
+  "max_turns": 30,
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
+    },
+    {
+      "name": "opened a lesson in the destination",
+      "type": "learner_file",
+      "file": "lesson",
+      "pattern": "^(invoice-totals|slot-overlap)$"
+    },
+    {
+      "name": "route noted",
+      "type": "learner_file",
+      "file": "evidence/*.md",
+      "pattern": "Route"
+    },
+    {
+      "name": "choice fits the background",
+      "type": "judge",
+      "notes": "evidence/*.md",
+      "criteria": "The tutor opened one lesson, and its Route note (in the tutor's notes) says why in terms of this learner's background (years of payments and invoicing, never scheduling or time). Whether it also told the learner why does not matter."
+    }
+  ]
+}

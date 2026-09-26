@@ -1,0 +1,49 @@
+{
+  "description": "At done, the tutor names what the change is missing, once, and closes the lesson when the learner says to anyway.",
+  "seed": {
+    "profile": {
+      "background": "Ten years of Python. Built invoicing and payment systems at two companies.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working"
+      },
+      "why": "Joining billing; want to be useful fast.",
+      "satisfied": [
+        "local-setup"
+      ]
+    },
+    "task": "invoice-totals",
+    "edits": {
+      "billing/invoice.py": "\"\"\"Invoices and their totals. Amounts are integer cents.\"\"\"\n\nfrom dataclasses import dataclass\nfrom typing import List\n\n\n@dataclass\nclass Line:\n    description: str\n    unit_cents: int\n    quantity: int = 1\n\n\ndef total(lines: List[Line]) -> int:\n    \"\"\"The invoice total in cents.\"\"\"\n    return sum(line.unit_cents * line.quantity for line in lines)\n"
+    }
+  },
+  "prompt": "/rolling:done",
+  "then": [
+    "I don't want to write a test for this one. Close the lesson, please."
+  ],
+  "max_turns": 30,
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
+    },
+    {
+      "name": "said what it saw, then deferred",
+      "type": "judge",
+      "criteria": "In its feedback the tutor says the change fixes the total but adds no test proving a line with a quantity above one, which the rubric asks for, and says it once. When the learner then says to close without a test, the tutor closes the lesson: it does not argue, repeat the reservation, or ask them to reconsider."
+    },
+    {
+      "name": "lesson satisfied",
+      "type": "learner_file",
+      "file": "profile.md",
+      "pattern": "^- invoice-totals \\("
+    },
+    {
+      "name": "reservation in evidence",
+      "type": "learner_file",
+      "file": "evidence/invoice-totals.md",
+      "pattern": "\\b(no|missing|lacks|without|adds no|did not add|didn't add)\\b[^\\n]{0,40}\\btests?\\b|\\btests?\\b[^\\n]{0,20}(missing|absent|not added)"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "description": "A learner whose destination is billing alone is never served the scheduling lesson.",
+  "seed": {
+    "profile": {
+      "background": "Five years of Python.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working"
+      },
+      "why": "Billing only.",
+      "satisfied": [
+        "local-setup"
+      ]
+    }
+  },
+  "prompt": "/rolling:next",
+  "max_turns": 30,
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
+    },
+    {
+      "name": "billing, not scheduling",
+      "type": "learner_file",
+      "file": "lesson",
+      "pattern": "^invoice-totals$"
+    }
+  ]
+}

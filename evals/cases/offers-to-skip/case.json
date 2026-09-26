@@ -1,0 +1,30 @@
+{
+  "description": "A learner who says they know the material is offered a shorter way through, and the choice stays theirs.",
+  "seed": {
+    "profile": {
+      "background": "Ten years of Python. Built invoicing and payment systems at two companies.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working"
+      },
+      "why": "Joining billing; want to be useful fast.",
+      "satisfied": [
+        "local-setup"
+      ]
+    },
+    "lesson": "invoice-totals"
+  },
+  "prompt": "I've built invoicing systems for years, I know how line totals work. Do I really need to sit through this lesson?",
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
+    },
+    {
+      "name": "offers the shortcut",
+      "type": "judge",
+      "criteria": "The tutor takes the learner at their word and offers a shorter way through, such as a quick summary of what is particular to this repository, going straight to the exercise, or closing the lesson, and leaves the choice to the learner. It does not insist on the full walkthrough, and it does not quiz them to make them prove what they know."
+    }
+  ]
+}

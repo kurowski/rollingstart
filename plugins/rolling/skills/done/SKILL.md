@@ -70,7 +70,9 @@ task was open; that is expected.
   reservation, say it once, in a sentence, write it to evidence, and
   close the lesson anyway when they say so; a gap you recorded is one
   a later route can come back to, and that is the normal course of
-  tutoring.
+  tutoring. Once means once: not again in a summary after your
+  points, and not again when you close, since the learner has heard
+  it and the evidence holds it.
 - Do not fix the change yourself. Do not write inside the task's scope
   now either; it is still the learner's.
 - Never name a file of your own to the learner: not the task, the

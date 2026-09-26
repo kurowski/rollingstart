@@ -1,0 +1,30 @@
+{
+  "description": "The walkthrough for an experienced Python and invoicing engineer skips the basics.",
+  "seed": {
+    "profile": {
+      "background": "Ten years of Python. Built invoicing and payment systems at two companies.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working"
+      },
+      "why": "Joining billing; want to be useful fast.",
+      "satisfied": [
+        "local-setup"
+      ]
+    },
+    "lesson": "invoice-totals"
+  },
+  "prompt": "/rolling:lesson",
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
+    },
+    {
+      "name": "does not teach basics",
+      "type": "judge",
+      "criteria": "The walkthrough treats the learner as the experienced Python and invoicing engineer their background says they are: it does not explain basic Python (what a dataclass is, what sum or a generator expression does) and it is brisk. It may point out what is particular to this repository (integer cents, where total lives) and may offer to go straight to the exercise."
+    }
+  ]
+}
