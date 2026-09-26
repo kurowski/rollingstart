@@ -18,15 +18,16 @@ the repository, with at least that many lines. A bare file name
 (`invoice.py:14`) is found if any file of that name in the repository,
 at the top or below it, tracked or untracked and not ignored, has the
 line; a path the tree does not have as written is looked for below a
-directory it may have left out (`src/x.ts:9` for `apps/web/src/x.ts`).
-And a path is only called missing when it could have been one: a path
-whose first directory the tree does not have
-(`docker.io/library/python:3`) and a bare name no file carries
-(`self.total:5`, `db.example.com:5432`) are taken for something other
-than a file and pass silently. That is looser than it could be, on
-purpose: a false flag the tutor then "corrects" is its own dishonesty,
-so when in doubt this says nothing, and a citation invented whole is
-left to the eval.
+directory it may have left out (`src/x.ts:9` for `apps/web/src/x.ts`),
+and a path that climbs (`../api/x.ts:9`, written from a package
+directory) is looked for by what follows the climb. And a path is only
+called missing when it could have been one: a path whose first
+directory the tree does not have (`docker.io/library/python:3`) and a
+bare name no file carries (`self.total:5`, `db.example.com:5432`) are
+taken for something other than a file and pass silently. That is
+looser than it could be, on purpose: a false flag the tutor then
+"corrects" is its own dishonesty, so when in doubt this says nothing,
+and a citation invented whole is left to the eval.
 
 What it cannot tell is whether the line says what the tutor claims.
 That is the eval's to measure, not a script's.
@@ -89,9 +90,12 @@ def _verdicts(text: str, repo: Repo, away: Sequence[str] = ()) -> List[Tuple[Cit
     out: List[Tuple[Citation, Optional[str]]] = []
     for c in find(text):
         rel = posixpath.normpath(c.path)
-        if rel == ".." or rel.startswith("../"):
-            out.append((c, "outside the repository"))
-            continue
+        # Relative to a directory below the top (the session's, in a
+        # package): what is left after the climb is searched for like a
+        # path that left out its package directory.
+        climbed = rel.startswith("../")
+        while rel.startswith("../"):
+            rel = rel[3:]
         if any(a == rel or a.endswith("/" + rel) for a in away):
             continue
         if files is None:
@@ -102,8 +106,8 @@ def _verdicts(text: str, repo: Repo, away: Sequence[str] = ()) -> List[Tuple[Cit
         # change deleted is a candidate, and is then not there.
         here = (top / rel).exists() or rel in files
         candidates = sorted({p for p in files if p.endswith("/" + rel)} | ({rel} if here else set()))
-        if "/" in rel and (top / rel).exists():
-            candidates = [rel]
+        if "/" in rel and (top / rel).exists() and not climbed:
+            candidates = [rel]   # written from the top, so judged as written
         # Under a directory the tree has, a missing file is missing;
         # otherwise it is more likely a host, an image, or an attribute
         # (a counter at zero among them) than a file.

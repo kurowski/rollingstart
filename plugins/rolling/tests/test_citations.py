@@ -63,12 +63,25 @@ class CheckTest(WorldTest):
         self.w.write("src/v2.d/x.sh", "x\n")
         self.assertEqual(self.flags("src/v2.d:1"), ["src/v2.d:1 — a directory, not a file"])
 
-    def test_line_zero_and_outside(self):
+    def test_a_path_that_climbs(self):
+        """Written from a directory below the top, as a tutor in a package
+        might: what follows the climb is searched for, and a climb out of
+        the repository finds nothing and is silent."""
+        self.w.write("apps/api/src/handler.ts", "x\n" * 20)
+        self.assertEqual(self.flags("../api/src/handler.ts:12"), [])
+        self.assertEqual(self.flags("../api/src/handler.ts:30"), ["../api/src/handler.ts:30 — the file has 20 lines"])
+        self.assertEqual(self.flags("../../src/greet.sh:3"), [])
+        self.assertEqual(self.flags("../elsewhere/x.py:1"), [], "nothing of that name here")
+        self.assertEqual(self.flags("src/../../x.py:1"), [])
+        self.w.write("docs/README.md", "a\nb\nc\n")
+        self.w.write("apps/docs/README.md", "x\n" * 100)
+        self.assertEqual(self.flags("../docs/README.md:80"), [], "a climb was not written from the top, so the top's docs/ does not hide apps/docs/")
+        self.assertEqual(self.flags("docs/README.md:80"), ["docs/README.md:80 — the file has 3 lines"], "written from the top, judged as written")
+
+    def test_line_zero(self):
         self.assertEqual(self.flags("src/greet.sh:0"), ["src/greet.sh:0 — there is no line 0"])
         self.assertEqual(self.flags("greet.sh:0"), ["greet.sh:0 — there is no line 0"])
         self.assertEqual(self.flags("self.count:0, tests.failed:0, db.example.com:0"), [], "a counter at zero is not a file")
-        self.assertEqual(self.flags("../elsewhere/x.py:1"), ["../elsewhere/x.py:1 — outside the repository"])
-        self.assertEqual(self.flags("src/../../x.py:1"), ["src/../../x.py:1 — outside the repository"])
 
     def test_a_bare_name_is_found_anywhere_in_the_repository(self):
         self.assertEqual(self.flags("greet.sh:3"), [], "src/greet.sh has line 3")
