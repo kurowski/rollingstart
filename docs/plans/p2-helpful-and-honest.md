@@ -70,7 +70,7 @@ could never have failed is not served.
 | Each case is one learner turn on a seeded state | The harness builds the fixture repository, the learner's directory, and the open lesson or task the case needs, by running the toolkit's own commands; the prompt is the learner's one line; a case that needs a second turn resumes the session with `--resume` | Seeding the state the toolkit would have written is cheaper and more repeatable than driving a conversation to it, and it tests the turn that matters. |
 | The fixture is a small repository built by the harness, not Rallly | A few-file Python project with a git history (a fix commit to build a task from), a `.rolling/` map with the generic regions `billing`, `scheduling`, and `platform`, and `python3 -m unittest` as its one command; Rallly only for the exit's detour case | Python is the one runtime the toolkit already requires, so the fixture needs no toolchain and builds in seconds. The helpfulness properties do not depend on the codebase; the detour's grounding does, which is why the exit case uses Rallly at its pin. |
 | Evals run by hand, not in CI | On a skill change that could move behaviour, on a new model, and at each checkpoint's exit, with the report linked from the PR or the retrospective | Each case is several `claude` runs on a real credential; CI has neither the credential nor the budget, and a flaky nightly teaches everyone to ignore it. The gate stays deterministic. |
-| A detour is a lesson, exercise and all, and the cap is two deep | A detour is a lesson file written by the tutor into the learner's `detours/`, grounded in files and lines of the repository, with a walkthrough and then, as for any lesson, the offer of an exercise; `task` builds that exercise as an extension along an existing seam in the detour's pointer paths, unless a fix in the history obviously matches the detour's content, in which case the reverted fix; when nothing provable fits, the tutor says so and the detour ends at its walkthrough. `next` offers a detour when a lesson's `assumes` or the walkthrough shows a gap against the background; a detour off a detour is the deepest; at the cap the tutor says so and suggests a teammate | A learner with a real gap learns it best by doing, and the exercise stays an offer they may decline. No new machinery: `task` already builds from history and from a seam without author-written sources, and the both-ways proof guards a detour's task as it guards any other. A seam first, because a detour is about a concept, and an extension shaped by the concept exercises it directly, where a fix in the same files usually exercises something narrower; a fix that plainly is the concept is better still, being real work from the repository. Some gaps are general knowledge (SQL itself) that no change in the repository exercises well, and then a walkthrough is the honest answer. Two deep allows the natural chain (the lesson leans on an ORM, the ORM on SQL) and stops the regress. The cap is `next`'s prose and the pen's refusal to write a third level, since breaking it costs nobody anything a script must stop. |
+| A detour is a side-quest off the course, of up to three steps, and it may park the task | A detour is offered when the learner asks for one or shows a gap the work at hand needs, and taken only on their yes. It is a plan in the learner's `detours/`: the gap in their words, the lesson it returns to, and one to three steps, each either a lesson the tutor writes, grounded in the repository, or an author's lesson from outside the destination, named, not copied. A step is a lesson like any other, its exercise on offer. Taken mid-task, the task is parked first and resumed when the detour ends. A borrowed map lesson, once done, is written to `## Satisfied`; a tutor-written step never is; the destination is never touched. One detour at a time, none inside another; a gap that needs more than three steps is bigger than a detour, and the tutor says so and suggests a teammate (decided 2026-09-27, replacing the row that made a detour a single lesson, two deep) | The maintainer's concept: the evidence for a detour comes from inside a course, where the learner is stuck on something the lesson assumes, and the detour is a side trip that comes back to it. Its content may have to be written (TypeScript fundamentals for a map that assumes TypeScript) or may already exist in the map, in a region the learner did not choose (a platform lesson on a billing course). Several steps replace nesting: the lesson leaning on an ORM and the ORM on SQL is two steps of one detour, not a detour of a detour, which keeps one return point. Parking rather than walkthrough-only, because the gap usually shows mid-task, and a side-quest that cannot be done by doing is half of one. A borrowed lesson counts because it is the author's lesson, done; serving it again after the learner adds its region would waste their time. A tutor-written one does not, because no author has vouched for it. |
 | The citation check runs on the tutor's reply, in a Stop hook | When the tutor's session ends a turn, `rolling-check-reply` checks every `path:line` in the turn's text against the working tree; one that points nowhere (no such file, or fewer lines) blocks the stop with the flags as its reason, and the tutor corrects or withdraws it in the same turn. Errs silent on what may not be a path; never the turn after a correction; never another session. No `rolling-check-feedback` (decided 2026-09-26) | The honest form of "feedback is grounded" is that the learner never acts on a citation that points nowhere. `done` speaks before it writes evidence, since the outcome needs the learner's answer, so a check on the written entry comes a learner's message late, after they may have gone looking; checking a draft before speaking would cost the slowest turn a second copy of every point. The hook checks what the learner actually read, in every reply rather than only `done`'s, costs milliseconds when nothing is flagged (nearly always, since it can only tell that a line exists, not that it says what was claimed), and one short generation when something is. It flags a mistake of the tutor's and constrains nobody, so it is not a hint enforced by a script. |
 | Quoted output is honesty prose plus an eval, not a hook | The skills say: quote only what a tool returned; an inference is said as one. An eval case (#30's shape) seeds a symptom whose cause lies outside what the tutor can observe. | A Stop hook could compare quoted blocks with the transcript's tool results, but code blocks in a reply are not reliably quotes, and a false flag in the learner's window is its own dishonesty. Measured first; built if it fails. |
 | The destructive hook asks, in every session | A PreToolUse handler on Bash, `rolling-destructive` (name to be settled in 2.7): resolve the map for the session's repository; if the command carries the head of an operation the map marks destructive (its words up to the first flag, matched at a command boundary), answer `ask` with the operation's name; silent otherwise, and silent with no map | § 5's second layer, and P5 relies on it for the coding session. The head, not the whole line, because `pnpm db:reset` without `--force` is the same reset. `ask` in `dontAsk` mode becomes a denial, which fails safe. |
@@ -267,27 +267,53 @@ $8.60 of tutor sessions in all.
 
 ---
 
-### 2.6 — Detours [PENDING]
+### 2.6a — Park and resume a task [PENDING]
 
-A detour, offered and written for this learner, grounded in the
-repository, capped at two deep. Branch `p2.6/detours`; depends on 2.3
-for its case. Spec first: `docs/profile.md` § `detours/` (the file is
-a lesson, with a `detour-of:` naming the lesson or detour it serves,
-the gap it fills in the learner's words, and pointer paths into the
-repository) and `docs/map.md`'s `assumes` paragraph. Then the pen
-(`rolling-write detour <slug>`, refusing a third level),
-`rolling-show`, `rolling-begin-lesson` and `rolling-begin-task`
-treating a detour as a lesson, `next` and `lesson` offering one
-(`next` against a lesson's `assumes`, `lesson` when the walkthrough
-turns one up, as an offer the learner may decline), and `task`
-preferring, for a detour, an extension along a seam in its pointer
-paths over a reverted fix unless a fix obviously matches the detour's
-content. Done when the tests cover the pen, the cap, and a task begun
-and ended on a detour; a case on the fixture has a seeded background
-missing an `assumes` word and the tutor offers a detour for that word;
-closing a detour, with or without its exercise, returns the learner to
-the lesson it serves; and the learner's `## Satisfied` and destination
-are untouched by a detour.
+The toolkit half of detours: a task set aside and picked up again, with
+the learner's work kept. Branch `p2.6a/park`; depends on nothing new.
+`rolling-park-task` does to the tree what `rolling-end-task` does (the
+learner's uncommitted work committed on the task's branch, which is
+kept, and the learner returned to where they were), then moves the open
+task's files (the task, the reference and its patch, `held/`, and the
+lesson marker) into the learner's `parked/` instead of removing them;
+it refuses while something is already parked. `rolling-resume-task`
+refuses while a task is open or the tree is dirty, checks the parked
+task's branch still exists, switches to it, and moves the files back,
+with `return-to` rewritten to where the learner was when they resumed.
+`rolling-show task` says in words when a task is parked. Done when the
+tests cover park then resume with uncommitted work, a resume after
+other tasks in between (a detour's), a refused second park, a parked
+branch deleted by hand, and the held test never reaching the tree at
+any point; `docs/profile.md` names `parked/`; and the review is clean.
+
+---
+
+### 2.6b — Detours [PENDING]
+
+A side-quest off the course, of one to three steps, taken on the
+learner's yes (the decision above). Branch `p2.6b/detours`; depends on
+2.6a. Spec first: `docs/profile.md` § `detours/` and `docs/map.md`'s
+`assumes` paragraph. Then the pen (`rolling-write detour <slug>` for
+the plan, `rolling-write step <detour> <slug>` for a lesson the tutor
+writes), refusing a fourth step, a second open detour, a step slug
+that names a map lesson, and a pointer path not in the tree;
+`rolling-begin-detour`, which parks the open task if there is one,
+records the detour as open, and opens its first step; `rolling-show`,
+`rolling-begin-lesson`, and `rolling-begin-task` finding a step as they
+find a lesson; and `rolling-close-task` on a step opening the next one,
+or on the last step closing the detour and resuming the parked task or
+reopening the lesson it returns to. The skills: `lesson` offering a
+detour when the learner asks or the work shows a gap, with the steps it
+proposes; `next` offering one against a lesson's `assumes` before it
+starts; `task` preferring, for a tutor-written step, an extension along
+a seam in its pointer paths unless a fix obviously matches; `done`
+writing a borrowed map lesson to `## Satisfied` and never a
+tutor-written step. Done when the tests cover the pen and its
+refusals, and a detour begun mid-task that parks, runs a step with an
+exercise, and resumes the task; the destination is untouched
+throughout; and a case on the fixture, a learner whose background
+lacks what `invoice-totals` assumes and who shows it mid-task, is
+offered a detour for it and comes back to the task.
 
 ---
 

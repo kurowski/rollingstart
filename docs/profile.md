@@ -49,7 +49,10 @@ repository's tooling; that is the point of its location.
   sessions/<session id>.log  # a direct lesson's coding sessions (P5, 2.0)
   tasks/<lesson>/<stamp>.md  # tasks the tutor built and kept for reuse
   evidence/<lesson>.md     # feedback, observations, interventions, appended
-  detours/<slug>.md        # lessons the tutor created for this learner (P2)
+  detours/<slug>.md        # a detour's plan: the gap, where it returns, its steps (P2)
+  detours/<slug>/<step>.md # a step the tutor wrote, in the lesson format (P2)
+  open-detour              # the open detour's slug, while one is open (P2)
+  parked/                  # the task set aside while a detour runs: its task.md, reference, held/, lesson (P2)
   escalations/<stamp>.md   # what went to a human, with the trace (backlog)
 ```
 
@@ -368,12 +371,67 @@ what it says that points nowhere is caught then, by the plugin's Stop
 hook, and corrected in the same turn; so what reaches evidence is the
 corrected point.
 
-## `detours/<slug>.md` (P2) and `escalations/<stamp>.md` (backlog)
+## `detours/` (P2)
 
-A detour is a lesson the tutor wrote for this learner, in the lesson
-format, off the map; the author promotes the ones several learners
-needed. An escalation is what went to a human, with the trace. Neither
-is written in P1.
+A detour is a side-quest off the course: offered when the learner asks
+for one, or shows a gap in what the work at hand needs, and taken only
+on their yes. It is one to three steps, and each step is a lesson:
+either one the tutor writes for this learner, grounded in the
+repository, or an author's lesson from the map that lies outside the
+destination. When it ends, the learner is back where they left the
+course, in the task they were doing if they were doing one. The author
+may promote a detour several learners needed into the map (P3).
+
+```
+detours/
+  dataclasses.md             # the plan, written by rolling-write detour
+  dataclasses/
+    dataclass-basics.md      # a step the tutor wrote, by rolling-write step
+open-detour                  # the open detour's slug, one line, while one is open
+parked/                      # the task set aside while a detour runs (2.6a)
+```
+
+The plan:
+
+```markdown
+---
+gap: never used dataclasses; stuck on why Line has no __init__
+returns-to: invoice-totals
+steps:
+  - dataclass-basics
+  - local-dev-setup
+---
+
+Why these steps, in a sentence or two, as the tutor proposed them and
+the learner agreed.
+```
+
+- **`gap`** (required). What is missing, in the learner's words.
+- **`returns-to`** (required). The lesson the detour was taken from,
+  which is open again when it ends. Always a map lesson: there is no
+  detour inside a detour.
+- **`steps`** (required, one to three). In order. Each is a step the
+  tutor wrote under `detours/<slug>/`, or a map lesson's slug. The pen
+  refuses a fourth: a gap that needs more is bigger than a detour, and
+  the tutor says so and suggests a teammate.
+
+A step the tutor writes is a lesson in the format of `docs/map.md`,
+with `region` and `depth` those of the lesson it returns to, `requires`
+and `exercise` left out, and pointer paths into the repository in its
+body, each checked to be in the tree when it is written. Its slug may
+not name a map lesson. It is served like a map lesson, walkthrough and
+exercise, and `task` builds its exercise from a seam in its pointer
+paths unless a fix in the history obviously matches.
+
+When a step is done, `done` records it in evidence as any lesson. A
+borrowed map lesson is also written to `## Satisfied`: it is the
+author's lesson, done, and `next` should not serve it again if the
+learner later adds its region. A step the tutor wrote never is. The
+destination is never touched by a detour.
+
+## `escalations/<stamp>.md` (backlog)
+
+What went to a human, with the trace. Not written yet.
 
 ## Who writes what
 
