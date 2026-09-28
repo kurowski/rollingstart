@@ -372,8 +372,10 @@ is applied and before the lines, and refuses a destructive one; a
 directory ignored on the return-to branch and not on the starting
 state is neither dirt to the clean-tree check nor committed by
 `end-task`, and the exclude block is gone after `end-task` and
-replaced, not duplicated, by a second `begin-task`; tests for each
-against the scratch world, including a begin that fails part-way.
+replaced, not duplicated, by a second `begin-task`; a park and then a
+resume onto a branch with different ignore rules leave the block
+matching the branch `return-to` names; tests for each against the
+scratch world, including a begin that fails part-way.
 Closes #32, #33.
 
 ---

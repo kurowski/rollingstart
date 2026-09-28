@@ -399,7 +399,7 @@ gap: never used dataclasses; stuck on why Line has no __init__
 returns-to: invoice-totals
 steps:
   - dataclass-basics
-  - local-dev-setup
+  - shared-models
 ---
 
 Why these steps, in a sentence or two, as the tutor proposed them and
@@ -413,7 +413,10 @@ the learner agreed.
 - **`steps`** (required, one to three). In order. Each is a step the
   tutor wrote under `detours/<slug>/`, or a map lesson's slug. The pen
   refuses a fourth: a gap that needs more is bigger than a detour, and
-  the tutor says so and suggests a teammate.
+  the tutor says so and suggests a teammate. Above, `dataclass-basics`
+  is the tutor's own and `shared-models` is the author's: a `platform`
+  lesson at `working` depth, outside a destination of
+  `platform: orientation`.
 
 A step the tutor writes is a lesson in the format of `docs/map.md`,
 with `region` and `depth` those of the lesson it returns to, `requires`
