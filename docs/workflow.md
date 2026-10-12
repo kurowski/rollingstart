@@ -124,6 +124,12 @@ as a success report is not doing its job. Then tick the checkpoint in
 is, and read the next checkpoint's entry for what this one changed
 about it.
 
+This is also where a plugin's minor bump is asked about, once, with
+what the checkpoint gives a learner said in a sentence: the slices
+took patches, and whether the whole adds up to a version is the
+maintainer's call. A no is an ordinary answer; the number is the
+update channel, and nothing is waiting on it.
+
 ## Commit messages
 
 Write commit bodies you'd want a new hire to learn from: explain why,
