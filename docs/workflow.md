@@ -53,17 +53,27 @@ the spike's version and what `spike/NOTES.md` says went wrong with it.
    in `.github/workflows/ci.yml`.
 6. **Review.** Scripts and hooks: a code-review sub-agent on Opus over
    the outgoing diff, per `CLAUDE.md` § Rules, real findings fixed
-   before the push. Prose: a run on the Rallly clone, transcript read,
-   written up in the plan.
+   before the push. A finding that names no harm is declined in a
+   sentence rather than built around: `REVIEW.md` § Scope is the test,
+   and a guard against what costs nobody anything is code we do not
+   want. Prose: a run on the Rallly clone, transcript read, written up
+   in the plan.
 7. **PR.** Summary of what and why, a test plan, `Closes #N` if an
    issue exists. Then check that the automatic review posted, on every
    push: its findings, not only its job's status. A green review job
    has twice meant a review that said nothing (nine PRs of P1a ran the
    installer's no-op template; the second pass on #35 finished green
-   with its comment stuck at "in progress"). The maintainer merges, with a merge commit, never a
-   squash; the branch's own commits are the history. The PR flips
-   its own sub-scope to `[COMPLETE]` and records its number there:
-   the merge is what makes that true.
+   with its comment stuck at "in progress"). On a docs-only pull
+   request, read it if it has posted and let it go if it has not: a
+   spec bug it names is still worth fixing, waiting on it is not.
+   Acting on a review comment, a person's or the job's, is answered on
+   its own thread: what was taken, the commit that took it, any test;
+   for a declined one, why. The maintainer merges, with a merge
+   commit, never a squash; the branch's own commits are the history.
+   The PR flips its own sub-scope to `[COMPLETE]` and records its
+   number there: the merge is what makes that true, and the number is
+   known before the push — the latest issue or pull request plus one —
+   so the flip rides in the branch's last commit.
 
 A change that would be too large for one review (it crosses layers, or
 runs past a few hundred lines) is a base-chained stack: each slice
@@ -87,14 +97,16 @@ tell.
 
 Run it by hand, never in CI: on a change to a skill that could move
 the tutor's behaviour, on a new model, and at a checkpoint's exit.
-It costs real money and a few minutes a case. `evals/run --model
-<id>` for each model the audience uses, `--case <glob>` to run a few;
-a summary lands in `evals/results/<stamp>/summary.md`, which is
-ignored by git, and the PR or the retrospective quotes it. It needs a
-credential for the throwaway configuration each run uses: `claude
-setup-token`, saved to `~/.config/rolling-evals/token`, mode 600. The
-harness's own logic has unit tests in `evals/tests/`, and those are
-part of the gate.
+It costs real money and a few minutes a case, so a run is the
+maintainer's to authorise: say how many sessions and what they are
+likely to cost, then wait for the word; the checkpoint plan records
+what earlier runs actually cost. `evals/run --model <id>` for each
+model the audience uses, `--case <glob>` to run a few; a summary
+lands in `evals/results/<stamp>/summary.md`, which is ignored by git,
+and the PR or the retrospective quotes it. It needs a credential for
+the throwaway configuration each run uses: `claude setup-token`, saved
+to `~/.config/rolling-evals/token`, mode 600. The harness's own logic
+has unit tests in `evals/tests/`, and those are part of the gate.
 
 A failing case is a finding about a skill, or about the case. Read
 the run's `conversation.md` before deciding which.
