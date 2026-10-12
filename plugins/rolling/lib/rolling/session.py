@@ -8,7 +8,7 @@ import os
 import re
 import shlex
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from . import frontmatter as fm
 from .model import Learner
@@ -21,16 +21,28 @@ def is_session_id(s: str) -> bool:
 
 
 def claim(learner: Learner, session_id: str) -> str:
-    """Record SESSION_ID as the tutor's: in the open task's tutor-session
-    line when a task is open (added if missing; the rewrite is a
-    temporary file and a rename), else in the `session` file. Returns
-    the line to print; never raises."""
+    """Record SESSION_ID as the tutor's: in the `session` file always,
+    and in the open task's tutor-session line as well when a task is
+    open (added if missing; the rewrite is a temporary file and a
+    rename). Returns the line to print; never raises.
+
+    The file is written even while a task is open, which it was not
+    until 2.6a. Resuming a parked task has no open task to read, so it
+    learns the running session from the file and stamps it into the task
+    it reopens; a file left naming an older session would stamp that,
+    and the write guard fires only for a task stamped with the session
+    that is running. Keeping the file current costs one write and keeps
+    the guard aimed at the session the learner is talking to."""
     if not is_session_id(session_id):
         return "SESSION: not recorded (no session id, or one with characters outside [A-Za-z0-9-])"
     try:
         learner.dir.mkdir(parents=True, exist_ok=True)
     except OSError:
         return f"SESSION: not recorded (cannot create {learner.dir})"
+    # The open task's line first, because that is the one the write
+    # guard reads: a `session` file that cannot be written must not cost
+    # the stamp. Then the file, in every case, for the readers that run
+    # when no task is open.
     task = learner.task_file
     text: Optional[str] = None
     if task.is_file():
@@ -38,39 +50,62 @@ def claim(learner: Learner, session_id: str) -> str:
             text = task.read_text(encoding="utf-8", errors="surrogateescape")
         except OSError:
             text = None
-    if text is not None and fm.has_block(text):
+    open_task = text is not None and fm.has_block(text)
+    problems: List[str] = []
+    stamped_task = False
+    if open_task:
         try:
             tmp = task.with_name(".task.md.tmp")
-            tmp.write_text(stamped(text, session_id), encoding="utf-8", errors="surrogateescape")
+            tmp.write_text(stamped(text or "", session_id), encoding="utf-8", errors="surrogateescape")
             os.replace(tmp, task)
+            stamped_task = True
         except OSError:
-            return f"SESSION: not recorded (could not rewrite {task})"
-        return f"SESSION: {session_id} is the tutor (recorded in the open task)"
+            problems.append(f"could not rewrite {task}")
+    file_ok = True
+    file_problem = ""
     try:
         learner.session.write_text(session_id + "\n", encoding="utf-8")
     except OSError:
-        return f"SESSION: not recorded (could not write {learner.session})"
-    return f"SESSION: {session_id} is the tutor (no task open)"
+        file_ok = False
+        file_problem = f"could not write {learner.session}"
+        problems.append(file_problem)
+    # What counts as recorded is the open task's line when a task is
+    # open, because that is the one the guard reads, and the file when
+    # none is.
+    if not (stamped_task if open_task else file_ok):
+        return f"SESSION: not recorded ({'; '.join(problems)})"
+    where = "recorded in the open task" if open_task else "no task open"
+    # Not "a resume will refuse": the file keeps whatever it held, and a
+    # resume stamps what it reads there. Say the truth, which the tutor
+    # can act on, rather than a protection that is not there.
+    note = "" if file_ok else (
+        f"; {file_problem}, so it still names whatever it named before — a parked task resumed now would carry that, "
+        "and the write guard would not fire for this session"
+    )
+    return f"SESSION: {session_id} is the tutor ({where}){note}"
 
 
 def stamped(text: str, session_id: str) -> str:
     """TEXT with SESSION_ID as its tutor-session line: replacing the one
     it has, or added at the end of the frontmatter."""
-    lines = text.split("\n")
-    out = [lines[0]]
-    seen = closed = False
-    for line in lines[1:]:
-        bare = line.rstrip("\r")
-        if not closed and bare.startswith("tutor-session:"):
-            out.append(f"tutor-session: {session_id}")
-            seen = True
-            continue
-        if not closed and bare == "---":
-            if not seen:
-                out.append(f"tutor-session: {session_id}")
-            closed = True
-        out.append(line)
-    return "\n".join(out)
+    return fm.with_field(text, "tutor-session", session_id)
+
+
+def recorded(learner: Learner) -> str:
+    """The tutor's session as the learner's directory records it: the
+    open task's line while a task is open (claim keeps that one fresh),
+    else the `session` file. '' when neither holds a valid id. One
+    reading for every caller, since a second would drift."""
+    task = learner.task()
+    candidate = task.tutor_session if task is not None and task.tutor_session else _session_file(learner)
+    return candidate if is_session_id(candidate) else ""
+
+
+def _session_file(learner: Learner) -> str:
+    try:
+        return learner.session.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
 
 
 def export_data_dir(data_dir: str, env_file: Optional[str]) -> None:

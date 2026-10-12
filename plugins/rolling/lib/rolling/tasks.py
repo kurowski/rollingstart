@@ -1,6 +1,8 @@
 """The task's lifecycle in the repository: begin (the throwaway branch
 with the starting state committed), end (the learner's work committed
-there, the learner returned), close (the task's files removed).
+there, the learner returned), park and resume (the same leaving, with
+the task's files set aside and brought back), close (the task's files
+removed).
 
 Every rule about what may be done to the tree is here as a check that
 raises Refused with the message the tutor sees, and every check runs
@@ -10,12 +12,14 @@ half-way.
 
 from __future__ import annotations
 
+import os
 import shutil
 import time
 from dataclasses import dataclass, field
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Tuple
 
-from . import paths, rules
+from . import frontmatter as fm, paths, rules, session
 from .model import Learner, Task
 from .repo import GitError, Repo, literal
 
@@ -281,20 +285,25 @@ class Tasks:
 
     # ---- end
 
-    def end(self, task: Task) -> List[str]:
-        """Commit what the learner left on the task branch, keep the
-        branch, return them to where they were. Refuses unless HEAD is
-        the task branch: a learner who switched branches by hand has a
-        tree this code should not guess about."""
-        repo = self.repo
+    def _end_checks(self, task: Task) -> None:
+        """What leaving a task refuses, whether it is ended or parked,
+        before anything is written. Refuses unless HEAD is the task
+        branch: a learner who switched branches by hand has a tree this
+        code should not guess about."""
         if not task.branch or not task.return_to:
             raise Refused("task.md has no branch: or return-to: line; nothing to leave")
-        cur = repo.branch()
+        cur = self.repo.branch()
         if cur != task.branch:
             raise Refused(f"not on {task.branch} (on {cur or 'a detached HEAD'}); leaving nothing")
         words = task.return_to.split()
         if len(words) > 2:
             raise Refused(f"task.md return-to has {len(words)} words; expected '<ref> <sha>' or a sha")
+
+    def end(self, task: Task) -> List[str]:
+        """Commit what the learner left on the task branch, keep the
+        branch, return them to where they were."""
+        repo = self.repo
+        self._end_checks(task)
         out: List[str] = []
         index = repo.index_tree()   # how they had things staged, to put back if the commit fails
         try:
@@ -329,6 +338,197 @@ class Tasks:
 
     # ---- close
 
+    # ---- park and resume
+
+    def _parked_pairs(self) -> List[Tuple[Path, Path]]:
+        """Every file a parked task is made of, as (where it lives while
+        the task is open, where it waits while it is parked). task.md
+        leads, because it is what says a task is parked: a move that
+        stops part-way then leaves something a second resume finishes,
+        never an open task whose held test is somewhere else."""
+        l = self.learner
+        return [(p, l.parked / p.name) for p in (l.task_file, l.reference, l.patch, l.held, l.lesson_file)]
+
+    def park(self, task: Task) -> List[str]:
+        """Set the open task aside for a detour: what end does to the
+        tree (the learner's work committed on the branch, which is kept,
+        and the learner back where they were), and then the task's files
+        moved into parked/ rather than removed.
+
+        One task is parked at a time, so a second park is refused while
+        the first can still be resumed. A parked task whose branch the
+        learner has since deleted is not resumable and is replaced
+        instead: what it holds is a pointer to work that is gone, and a
+        pointer nobody can follow must not block every later detour."""
+        self._end_checks(task)
+        parked = self.learner.parked_task()
+        if parked is not None and parked.branch and self.repo.branch_exists(parked.branch):
+            raise Refused(
+                f"a task is already parked ({parked.lesson or 'no lesson named'}, on {parked.branch}); one is parked at a "
+                "time, so resume that one (rolling-resume-task) and end or finish it before parking this one"
+            )
+        out = self.end(task)
+        if _present(self.learner.parked):
+            if parked is not None:
+                out.append(
+                    f"the task parked before this one cannot be resumed: its branch {parked.branch or '(none named)'} is "
+                    "gone, so it is cleared and this one takes its place"
+                )
+            else:
+                out.append("what was parked could not be read as a task, so it is cleared and this one takes its place")
+            self._clear_parked()
+        return out + self._park_files(task)
+
+    def _park_files(self, task: Task) -> List[str]:
+        moved: List[str] = []
+        try:
+            self.learner.parked.mkdir(parents=True, exist_ok=True)
+            for live, aside in self._parked_pairs():
+                if not _present(live):
+                    continue
+                _replace(live, aside)
+                moved.append(live.name)
+        except OSError as e:
+            raise Refused(
+                f"their work is committed on {task.branch} and they are back where they were, but the task could not be "
+                f"set aside ({e}); moved: {', '.join(moved) or 'nothing'}. Say so; rolling-resume-task puts back what moved"
+            )
+        return [f"parked {task.lesson or 'the task'}; its files are set aside until rolling-resume-task"]
+
+    def resume(self, session_id: str) -> List[str]:
+        """Pick the parked task up again: back onto its branch, its files
+        back where they were, `return-to` rewritten to where the learner
+        was when they resumed and `tutor-session` to the session reading
+        it now. The write guard holds only for a task stamped with the
+        running session, so a resumed task carrying the old stamp would
+        leave the tutor free to write the learner's code; a resume with
+        no session recorded refuses, as the pen does.
+
+        A parked task whose branch is gone is cleared rather than
+        refused: the branch was the learner's to delete, and a pointer
+        nobody can follow would block every later detour. Running this
+        twice finishes a restore that stopped part-way, which is why
+        being on the parked task's own branch is not the refusal that
+        being on another task's is."""
+        repo, learner = self.repo, self.learner
+        parked = learner.parked_task()
+        if parked is None:
+            raise Refused("nothing is parked; rolling-park-task is what sets an open task aside")
+        open_task = learner.task()
+        if open_task is not None and open_task.branch != parked.branch:
+            raise Refused(
+                f"a task is open ({open_task.lesson or 'no lesson named'}); end it (rolling-end-task) or park it before "
+                "resuming the parked one"
+            )
+        if not parked.branch:
+            self._clear_parked()
+            return ["the parked task names no branch, so there is nothing to come back to; it is cleared"]
+        if not repo.branch_exists(parked.branch):
+            self._clear_parked()
+            return [
+                f"the branch {parked.branch} is gone, so {parked.lesson or 'the parked task'} cannot come back; it is cleared",
+                "nothing of the learner's was touched and nothing is open: the branch was theirs to delete",
+            ]
+        if not session.is_session_id(session_id):
+            raise Refused(
+                "the tutor's session is not recorded, and a resumed task carries it (the write guard holds only for the "
+                "session the task names); a skill's inline rolling-claim-session records it first"
+            )
+        cur = repo.branch()
+        switching = cur != parked.branch
+        if switching:
+            if repo.status():
+                raise Refused("the working tree is not clean; commit, stash, or discard first:\n" + "\n".join(repo.status()))
+            if cur and rules.is_task_branch(cur):
+                raise Refused(
+                    f"the repository is on {cur}, another task's branch; a task resumes from the learner's own branch. "
+                    f"Leave that one first (git switch <their branch>); say so and stop"
+                )
+            return_to = self._return_to()
+        else:
+            # A second run, finishing what the first could not. The first
+            # run wrote where the learner was into the parked copy before
+            # it switched, so that is still the answer; recomputing here
+            # would name the task's own branch as the place to go back to.
+            return_to = parked.return_to
+        pairs = self._parked_pairs()
+        task_live, task_aside = pairs[0]
+        # The two lines that belong to this run, into the copy still in
+        # parked/ and before any git write: a failure moves nothing, and
+        # a kill after it leaves a parked task that already knows where
+        # it returns to.
+        stamped = self._restamp(task_aside, return_to, session_id)
+        if switching:
+            try:
+                repo.switch(parked.branch)
+            except GitError as e:
+                raise Refused(f"could not switch to {parked.branch}: {e}\nnothing was moved and the task is still parked")
+        restored: List[str] = []
+        try:
+            # Everything but task.md, and task.md last: while it is still
+            # in parked/ a task is parked, so a run that stops here is
+            # finished by the next one, and once it has moved the task is
+            # open with everything it needs. The park moves the same list
+            # the other way round, for the same reason.
+            for live, aside in reversed(pairs[1:]):
+                if not _present(aside):
+                    continue
+                _replace(aside, live)
+                restored.append(live.name)
+        except OSError as e:
+            raise Refused(
+                f"the repository is on {parked.branch}, but the task could not be put back ({e}); restored: "
+                f"{', '.join(restored) or 'nothing'}. The task is still parked; say so — rolling-resume-task finishes "
+                "it once whatever stopped the move is out of the way"
+            )
+        out = [f"back on {parked.branch}; {parked.lesson or 'the task'} is open again, with their work as they left it"]
+        out += stamped
+        try:
+            _replace(task_aside, task_live)
+        except OSError as e:
+            raise Refused(
+                f"the repository is on {parked.branch} and the task's files are back, but the task itself could not be "
+                f"opened ({e}); it is still parked — say so, and rolling-resume-task finishes it once whatever is in the "
+                "way is gone"
+            )
+        self._clear_parked()
+        return out
+
+    def _restamp(self, task: Path, return_to: str, session_id: str) -> List[str]:
+        """The resumed task's two lines that belong to this run: where it
+        returns to now, and whose session it is. Written into the copy
+        still in parked/, before the switch and before the moves, so a
+        failure here leaves a parked task rather than an open one with
+        the wrong stamp, and a kill afterwards leaves one that knows
+        where it returns to without the next run having to guess.
+        Written as claim writes its own, through a temporary file and a
+        rename."""
+        try:
+            text = task.read_text(encoding="utf-8", errors="surrogateescape")
+            text = fm.with_field(fm.with_field(text, "return-to", return_to), "tutor-session", session_id)
+            tmp = task.with_name("." + task.name + ".tmp")
+            tmp.write_text(text, encoding="utf-8", errors="surrogateescape")
+            os.replace(tmp, task)
+        except OSError as e:
+            raise Refused(
+                f"the task's return-to and tutor-session lines could not be rewritten ({e}); nothing was moved and it is "
+                "still parked, so nothing is open and the write guard has nothing to be wrong about. Say so; a later "
+                "rolling-resume-task tries again"
+            )
+        return [f"return-to: {return_to}", f"tutor-session: {session_id}"]
+
+    def _clear_parked(self) -> None:
+        """Remove parked/, whatever is left in it. Best effort: what it
+        held has either been moved back or was unreachable, and a stale
+        directory is cleared by the next park either way."""
+        try:
+            if self.learner.parked.is_dir() and not self.learner.parked.is_symlink():
+                shutil.rmtree(self.learner.parked)
+            elif _present(self.learner.parked):
+                self.learner.parked.unlink()
+        except OSError:
+            pass
+
     def close(self) -> List[str]:
         """Remove task.md, reference.md, reference.patch, held/, and the
         open-lesson marker, and nothing else. Closing a lesson that never
@@ -352,6 +552,21 @@ class Tasks:
         return out
 
 
+
+
+def _present(p: Path) -> bool:
+    """Whether the path is there at all, a broken symbolic link included."""
+    return p.exists() or p.is_symlink()
+
+
+def _replace(src: Path, dst: Path) -> None:
+    """Move SRC onto DST, whatever is in the way: os.replace will not put
+    a file where a directory is, nor a directory where anything is."""
+    if dst.is_dir() and not dst.is_symlink():
+        shutil.rmtree(dst)
+    elif _present(dst):
+        dst.unlink()
+    os.replace(str(src), str(dst))
 
 
 def _unquote(name: str) -> str:

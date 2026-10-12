@@ -3,9 +3,9 @@
 Two exit conventions. A command a skill runs inline (show,
 claim-session, session-start, diff, verify, report) always exits 0 and
 reports in words, because a non-zero inline exit aborts the skill. A
-command a skill runs as an action (begin-task, end-task, the checks,
-close-task, export, write, note, keep-task) exits non-zero on refusal
-and says what it refused.
+command a skill runs as an action (begin-task, end-task, park-task,
+resume-task, close-task, the checks, export, write, note, keep-task)
+exits non-zero on refusal and says what it refused.
 """
 
 from __future__ import annotations
@@ -89,6 +89,21 @@ def repair_first(w: Where) -> bool:
 # ----------------------------------------------------------- inline
 
 
+def _parked_note(w: Where) -> str:
+    """What to say when no task is open: that one is parked and can be
+    picked up, or that its branch has gone and it cannot be, so the
+    tutor has the words either way."""
+    t = w.learner.parked_task()
+    if t is None:
+        return "(no open task)"
+    lesson = t.lesson or "a task"
+    if not t.branch:
+        return f"(no open task; {lesson} is parked, naming no branch, so it cannot be resumed)"
+    if not w.repo.branch_exists(t.branch):
+        return f"(no open task; {lesson} is parked on {t.branch}, and that branch is gone, so it cannot be resumed)"
+    return f"(no open task; {lesson} is parked on {t.branch}: rolling-resume-task picks it up)"
+
+
 def cmd_show(args: List[str]) -> int:
     usage = "usage: rolling-show map|map-check|lessons|lesson [slug]|profile|task|reference|evidence [slug]|corpus|tree|state-dir"
     what = args[0] if args else ""
@@ -141,7 +156,12 @@ def cmd_show(args: List[str]) -> int:
     elif what == "profile":
         say(_file_or(w.learner.profile, "(no profile: this is a new learner, or /rolling:start has not run)") if w.learner else f"({paths.NO_DATA_MSG})")
     elif what == "task":
-        say(_file_or(w.learner.task_file, "(no open task)") if w.learner else f"({paths.NO_DATA_MSG})")
+        if w.learner is None:
+            say(f"({paths.NO_DATA_MSG})")
+        elif w.learner.has_task():
+            say(_file_or(w.learner.task_file, "(no open task)"))
+        else:
+            say(_parked_note(w))
     elif what == "reference":
         # The held answer, for the tutor to relay when the learner asks for
         # it: the notes, then the diff itself (the fix's own change, or a
@@ -428,6 +448,31 @@ def cmd_end_task(args: List[str]) -> int:
     return 0
 
 
+def cmd_park_task(args: List[str]) -> int:
+    """rolling-park-task. The open task set aside for a detour: the tree
+    left as the end of any task leaves it, and the task's files moved
+    into parked/ instead of removed. One task is parked at a time."""
+    w = _need(locate())
+    if not repair_first(w):
+        raise Refused("a previous run could not be finished (see above); leaving nothing")
+    try:
+        t = Task.load(w.learner.task_file)
+    except LoadError as e:
+        raise Refused("no open task" if not w.learner.has_task() else f"task.md: {e.reason}")
+    say(*Tasks(w.repo, w.learner).park(t))
+    return 0
+
+
+def cmd_resume_task(args: List[str]) -> int:
+    """rolling-resume-task. The parked task picked up again, stamped with
+    this session because the write guard reads that stamp."""
+    w = _need(locate())
+    if not repair_first(w):
+        raise Refused("a previous run could not be finished (see above); nothing was resumed")
+    say(*Tasks(w.repo, w.learner).resume(session.recorded(w.learner)))
+    return 0
+
+
 def cmd_close_task(args: List[str]) -> int:
     w = locate()
     if w is None:
@@ -562,6 +607,7 @@ INLINE: Dict[str, Callable[[List[str]], int]] = {
 }
 ACTIONS: Dict[str, Callable[[List[str]], int]] = {
     "begin-task": cmd_begin_task, "begin-lesson": cmd_begin_lesson, "end-task": cmd_end_task, "close-task": cmd_close_task,
+    "park-task": cmd_park_task, "resume-task": cmd_resume_task,
     "export": cmd_export, "check-map": cmd_check_map, "check-profile": cmd_check_profile, "check-task": cmd_check_task,
     "write": cmd_write, "note": cmd_note, "keep-task": cmd_keep_task,
 }

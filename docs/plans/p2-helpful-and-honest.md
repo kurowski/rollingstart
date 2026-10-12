@@ -267,7 +267,7 @@ $8.60 of tutor sessions in all.
 
 ---
 
-### 2.6a — Park and resume a task [PENDING]
+### 2.6a — Park and resume a task [COMPLETE]
 
 The toolkit half of detours: a task set aside and picked up again,
 with the learner's work kept. Branch `p2.6a/park`; depends on nothing
@@ -301,6 +301,24 @@ detour's), a refused second park, a parked branch deleted by hand, the
 restamp and the refusal for want of a session, and the held test never
 reaching the tree at any point; `docs/profile.md` names `parked/`; and
 the review is clean.
+Done: `rolling-park-task` and `rolling-resume-task`, fifteen tests,
+PR #47. Three review rounds, each finding something the one before had
+introduced. The first: a resumed task carried a stale session, which
+turns the write guard off — the `rolling-claim-session` change above.
+The second: the cure wrote the `session` file before the task's own
+stamp, so a file that could not be written cost the stamp, and the
+restore walked its moves in the same direction as the park, erasing
+the marker first and stranding the held test in `parked/`. The third:
+the line the tutor reads promised a refusal the code does not make,
+and a second run of an interrupted resume sent the learner back to
+where the task began rather than where they were. So both orderings
+are the slice's shape: every check runs before any write, `task.md`
+moves first on the way out and last on the way back, and the two lines
+one run owns are written into the parked copy before the switch, where
+a failure moves nothing and the next run reads the answer instead of
+guessing. `fm.with_field` came out of `session.stamped` and got tests
+of its own; `session.recorded` is now the one reading of where the
+tutor's session id lives.
 
 ---
 

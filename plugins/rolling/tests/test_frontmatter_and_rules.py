@@ -165,5 +165,34 @@ class RulesTest(unittest.TestCase):
         self.assertEqual(paths.encode("/home/pat/café"), "-home-pat-caf--")
 
 
+class WithFieldTest(unittest.TestCase):
+    """What `session.stamped` and a resumed task's two lines both go
+    through. The edges are the ones its docstring claims."""
+
+    def test_replaces_every_line_with_that_key_inside_the_block(self):
+        text = "---\nlesson: a\nreturn-to: old\nreturn-to: older\n---\n\nbody\n"
+        out = fm.with_field(text, "return-to", "new")
+        self.assertEqual(out.count("return-to: new"), 2)
+        self.assertNotIn("old", out)
+        self.assertIn("lesson: a", out)
+        self.assertIn("body", out)
+
+    def test_adds_the_line_where_the_block_closes(self):
+        out = fm.with_field("---\nlesson: a\n---\n\nbody\n", "tutor-session", "s1")
+        self.assertEqual(out, "---\nlesson: a\ntutor-session: s1\n---\n\nbody\n")
+
+    def test_leaves_the_body_alone(self):
+        text = "---\nlesson: a\n---\n\nreturn-to: this is prose\n"
+        self.assertIn("return-to: this is prose", fm.with_field(text, "return-to", "new"))
+
+    def test_text_with_no_block_is_unchanged(self):
+        text = "# A heading\n\nnot frontmatter at all\n"
+        self.assertEqual(fm.with_field(text, "tutor-session", "s1"), text)
+
+    def test_a_key_on_the_first_line_is_never_read(self):
+        text = "tutor-session: old\nbody\n"
+        self.assertEqual(fm.with_field(text, "tutor-session", "new"), text)
+
+
 if __name__ == "__main__":
     unittest.main()

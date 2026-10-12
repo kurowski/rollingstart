@@ -21,10 +21,12 @@ class ExecutablesTest(unittest.TestCase):
         self.assertIn("rolling-show", NAMES)
         self.assertIn("rolling-write", NAMES)
         self.assertIn("rolling-begin-task", NAMES)
+        self.assertIn("rolling-park-task", NAMES, "a detour skill runs it")
+        self.assertIn("rolling-resume-task", NAMES, "and so does the one that comes back")
         self.assertTrue(all(n.startswith("rolling-") for n in NAMES))
         for handler in ("rolling-allow", "rolling-check-reply", "rolling-guard", "rolling-session-start"):
             self.assertNotIn(handler, NAMES, "hook handlers are run by hooks.json, never by the model")
-        self.assertEqual(len(NAMES), 16)
+        self.assertEqual(len(NAMES), 18)
 
     def test_a_missing_bin_is_no_names(self):
         self.assertEqual(allow.executables(BIN / "nope"), set())

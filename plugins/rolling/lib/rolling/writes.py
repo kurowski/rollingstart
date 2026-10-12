@@ -196,16 +196,7 @@ def _stamped(learner: Learner, text: str) -> str:
 
 
 def _recorded_session(learner: Learner) -> Optional[str]:
-    open_task = learner.task()
-    candidate = open_task.tutor_session if open_task and open_task.tutor_session else _session_file(learner)
-    return candidate if candidate and session.is_session_id(candidate) else None
-
-
-def _session_file(learner: Learner) -> str:
-    try:
-        return learner.session.read_text(encoding="utf-8").strip()
-    except OSError:
-        return ""
+    return session.recorded(learner) or None
 
 
 def _check(what: str, tmp: Path, dest: Path, learner: Learner, top: Path, map_dir: Path) -> List[str]:

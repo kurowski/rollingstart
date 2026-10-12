@@ -228,6 +228,12 @@ class Learner:
         return self.dir / "held-aside.pending"
 
     @property
+    def parked(self) -> Path:
+        """The task set aside while a detour runs, holding the files it
+        was made of; parked/task.md is what says one is parked."""
+        return self.dir / "parked"
+
+    @property
     def evidence(self) -> Path:
         return self.dir / "evidence"
 
@@ -253,5 +259,14 @@ class Learner:
     def task(self) -> Optional[Task]:
         try:
             return Task.load(self.task_file)
+        except LoadError:
+            return None
+
+    def has_parked(self) -> bool:
+        return (self.parked / "task.md").is_file()
+
+    def parked_task(self) -> Optional[Task]:
+        try:
+            return Task.load(self.parked / "task.md")
         except LoadError:
             return None
