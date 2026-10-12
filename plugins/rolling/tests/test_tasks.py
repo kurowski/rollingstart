@@ -1,13 +1,14 @@
-"""The task's lifecycle in the repository: begin, end, close, and every
-refusal, through the executables a skill would run."""
+"""The task's lifecycle in the repository: begin, end, park, resume,
+close, and every refusal, through the executables a skill would run."""
 
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import unittest
 
-from support import WorldTest
+from support import WorldTest, is_root
 
 
 class BeginFromFixTest(WorldTest):
@@ -453,6 +454,236 @@ class EndAndCloseTest(WorldTest):
         self.assertTrue(w.learner.profile.exists())
         self.assertTrue((w.learner.dir / "evidence/setup.md").exists())
 
+
+class ParkAndResumeTest(WorldTest):
+    """A task set aside for a detour and picked up again. The learner's
+    work stays on the branch; the task's files wait in parked/."""
+
+    def park_a_task(self, lesson="greet-politely"):
+        """A begun task with the learner's work in the tree, parked."""
+        w = self.w
+        branch, base = w.begin(lesson, "--fix", w.fix, "--held", "tests/greet.test.sh")
+        w.held_task(branch, base, lesson=lesson)
+        w.write("src/greet.sh", w.read("src/greet.sh") + "# the learner was here\n")
+        return branch, base
+
+    def test_park_keeps_the_work_and_resume_brings_it_back(self):
+        w = self.w
+        branch, base = self.park_a_task()
+        out = self.assertRuns("park-task")
+        self.assertIn("committed the learner's uncommitted work", out)
+        self.assertIn("parked", out)
+        self.assertOnBranch("main")
+        self.assertClean()
+        self.assertIn("the learner was here", w.git("show", f"{branch}:src/greet.sh"))
+        self.assertFalse(w.learner.has_task(), "task.md moved out of the way")
+        self.assertFalse(w.learner.held.exists(), "held/ went with it")
+        self.assertTrue(w.learner.has_parked())
+        self.assertIn("tests/greet.test.sh", [str(p.relative_to(w.learner.parked / "held")) for p in (w.learner.parked / "held").rglob("*") if p.is_file()])
+        self.assertIn("parked", self.assertRuns("show", "task"))
+
+        self.assertRuns("claim-session", "s2")
+        out = self.assertRuns("resume-task")
+        self.assertIn(branch, out)
+        self.assertOnBranch(branch)
+        self.assertTrue(w.learner.has_task())
+        self.assertFalse(w.learner.has_parked(), "parked/ is empty again")
+        self.assertTrue((w.learner.held / "tests/greet.test.sh").is_file())
+        t = w.learner.task()
+        self.assertEqual(t.return_to.split()[0], "main", "return-to is where they were when they resumed")
+        self.assertEqual(t.tutor_session, "s2", "the resumed task carries this session, or the guard would not fire")
+        self.assertIn("the learner was here", w.read("src/greet.sh"))
+
+    def test_the_held_test_never_reaches_the_tree(self):
+        """Never in the tree and never on the branch while the task is
+        open; on the learner's own branch the file there is the
+        repository's own, which it always was."""
+        w = self.w
+        held = "tests/greet.test.sh"
+        branch, _ = self.park_a_task()
+        self.assertFalse((w.top / held).exists(), "absent on the task branch before the park")
+        self.assertRuns("park-task")
+        self.assertTrue((w.learner.parked / "held" / held).is_file(), "the held copy waits in parked/")
+        self.assertTrue((w.top / held).is_file(), "main's own copy, untouched")
+        self.assertRuns("claim-session", "s2")
+        self.assertRuns("resume-task")
+        self.assertFalse((w.top / held).exists(), "absent again, back on the task branch")
+        self.assertTrue((w.learner.held / held).is_file(), "the held copy is back in the learner's directory")
+        self.assertEqual(w.git("ls-tree", "-r", "--name-only", branch, "--", held), "", "and never committed to the branch")
+
+    def test_resume_after_another_task_in_between(self):
+        w = self.w
+        branch, _ = self.park_a_task()
+        self.assertRuns("park-task")
+        # the detour's own task: begun, ended, and closed on the learner's branch
+        step_branch, step_base = w.begin("setup", "--fix", w.fix, "--shown", "tests/greet.test.sh")
+        w.task(lesson="setup", mode="write", branch=step_branch, base=step_base, return_to=f"main {w.fix}", scope="src")
+        self.assertRuns("end-task")
+        self.assertRuns("close-task")
+        self.assertRuns("claim-session", "s2")
+        out = self.assertRuns("resume-task")
+        self.assertIn(branch, out)
+        self.assertOnBranch(branch)
+        self.assertEqual(w.learner.task().lesson, "greet-politely")
+
+    def test_a_second_park_is_refused_while_one_is_resumable(self):
+        w = self.w
+        first, _ = self.park_a_task()
+        self.assertRuns("park-task")
+        second, base = w.begin("setup", "--fix", w.fix)
+        w.task(lesson="setup", mode="write", branch=second, base=base, return_to=f"main {w.fix}", scope="src")
+        out = self.assertRuns("park-task", status=1)
+        self.assertIn("already parked", out)
+        self.assertIn(first, out)
+        self.assertTrue(w.learner.has_task(), "the refusal left the open task alone")
+        self.assertOnBranch(second)
+
+    def test_a_parked_branch_deleted_by_hand_does_not_strand_the_learner(self):
+        w = self.w
+        branch, _ = self.park_a_task()
+        self.assertRuns("park-task")
+        w.git("branch", "-D", branch)
+        self.assertRuns("claim-session", "s2")
+        out = self.assertRuns("resume-task")
+        self.assertIn("gone", out)
+        self.assertIn(branch, out)
+        self.assertFalse(w.learner.has_parked(), "the dead pointer is cleared")
+        self.assertFalse(w.learner.has_task(), "and nothing is opened")
+        self.assertOnBranch("main")
+
+    def test_park_replaces_a_parked_task_whose_branch_is_gone(self):
+        w = self.w
+        first, _ = self.park_a_task()
+        self.assertRuns("park-task")
+        w.git("branch", "-D", first)
+        second, base = w.begin("setup", "--fix", w.fix)
+        w.task(lesson="setup", mode="write", branch=second, base=base, return_to=f"main {w.fix}", scope="src")
+        out = self.assertRuns("park-task")
+        self.assertIn(first, out)
+        self.assertIn("gone", out)
+        self.assertEqual(w.learner.parked_task().lesson, "setup")
+
+    def test_resume_refuses_while_a_task_is_open(self):
+        w = self.w
+        self.park_a_task()
+        self.assertRuns("park-task")
+        branch, base = w.begin("setup", "--fix", w.fix)
+        w.task(lesson="setup", mode="write", branch=branch, base=base, return_to=f"main {w.fix}", scope="src")
+        self.assertRuns("claim-session", "s2")
+        out = self.assertRuns("resume-task", status=1)
+        self.assertIn("a task is open", out)
+        self.assertTrue(w.learner.has_parked())
+
+    def test_resume_refuses_a_dirty_tree(self):
+        w = self.w
+        self.park_a_task()
+        self.assertRuns("park-task")
+        w.write("src/greet.sh", w.read("src/greet.sh") + "# their own work, uncommitted\n")
+        self.assertRuns("claim-session", "s2")
+        out = self.assertRuns("resume-task", status=1)
+        self.assertIn("not clean", out)
+        self.assertOnBranch("main")
+        self.assertTrue(w.learner.has_parked())
+
+    def test_resume_refuses_without_a_recorded_session(self):
+        w = self.w
+        self.park_a_task()
+        self.assertRuns("park-task")
+        self.assertFalse(w.learner.session.exists())
+        out = self.assertRuns("resume-task", status=1)
+        self.assertIn("session", out)
+        self.assertTrue(w.learner.has_parked(), "nothing moved")
+        self.assertOnBranch("main")
+
+    def test_resume_stamps_the_running_session_not_an_older_one(self):
+        """What 2.6a's review turned up: the session file is where a
+        resume learns which session is running, and the claim used to
+        leave it naming an older one whenever a task was open when it
+        ran. A resumed task stamped with a dead session is a task the
+        write guard does not fire for."""
+        w = self.w
+        self.assertRuns("claim-session", "sess-a")   # an earlier session, nothing open
+        branch, base = w.begin("greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh")
+        w.held_task(branch, base)
+        self.assertRuns("claim-session", "sess-b")   # this session, with the task already open
+        self.assertRuns("park-task")
+        out = self.assertRuns("resume-task")         # and no claim in between
+        self.assertIn("tutor-session: sess-b", out)
+        self.assertEqual(w.learner.task().tutor_session, "sess-b")
+
+    @unittest.skipIf(is_root(), "root ignores the directory mode this leans on")
+    def test_a_restore_that_stopped_part_way_is_finished_by_running_again(self):
+        """A real interruption, provoked rather than built by hand: the
+        restore cannot move a held/ it is not allowed to remove. The
+        second run finishes it, and sends the learner back to where they
+        were when they first asked — which the first run wrote into the
+        parked copy before it switched, since by then HEAD is the task's
+        own branch and there is nothing left to recompute from."""
+        w = self.w
+        branch, _ = self.park_a_task()
+        self.assertRuns("park-task")
+        w.git("switch", "-c", "side")   # where the learner is by the time they resume
+        self.assertRuns("claim-session", "s2")
+        w.learner.held.mkdir()
+        (w.learner.held / "in-the-way").write_text("not the toolkit's", encoding="utf-8")
+        os.chmod(str(w.learner.held), 0o500)
+        try:
+            out = self.assertRuns("resume-task", status=1)
+        finally:
+            os.chmod(str(w.learner.held), 0o700)
+        self.assertIn("could not be put back", out)
+        shutil.rmtree(str(w.learner.held))   # whatever was in the way, gone
+        out = self.assertRuns("resume-task")
+        self.assertIn(branch, out)
+        self.assertOnBranch(branch)
+        self.assertTrue(w.learner.has_task())
+        self.assertFalse(w.learner.has_parked())
+        self.assertTrue((w.learner.held / "tests/greet.test.sh").is_file(), "the proof can run")
+        t = w.learner.task()
+        self.assertEqual(t.return_to.split()[0], "side",
+                         "where they were when they first asked, not where the task began")
+        self.assertEqual(t.tutor_session, "s2")
+
+    @unittest.skipIf(is_root(), "root ignores the directory mode this leans on")
+    def test_a_resume_that_cannot_finish_leaves_the_task_parked(self):
+        """The invariant the order of the moves holds, as against the
+        recovery above: task.md is the marker, so a restore that fails
+        part-way leaves a parked task, never an open one whose held test
+        is still in parked/ — which would be a task whose proof can
+        never run, with nothing left to say a task was parked at all."""
+        w = self.w
+        self.park_a_task()
+        self.assertRuns("park-task")
+        self.assertRuns("claim-session", "s2")
+        # something the restore cannot move aside: a held/ it cannot remove
+        w.learner.held.mkdir()
+        (w.learner.held / "in-the-way").write_text("not the toolkit's", encoding="utf-8")
+        os.chmod(str(w.learner.held), 0o500)
+        try:
+            out = self.assertRuns("resume-task", status=1)
+        finally:
+            os.chmod(str(w.learner.held), 0o700)
+        self.assertIn("still parked", out)
+        self.assertTrue(w.learner.has_parked(), "the task is still parked")
+        self.assertFalse(w.learner.has_task(), "and never open without its held test")
+
+    def test_show_task_says_when_a_parked_branch_is_gone(self):
+        w = self.w
+        branch, _ = self.park_a_task()
+        self.assertRuns("park-task")
+        out = self.assertRuns("show", "task")
+        self.assertIn("is parked", out)
+        self.assertIn(branch, out)
+        w.git("branch", "-D", branch)
+        out = self.assertRuns("show", "task")
+        self.assertIn("gone", out)
+        self.assertIn("cannot be resumed", out)
+
+    def test_park_refuses_when_nothing_is_open(self):
+        self.assertIn("no open task", self.assertRuns("park-task", status=1))
+
+    def test_resume_refuses_when_nothing_is_parked(self):
+        self.assertIn("nothing is parked", self.assertRuns("resume-task", status=1))
 
 if __name__ == "__main__":
     unittest.main()

@@ -267,24 +267,58 @@ $8.60 of tutor sessions in all.
 
 ---
 
-### 2.6a — Park and resume a task [PENDING]
+### 2.6a — Park and resume a task [COMPLETE]
 
-The toolkit half of detours: a task set aside and picked up again, with
-the learner's work kept. Branch `p2.6a/park`; depends on nothing new.
-`rolling-park-task` does to the tree what `rolling-end-task` does (the
-learner's uncommitted work committed on the task's branch, which is
-kept, and the learner returned to where they were), then moves the open
-task's files (the task, the reference and its patch, `held/`, and the
-lesson marker) into the learner's `parked/` instead of removing them;
-it refuses while something is already parked. `rolling-resume-task`
-refuses while a task is open or the tree is dirty, checks the parked
-task's branch still exists, switches to it, and moves the files back,
-with `return-to` rewritten to where the learner was when they resumed.
-`rolling-show task` says in words when a task is parked. Done when the
-tests cover park then resume with uncommitted work, a resume after
-other tasks in between (a detour's), a refused second park, a parked
-branch deleted by hand, and the held test never reaching the tree at
-any point; `docs/profile.md` names `parked/`; and the review is clean.
+The toolkit half of detours: a task set aside and picked up again,
+with the learner's work kept. Branch `p2.6a/park`; depends on nothing
+new. `rolling-park-task` does to the tree what `rolling-end-task` does
+(the learner's uncommitted work committed on the task's branch, which
+is kept, and the learner returned to where they were), then moves the
+open task's files (the task, the reference and its patch, `held/`, and
+the lesson marker) into the learner's `parked/` instead of removing
+them; it refuses while something is already parked.
+`rolling-resume-task` refuses while a task is open or the tree is
+dirty, checks the parked task's branch still exists, switches to it,
+and moves the files back, with `return-to` rewritten to where the
+learner was when they resumed and `tutor-session` restamped from the
+session file: the write guard fires only on a task whose stamp is the
+session's, so a resumed task carrying the old stamp would leave the
+tutor free to write the learner's code, and a resume with no session
+recorded refuses, as the pen does. `rolling-claim-session` writes the
+`session` file even while a task is open, which it did not before: a
+resume has no open task to read, and a file still naming an older
+session would have stamped that in and turned the guard off (2.6a's
+review found it). Neither command can strand the other (decided
+2026-10-12): `park` refuses while something is parked and resumable,
+and replaces a parked task whose branch is gone; `resume`, finding the
+branch gone, says so and clears it, since all it holds then is a
+pointer to work the learner deleted, and the next operation repairing
+what the last one could not finish is how the rest of the toolkit
+behaves. `rolling-show task` says in words when a task is parked, and
+when its branch has gone. Done when the tests cover park then resume
+with uncommitted work, a resume after other tasks in between (a
+detour's), a refused second park, a parked branch deleted by hand, the
+restamp and the refusal for want of a session, and the held test never
+reaching the tree at any point; `docs/profile.md` names `parked/`; and
+the review is clean.
+Done: `rolling-park-task` and `rolling-resume-task`, fifteen tests,
+PR #47. Three review rounds, each finding something the one before had
+introduced. The first: a resumed task carried a stale session, which
+turns the write guard off — the `rolling-claim-session` change above.
+The second: the cure wrote the `session` file before the task's own
+stamp, so a file that could not be written cost the stamp, and the
+restore walked its moves in the same direction as the park, erasing
+the marker first and stranding the held test in `parked/`. The third:
+the line the tutor reads promised a refusal the code does not make,
+and a second run of an interrupted resume sent the learner back to
+where the task began rather than where they were. So both orderings
+are the slice's shape: every check runs before any write, `task.md`
+moves first on the way out and last on the way back, and the two lines
+one run owns are written into the parked copy before the switch, where
+a failure moves nothing and the next run reads the answer instead of
+guessing. `fm.with_field` came out of `session.stamped` and got tests
+of its own; `session.recorded` is now the one reading of where the
+tutor's session id lives.
 
 ---
 
@@ -299,21 +333,26 @@ writes), refusing a fourth step, a second open detour, a step slug
 that names a map lesson, and a pointer path not in the tree;
 `rolling-begin-detour`, which parks the open task if there is one,
 records the detour as open, and opens its first step; `rolling-show`,
-`rolling-begin-lesson`, and `rolling-begin-task` finding a step as they
-find a lesson; and `rolling-close-task` on a step opening the next one,
-or on the last step closing the detour and resuming the parked task or
-reopening the lesson it returns to. The skills: `lesson` offering a
-detour when the learner asks or the work shows a gap, with the steps it
-proposes; `next` offering one against a lesson's `assumes` before it
-starts; `task` preferring, for a tutor-written step, an extension along
-a seam in its pointer paths unless a fix obviously matches; `done`
-writing a borrowed map lesson to `## Satisfied` and never a
-tutor-written step. Done when the tests cover the pen and its
-refusals, and a detour begun mid-task that parks, runs a step with an
-exercise, and resumes the task; the destination is untouched
-throughout; and a case on the fixture, a learner whose background
-lacks what `invoice-totals` assumes and who shows it mid-task, is
-offered a detour for it and comes back to the task.
+`rolling-begin-lesson`, and `rolling-begin-task` finding a step as
+they find a lesson; and `rolling-close-task` on a step opening the
+next one, or on the last step closing the detour and resuming the
+parked task or reopening the lesson it returns to. `cancel` mid-detour
+ends the detour, not the step: a step is not something the learner
+chose, so it resumes the parked task and clears the detour, in that
+order, since a resume the tree refuses then leaves the detour open and
+the task parked rather than orphaning either (decided 2026-10-12). The
+skills: `lesson` offering a detour when the learner asks or the work
+shows a gap, with the steps it proposes; `next` offering one against a
+lesson's `assumes` before it starts; `task` preferring, for a
+tutor-written step, an extension along a seam in its pointer paths
+unless a fix obviously matches; `done` writing a borrowed map lesson
+to `## Satisfied` and never a tutor-written step. Done when the tests
+cover the pen and its refusals, and a detour begun mid-task that
+parks, runs a step with an exercise, and resumes the task; the
+destination is untouched throughout; and a case on the fixture, a
+learner whose background lacks what `invoice-totals` assumes and who
+shows it mid-task, is offered a detour for it and comes back to the
+task.
 
 ---
 

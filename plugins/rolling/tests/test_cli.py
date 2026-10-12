@@ -171,6 +171,8 @@ class SessionTest(WorldTest):
         self.assertEqual(w.learner.session.read_text(), "abc-123\n")
         w.task(lesson="setup", mode="write", scope="src")
         self.assertIn("recorded in the open task", self.assertRuns("claim-session", "def-456"))
+        self.assertEqual(w.learner.session.read_text(), "def-456\n",
+                         "the file is current even with a task open: resuming a parked task reads it")
         text = w.learner.task_file.read_text()
         self.assertIn("tutor-session: def-456", text)
         self.assertIn("lesson: setup", text)

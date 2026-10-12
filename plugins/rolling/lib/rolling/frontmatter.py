@@ -144,6 +144,34 @@ def _flow_items(rest: str) -> List[str]:
     return [p.strip() for p in inner.split(",") if p.strip()]
 
 
+def with_field(text: str, key: str, value: str) -> str:
+    """TEXT with `KEY: VALUE` in its frontmatter: every line that has
+    that key replaced, or the line added where the block closes when it
+    had none. The callers' text is a file the toolkit wrote, so the
+    block is there. Without one, nothing is inserted unless the text has
+    a `---` of its own somewhere, which would take the line in the body;
+    and a line beginning with the key is rewritten anywhere before that
+    first `---`, except on the first line, which is never read. So a
+    caller that cannot be sure of the block checks has_block first, as
+    claim and the pen do, and resume relies on Task.load having already
+    refused a task that has none."""
+    lines = text.split("\n")
+    out = [lines[0]]
+    seen = closed = False
+    for line in lines[1:]:
+        bare = line.rstrip("\r")
+        if not closed and bare.startswith(f"{key}:"):
+            out.append(f"{key}: {value}")
+            seen = True
+            continue
+        if not closed and bare == "---":
+            if not seen:
+                out.append(f"{key}: {value}")
+            closed = True
+        out.append(line)
+    return "\n".join(out)
+
+
 def read(path: Path) -> Optional[Frontmatter]:
     """parse() of the file at PATH; None if unreadable or without a block."""
     try:

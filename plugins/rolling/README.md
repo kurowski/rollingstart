@@ -69,6 +69,8 @@ first finishes any held-test revert a killed run left behind.
 | `rolling-verify [--on-base \| --on-reference]` | `rolling-report`, `task` | The task's `verify:` lines against the map's commands, then the held test applied, run, and reverted, with the learner's own file set aside in the learner's directory and a record that survives a kill. `--on-base` is the proof's first half (the expected failures fail on the starting state; a line that did not run fails it); `--on-reference` the second (the reference applied as a patch, everything passes, the patch reversed in a `finally`). The reference is the fix's own change, or for a seam task the patch the tutor wrote with `rolling-write patch`. |
 | `rolling-begin-task <lesson> --fix <sha> [--held p]… [--shown p]… \| --here <path>…` | `task` | The throwaway branch with the starting state committed; held tests copied aside, shown tests brought forward, the map carried across as it is now; `--here` commits only the paths named. Refuses while a task is open, and from a task branch an earlier run left. A git write that fails part-way is undone (the branch removed, the tree back as it was) and the message says where the repository is. |
 | `rolling-end-task` | `done`, `cancel` | Commits what the learner left on the task branch, keeps it, returns them to where they were. |
+| `rolling-park-task` | the detour skills (2.6b) | Sets the open task aside: does to the tree what `rolling-end-task` does, then moves the task's files (`task.md`, the reference and its patch, `held/`, the open-lesson marker) into `parked/` instead of removing them. One task is parked at a time; a second park is refused while the first can still be resumed, and replaces one whose branch the learner has deleted. |
+| `rolling-resume-task` | the detour skills (2.6b) | Picks the parked task up: back onto its branch, its files back where they were, `return-to` rewritten to where the learner was when they resumed and `tutor-session` to this session, which is what the write guard reads. Refuses a dirty tree, another open task, and a session it cannot name; a parked task whose branch is gone is cleared instead, with a word about it, so a deleted branch never blocks the next detour. Run twice, it finishes a restore that stopped part-way. |
 | `rolling-check-map [dir]` | authors, CI | The map's shape against the spec, exit 1 on a fault; `next` reads the same faults inline through `rolling-show map-check`. |
 | `rolling-check-profile`, `rolling-check-task` | authors, by hand; the pen runs the same checks as it writes | The learner's files' shape against the spec. |
 | `rolling-close-task` | `done`, `cancel` | Removes `task.md`, `reference.md`, `reference.patch`, `held/`, and the open-lesson marker, nothing else; after a walkthrough alone, only the marker is there. |
@@ -87,8 +89,8 @@ has none for them, which a fresh container often has not.
 
 Scripts a skill runs inline always exit 0 and report in words, because
 a non-zero inline exit aborts the skill. Scripts a skill runs as an
-action (`begin-task`, `end-task`, the checks, `export`, `write`,
-`note`, `keep-task`) exit non-zero
+action (`begin-task`, `end-task`, `park-task`, `resume-task`, the
+checks, `export`, `write`, `note`, `keep-task`) exit non-zero
 on refusal.
 
 ## Tests
