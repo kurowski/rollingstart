@@ -103,14 +103,22 @@ Joining the payments team; polls can wait.
 ## `session`
 
 One line, the session id of the tutor's most recent session, written
-by `rolling-claim-session` from every learner-side skill when no task
-is open. While a task is open the same id lives in the task instead.
-It is how P5's hooks tell the tutor's session from the learner's
-coding session. In P1a one thing reads it: `rolling-write task` stamps
-it into a new task as `tutor-session`, rewriting any such line the
-text carried, since that field is what the write guard keys on. The
-pen declines to take it from the text; it is not beyond a shell's
-reach, and the checkpoint plan names that exposure.
+by `rolling-claim-session` from every learner-side skill. While a task
+is open the same id is stamped into the task as well, and the task's
+copy is what the write guard reads; the file is kept current either
+way, because a command that runs with no task open — resuming a parked
+one — has only the file to learn the running session from, and a file
+naming an older session would stamp that into the task it reopens and
+leave the guard firing for nobody (2.6a). Three things read it.
+`rolling-write task` stamps it into a new task as `tutor-session`,
+rewriting any such line the text carried, since that field is what the
+write guard keys on. `rolling-resume-task` stamps it into the task it
+brings back. `rolling-check-reply`, the Stop hook, counts a session as
+the tutor's when it matches this file or the open task's line, which is
+how the citation check tells the tutor's turn from a learner's coding
+session — the job P5's hooks will lean on further. The pen declines to
+take it from the text; it is not beyond a shell's reach, and the
+checkpoint plan names that exposure.
 
 ## `lesson`
 
@@ -431,6 +439,36 @@ borrowed map lesson is also written to `## Satisfied`: it is the
 author's lesson, done, and `next` should not serve it again if the
 learner later adds its region. A step the tutor wrote never is. The
 destination is never touched by a detour.
+
+## `parked/` (P2)
+
+The task set aside while a detour runs: written by `rolling-park-task`,
+read back by `rolling-resume-task`, and nothing else's business.
+
+```
+parked/
+  task.md            # the task as it was, its branch kept
+  reference.md       # the reference notes, and the patch if it had one
+  reference.patch
+  held/              # the held test, which never enters the tree
+  lesson             # the lesson the task belongs to
+```
+
+`parked/task.md` is what says a task is parked; a learner directory
+without it has nothing parked. Parking does to the tree what the end of
+any task does — the learner's work committed on the task's branch,
+which is kept, and the learner back where they were — and then moves
+these files here instead of removing them. Resuming switches back to
+the branch, moves them back, rewrites `return-to` to where the learner
+was when they resumed, and restamps `tutor-session` from `session`,
+which every skill's inline claim keeps current; without one it
+refuses, because the write guard only holds for a task stamped with
+the session reading it.
+
+One task is parked at a time. A parked task whose branch the learner
+has since deleted cannot be resumed, and does not block the next
+detour either: resuming says the branch is gone and clears it, and
+parking another replaces it.
 
 ## `escalations/<stamp>.md` (backlog)
 
