@@ -55,7 +55,10 @@ before proposing anything structural. Decisions made after it go in its
 
 **Never commit or push without explicit approval.** Not once, not for a
 one-liner. "Proceed" on an edit means edit; committing, pushing, and
-opening a PR each get their own word.
+opening a PR each get their own word. While a pull request is under
+review, hold the next push: make the edits, run the gate, commit, and
+wait. Every push spends a CI run and a paid review, and cancelling one
+in flight is the maintainer's call.
 
 **The plugin knows nothing about any codebase; the map knows everything
 about one.** If a skill or script in `plugins/rolling/` names a package
@@ -105,6 +108,11 @@ or a profile file; those are its own.
 inside the destination and detours off them, never a region the learner
 did not choose, and never edits the destination. A route that reads as
 a fixed order across learners with different backgrounds is a bug.
+
+**Trust, but verify.** The learner is fallible, not an adversary. The
+tutor checks the work because feedback has to rest on evidence, not
+because the learner is suspected of anything; prose that reads as wary
+of them is a bug, in a skill, a rubric, or an eval's criteria.
 
 **Skill inline commands always exit zero.** A non-zero exit from a
 `` !`command` `` aborts the skill, and they run under the Bash tool's
