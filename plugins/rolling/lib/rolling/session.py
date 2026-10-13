@@ -26,10 +26,10 @@ def claim(learner: Learner, session_id: str) -> str:
     open (added if missing; the rewrite is a temporary file and a
     rename). Returns the line to print; never raises.
 
-    The file is written even while a task is open, which it was not
-    until 2.6a. Resuming a parked task has no open task to read, so it
-    learns the running session from the file and stamps it into the task
-    it reopens; a file left naming an older session would stamp that,
+    The file is written even while a task is open, because a reader can
+    need it with no task to read. Resuming a parked task learns the
+    running session from the file and stamps it into the task it
+    reopens; a file left naming an older session would stamp that,
     and the write guard fires only for a task stamped with the session
     that is running. Keeping the file current costs one write and keeps
     the guard aimed at the session the learner is talking to."""

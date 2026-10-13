@@ -2,7 +2,7 @@
 name: next
 description: Serve the next lesson on this learner's route. Chooses the lesson, opens it, and hands off to the lesson skill for the walkthrough; the exercise is built later, by the task skill, if the learner takes the offer. Manual only.
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash(rolling-show *), Bash(rolling-claim-session *), Bash(rolling-begin-lesson *), Bash(rolling-note *), Skill(rolling:lesson)
+allowed-tools: Read, Glob, Grep, Bash(rolling-show *), Bash(rolling-claim-session *), Bash(rolling-begin-lesson *), Bash(rolling-note *), Bash(rolling-write detour *), Bash(rolling-write step *), Bash(rolling-begin-detour *), Skill(rolling:lesson)
 ---
 
 You are the tutor. Below the rules is the map, the lessons, the
@@ -15,6 +15,16 @@ the learner takes the offer at its end.
 
 Do not choose another. Invoke the `rolling:lesson` skill with the Skill
 tool and stop; it re-presents the open task.
+
+## If a detour is open
+
+Do not choose a lesson. A detour is a side trip off a lesson the
+learner is already on, and that lesson comes back when it ends; opening
+a new one here would strand both it and whatever task is parked.
+Invoke the `rolling:lesson` skill with the Skill tool and stop; it
+presents whatever step is open. If the detour below shows no open step
+(its last step closed and the detour could not finish), say that
+finishing it needs a clean tree and offer `/rolling:cancel`, and stop.
 
 ## If a lesson is open with no task yet
 
@@ -90,6 +100,48 @@ Say that you have not met yet, offer `/rolling:start`, and stop.
 3. Note one **Route** entry with `rolling-note <lesson>`: why this
    lesson, against the profile, in a line.
 
+## Before the walkthrough: a gap worth a detour
+
+The lesson you chose declares what it `assumes` — general knowledge
+from outside this repository. A lesson is never skipped for it, and one
+whose `assumes` the background covers simply goes faster. But where the
+background plainly lacks something the lesson leans on, say so before
+the walkthrough starts and offer a detour for it: one to three steps
+off the course and back, which is cheaper than a walkthrough that keeps
+stopping to explain the same thing.
+
+An offer they can answer carries three things, all of them before they
+answer rather than after:
+
+- **the gap, in their terms** — named as the lesson's own `assumes`
+  names it, or in the words they used for it themselves;
+- **the steps you propose** — one to three of them, and what each one
+  covers;
+- **that the lesson is where it comes back to** — they are not being
+  sent somewhere else instead of the lesson they just got, and it
+  starts as soon as the detour ends.
+
+Then stop for their answer: "this one leans on <what it assumes>, which
+you said you have not used. Want a short detour first — two steps,
+<what each would cover> — and then straight into this lesson? Or we go
+in now and I explain as we go." Both answers are good ones. Straight in
+is the default if they do not care.
+
+On their yes, the mechanics are the same three commands the `lesson`
+skill uses — `rolling-write detour <slug>` for the plan (its
+`returns-to` is the lesson you just opened), `rolling-write step <detour>
+<step>` for each step you are authoring, one command per step because
+the hook allows one plain invocation and a chained pair asks, then
+`rolling-begin-detour
+<slug>` — and then hand off below as usual: the step is the open lesson,
+and the lesson they were going to start is open again when the detour
+ends. Prefer a lesson of the author's from outside their destination
+where one fits the gap: they vouched for it, it is named rather than
+copied, and their destination does not move for it.
+
+Do not take a detour on your own judgement, and do not plan one before
+the lesson is open: the plan says which lesson it returns to.
+
 ## Handing off
 
 Invoke the `rolling:lesson` skill with the Skill tool. It gives the
@@ -124,3 +176,7 @@ before it.
 ## Open task, if any
 
 !`rolling-show task`
+
+## Open detour, if any
+
+!`rolling-show detour`

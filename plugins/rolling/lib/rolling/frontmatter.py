@@ -188,6 +188,20 @@ def body_has_h2(path: Path, heading: str) -> bool:
     return re.search(r"^## " + re.escape(heading) + r"[ \t]*\r?$", text, re.M) is not None
 
 
+def body_items(text: str, heading: str) -> List[str]:
+    """The `- item` lines under `## HEADING` in the body, in order. Used
+    for a step's `## Pointers`: a list in the body rather than the
+    frontmatter, because the paths are the lesson's own prose as much as
+    a declaration, and an author reading one should see them where they
+    are talked about."""
+    out: List[str] = []
+    for line in _section(text, re.escape(heading)):
+        m = re.match(r"^- (.*?)[ \t]*$", line.rstrip("\r"))
+        if m and m.group(1).strip():
+            out.append(m.group(1).strip())
+    return out
+
+
 def map_regions(map_text: str) -> List[str]:
     """The bold slugs opening the bullets under `## Regions`."""
     return [m.group(1) for line in _section(map_text, r"Regions") for m in [re.match(r"^- \*\*([a-z0-9-]+)\*\*", line)] if m]

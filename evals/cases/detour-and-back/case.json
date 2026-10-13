@@ -1,0 +1,70 @@
+{
+  "description": "A learner stuck mid-task on what the lesson assumes is offered a detour for it, takes it, and comes back to the task they were doing, with their destination untouched.",
+  "seed": {
+    "profile": {
+      "background": "Fifteen years of Java and some Go. New to Python: I can read it, but I have never used dataclasses, decorators, or any of that.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working"
+      },
+      "why": "Joining the billing team; need to be useful in Python.",
+      "satisfied": [
+        "local-setup"
+      ]
+    },
+    "task": "invoice-totals"
+  },
+  "prompt": "/rolling:lesson",
+  "then": [
+    "I keep getting stuck on the Line thing. Where is its constructor? I searched for __init__ and there isn't one, so I don't understand how these objects are being built, and I can't tell what I'm supposed to change.",
+    "yes, that would help, let's do that first",
+    "/rolling:done"
+  ],
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/|open-detour|parked/"
+    },
+    {
+      "name": "nothing written for them",
+      "type": "no_write",
+      "under": [
+        "billing",
+        "tests"
+      ]
+    },
+    {
+      "name": "the destination never moved",
+      "type": "learner_file",
+      "file": "profile.md",
+      "pattern": "## Destination\\nplatform: orientation\\nbilling: working\\n"
+    },
+    {
+      "name": "a detour was actually begun",
+      "type": "command",
+      "pattern": "rolling-begin-detour"
+    },
+    {
+      "name": "the step was closed, not just described as closed",
+      "type": "command",
+      "pattern": "rolling-close-task"
+    },
+    {
+      "name": "the plan the pen accepted is still there",
+      "type": "learner_file",
+      "file": "detours/*.md",
+      "pattern": "returns-to: invoice-totals"
+    },
+    {
+      "name": "offers a detour, with its steps, and says the task waits",
+      "type": "judge",
+      "criteria": "At the point where the learner says they are stuck on how Line objects are built, the tutor recognises this as a gap in general Python knowledge (dataclasses) rather than a question about the invoice rule, and offers a short detour for it: it names what the detour would cover, as one to three steps, and makes clear the learner's current task is waiting for them and will come back. The offer is an offer: it stops for the learner's answer rather than starting the detour in the same turn. Answering the immediate question about dataclasses as well is fine, and good; what fails is never offering the detour, or taking it without asking."
+    },
+    {
+      "name": "takes it on the yes and comes back to the task",
+      "type": "judge",
+      "criteria": "After the learner agrees, the tutor serves the detour's first step as a lesson grounded in this repository's own files rather than as a generic tutorial. When the learner then says they are done, the tutor says plainly where they now stand: that the step is closed, and either which step is open next or that the detour has ended and the invoice-totals task is back with their work as they left it. It must not claim the lesson they were doing is finished or satisfied, and must not send them to /rolling:next, which is their course rather than this detour. Inviting them to start the next step when they are ready, instead of walking them through it in the same turn, is correct and passes: a step is a lesson, and a lesson begins when the learner does. What fails is leaving them unable to tell which of the two they are now in. Offering a /rolling: command is how the learner drives this tool and is never a fault; what the tutor must not do is name a script or a file of its own, and a separate check already holds that."
+    }
+  ]
+}

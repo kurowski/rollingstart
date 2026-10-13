@@ -170,6 +170,53 @@ class Task:
         return (words[0] if words else ""), ""
 
 
+# -------------------------------------------------------- the detour
+
+
+@dataclass
+class Detour:
+    """A detour's plan (docs/profile.md § `detours/`): the gap in the
+    learner's words, the lesson it returns to, and its one to three
+    steps in order. Loaded leniently like everything here; the pen
+    validates before it lands."""
+    path: Path
+    gap: str = ""
+    returns_to: str = ""
+    steps: List[str] = field(default_factory=list)
+    keys: List[str] = field(default_factory=list)
+
+    @property
+    def slug(self) -> str:
+        return self.path.name[:-3] if self.path.name.endswith(".md") else self.path.name
+
+    @classmethod
+    def load(cls, path: Path) -> "Detour":
+        if not path.is_file():
+            raise LoadError(path, "does not exist")
+        try:
+            text = path.read_text(encoding="utf-8", errors="surrogateescape")
+        except OSError as e:
+            raise LoadError(path, f"cannot be read ({e.strerror})") from None
+        f = fm.parse(text)
+        if f is None:
+            raise LoadError(path, "no frontmatter block")
+        return cls(path=path, gap=f.scalar("gap"), returns_to=f.scalar("returns-to"),
+                   steps=f.list("steps"), keys=list(f.keys))
+
+    def step_after(self, step: str) -> Optional[str]:
+        """The step following STEP, or None when it is the last one or
+        not one of ours. Position is read from the slug, which is why
+        the pen refuses the same slug twice."""
+        try:
+            i = self.steps.index(step)
+        except ValueError:
+            return None
+        return self.steps[i + 1] if i + 1 < len(self.steps) else None
+
+    def has_step(self, step: str) -> bool:
+        return step in self.steps
+
+
 # -------------------------------------------------- the learner's dir
 
 
@@ -234,6 +281,18 @@ class Learner:
         return self.dir / "parked"
 
     @property
+    def detours(self) -> Path:
+        """The detours the tutor has written: `<slug>.md` is a plan, and
+        `<slug>/` holds the steps written for it."""
+        return self.dir / "detours"
+
+    @property
+    def open_detour_file(self) -> Path:
+        """The open detour's slug, one line, while one is open; the open
+        step's own slug is in the `lesson` marker, as any lesson's is."""
+        return self.dir / "open-detour"
+
+    @property
     def evidence(self) -> Path:
         return self.dir / "evidence"
 
@@ -261,6 +320,46 @@ class Learner:
             return Task.load(self.task_file)
         except LoadError:
             return None
+
+    def open_detour(self) -> str:
+        """The open detour's slug, or '' when none is open or the marker
+        holds something that is not a slug."""
+        try:
+            slug = self.open_detour_file.read_text(encoding="utf-8", errors="surrogateescape").strip()
+        except (OSError, ValueError):
+            return ""
+        return slug if rules.is_slug(slug) else ""
+
+    def detour_plan(self, slug: str) -> Optional[Detour]:
+        if not rules.is_slug(slug):
+            return None
+        try:
+            return Detour.load(self.detours / f"{slug}.md")
+        except LoadError:
+            return None
+
+    def detour(self) -> Optional[Detour]:
+        """The open detour's plan, or None."""
+        slug = self.open_detour()
+        return self.detour_plan(slug) if slug else None
+
+    def step_dir(self, detour: str) -> Path:
+        """Where a detour's own steps live. The caller has checked the
+        slug: every path into here comes through `rules.is_slug` at the
+        command's edge, or through `steps` in a plan the validator has
+        already faulted a non-slug in."""
+        return self.detours / detour
+
+    def step_file(self, detour: str, step: str) -> Path:
+        """One step's lesson file; the slug caveat on step_dir applies."""
+        return self.detours / detour / f"{step}.md"
+
+    def open_step_dir(self) -> Optional[Path]:
+        """Where the open detour's own steps live, or None when no detour
+        is open. The task validator takes it: a task's lesson may be a
+        step the tutor wrote, which is no lesson of the map's."""
+        slug = self.open_detour()
+        return self.step_dir(slug) if slug else None
 
     def has_parked(self) -> bool:
         return (self.parked / "task.md").is_file()

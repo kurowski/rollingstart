@@ -71,6 +71,7 @@ could never have failed is not served.
 | The fixture is a small repository built by the harness, not Rallly | A few-file Python project with a git history (a fix commit to build a task from), a `.rolling/` map with the generic regions `billing`, `scheduling`, and `platform`, and `python3 -m unittest` as its one command; Rallly only for the exit's detour case | Python is the one runtime the toolkit already requires, so the fixture needs no toolchain and builds in seconds. The helpfulness properties do not depend on the codebase; the detour's grounding does, which is why the exit case uses Rallly at its pin. |
 | Evals run by hand, not in CI | On a skill change that could move behaviour, on a new model, and at each checkpoint's exit, with the report linked from the PR or the retrospective | Each case is several `claude` runs on a real credential; CI has neither the credential nor the budget, and a flaky nightly teaches everyone to ignore it. The gate stays deterministic. |
 | A detour is a side-quest off the course, of up to three steps, and it may park the task | A detour is offered when the learner asks for one or shows a gap the work at hand needs, and taken only on their yes. It is a plan in the learner's `detours/`: the gap in their words, the lesson it returns to, and one to three steps, each either a lesson the tutor writes, grounded in the repository, or an author's lesson from outside the destination, named, not copied. A step is a lesson like any other, its exercise on offer. Taken mid-task, the task is parked first and resumed when the detour ends. A borrowed map lesson, once done, is written to `## Satisfied`; a tutor-written step never is; the destination is never touched. One detour at a time, none inside another; a gap that needs more than three steps is bigger than a detour, and the tutor says so and suggests a teammate (decided 2026-09-27, replacing the row that made a detour a single lesson, two deep) | The maintainer's concept: the evidence for a detour comes from inside a course, where the learner is stuck on something the lesson assumes, and the detour is a side trip that comes back to it. Its content may have to be written (TypeScript fundamentals for a map that assumes TypeScript) or may already exist in the map, in a region the learner did not choose (a platform lesson on a billing course). Several steps replace nesting: the lesson leaning on an ORM and the ORM on SQL is two steps of one detour, not a detour of a detour, which keeps one return point. Parking rather than walkthrough-only, because the gap usually shows mid-task, and a side-quest that cannot be done by doing is half of one. A borrowed lesson counts because it is the author's lesson, done; serving it again after the learner adds its region would waste their time. A tutor-written one does not, because no author has vouched for it. |
+| A step is a lesson, and the `lesson` marker says which one is open | `open-detour` names the detour; the open step is the open-lesson marker's own slug, found in the plan's `steps`. So the pen refuses the same slug twice (position is read from the slug), refuses a step that shares a slug with a map lesson (a slug resolves to a step first), and refuses a step equal to `returns-to`. A step's pointers are a `## Pointers` section of `- <path>` lines, checked in the tree; `requires` and `exercise` are a map lesson's fields and are refused. The task validator takes the open detour's step directory, since a task's lesson may be a step that is no lesson of the map's. The plan is checked for shape when written and for serveability when begun, because `rolling-write step` takes the detour's slug and so the plan is written before the steps it names (decided 2026-10-12) | A step is a lesson in every way that matters to a skill, so the cheapest correct design is to have nothing know otherwise: the walkthrough, `rolling-begin-task`, evidence and `done` all read the marker already and serve a step without being taught to. A second marker for the step would have been a second thing to keep in step with the first. What it costs is the refusals above, each one closing a way for two things to answer to one slug. |
 | The citation check runs on the tutor's reply, in a Stop hook | When the tutor's session ends a turn, `rolling-check-reply` checks every `path:line` in the turn's text against the working tree; one that points nowhere (no such file, or fewer lines) blocks the stop with the flags as its reason, and the tutor corrects or withdraws it in the same turn. Errs silent on what may not be a path; never the turn after a correction; never another session. No `rolling-check-feedback` (decided 2026-09-26) | The honest form of "feedback is grounded" is that the learner never acts on a citation that points nowhere. `done` speaks before it writes evidence, since the outcome needs the learner's answer, so a check on the written entry comes a learner's message late, after they may have gone looking; checking a draft before speaking would cost the slowest turn a second copy of every point. The hook checks what the learner actually read, in every reply rather than only `done`'s, costs milliseconds when nothing is flagged (nearly always, since it can only tell that a line exists, not that it says what was claimed), and one short generation when something is. It flags a mistake of the tutor's and constrains nobody, so it is not a hint enforced by a script. |
 | Quoted output is honesty prose plus an eval, not a hook | The skills say: quote only what a tool returned; an inference is said as one. An eval case (#30's shape) seeds a symptom whose cause lies outside what the tutor can observe. | A Stop hook could compare quoted blocks with the transcript's tool results, but code blocks in a reply are not reliably quotes, and a false flag in the learner's window is its own dishonesty. Measured first; built if it fails. |
 | The destructive hook asks, in every session | A PreToolUse handler on Bash, `rolling-destructive` (name to be settled in 2.7): resolve the map for the session's repository; if the command carries the head of an operation the map marks destructive (its words up to the first flag, matched at a command boundary), answer `ask` with the operation's name; silent otherwise, and silent with no map | § 5's second layer, and P5 relies on it for the coding session. The head, not the whole line, because `pnpm db:reset` without `--force` is the same reset. `ask` in `dontAsk` mode becomes a denial, which fails safe. |
@@ -322,13 +323,13 @@ tutor's session id lives.
 
 ---
 
-### 2.6b — Detours [PENDING]
+### 2.6b — Detours [COMPLETE]
 
 A side-quest off the course, of one to three steps, taken on the
 learner's yes (the decision above). Branch `p2.6b/detours`; depends on
 2.6a. Spec first: `docs/profile.md` § `detours/` and `docs/map.md`'s
 `assumes` paragraph. Then the pen (`rolling-write detour <slug>` for
-the plan, `rolling-write step <detour> <slug>` for a lesson the tutor
+the plan, `rolling-write step <detour> <step>` for a lesson the tutor
 writes), refusing a fourth step, a second open detour, a step slug
 that names a map lesson, and a pointer path not in the tree;
 `rolling-begin-detour`, which parks the open task if there is one,
@@ -353,6 +354,93 @@ destination is untouched throughout; and a case on the fixture, a
 learner whose background lacks what `invoice-totals` assumes and who
 shows it mid-task, is offered a detour for it and comes back to the
 task.
+Done: `rolling-begin-detour` and `rolling-close-detour`, the pen's two
+new roles, and the five skills, PR #49. The decision row above is what
+the build settled: the open step is the open-lesson marker, so nothing
+had to be taught that a step is not a lesson.
+
+Two integration points were found by running it rather than by reading
+it. The task validator rejected a task whose lesson was a step,
+because it checks the lesson against the map — so no step could ever
+have had an exercise; it now takes the open detour's step directory.
+And `rolling-close-detour` first refused whenever a task file existed,
+which is after `rolling-end-task` as well as before it, so a learner
+who had ended their step's exercise could not cancel; it reads the
+branch instead, which is what says whether their work is committed
+yet. The first test written for that one passed with the fix backed
+out, so it was replaced by one that ends the task first, as the skill
+does; every other fix was backed out in a throwaway copy too, and each
+test fails there.
+
+`cancel` mid-detour runs `close-detour` in place of `close-task`;
+`close-task` on a step advances the detour itself and reports a detour
+it cannot finish at exit 0, since closing the step is what it was
+asked to do. Forty-four new tests: 37 in `test_detours.py`, and 7 on
+the two validators' fault lists.
+
+The review found four things worth the round. A skill named a framework
+(`next` offered "this one leans on Prisma"), which is the one crossing
+`CLAUDE.md` blocks a pull request over, and the diff introduced it: no
+skill had named one before. The offers now name the gap as the lesson's
+own `assumes` names it, and the Python-flavoured examples beside them
+went the same way. `advance` cleared `open-detour` without going
+through `end` when a plan could not be read — the one path that left a
+parked task with nothing to resume it, while saying "nothing is left
+half-open"; it ends the ordinary way now. And three sentences the tutor
+reads were false: that `/rolling:done` could pick up an unfinished
+detour (its step's lesson has closed by then, so `done` has nothing to
+be about), and that `/rolling:next` might offer a stopped step again
+(nothing serves a step but its detour). `cancel`'s and `done`'s "no
+open lesson" branches also short-circuited the one recovery that
+works, so both now check for a detour first. Taken from the same round:
+`returns-to` is held in code against the open lesson rather than only
+asserted in two skills' prose, since a detour ending on a lesson the
+learner never picked is the tutor choosing their route; `next` has a
+branch for finding a detour already open; and `close-task` catches a
+git failure as well as a refusal, so its exit-0 promise holds. One nit
+declined: `Learner.step_file` joins a slug without checking it, which
+every caller does check — the contract is written where the join is. `rolling` 0.4.3, a patch, as
+every slice inside a checkpoint now takes (#48).
+
+The eval case, `detour-and-back`, found four things the review had not,
+and it found them by running the tutor rather than reading it. The pen
+refused the first `rolling-write step` in every run that wrote one:
+the tutor dressed its pointers as prose (`` - `billing/invoice.py` —
+the Line type ``), which is what the skill's own template invites in a
+markdown body, and the check read the whole line as the path and said
+it was not in the tree. The path is read out of the line now, the note
+is kept, and a run after the fix wrote its pointers unrefused. The
+offer of a detour did not survive the weaker arm: Sonnet never named
+the steps or said the task was waiting, and in one run offered no
+detour at all, because the trigger list and the hedge beneath it
+pulled against each other — a gap "worth a detour when explaining it
+keeps interrupting" let a model answer once and move on. The offer's
+three parts are a list now, with the profile named as evidence and the
+answer and the offer said not to be alternatives. The case itself was
+wrong twice: it could pass with no detour in existence (a judge
+credited grounded content and an honest route back), which a new
+`command` grader now holds, the mirror of `no_command`; and its
+step-boundary criterion graded an ambiguity, failing one run for the
+behaviour `done` prescribes and then, reworded, failing another for
+offering `/rolling:lesson` — a learner's own command, which a
+deterministic grader already covers. Both clauses are gone.
+
+Two runs of three on both arms, 2026-10-13: before the fixes, Opus
+2/3 and Sonnet 1/3 ($6.30); after, Opus 2/3 and Sonnet 3/3 ($5.55),
+the one Opus failure being the criterion clause described above. Every
+stored run of both passes the corrected criterion when re-graded from
+its transcript, which is cheap (judge calls only) and is not a fresh
+run. A four-turn case costs about $1.05 a run, not the $0.09 that 2.3's
+one-turn case suggested: each turn re-sends the skill and a
+conversation that has grown. #50, the judge's answer parsed by luck
+with its raw record not kept, came out of the same runs and waits for
+its own branch. #51 — the tutor chaining two step writes into one
+command, which the plugin's own hook does not wave through, so it asks
+and in a print-mode run an ask is a refusal — is fixed
+here, in a clause of the same two skills, along with a line saying a
+pointer may carry its note; both were held back from the first commit
+so the run's evidence covered the prose exactly as run, and taken once
+the maintainer asked. What the run measured is everything else.
 
 ---
 
