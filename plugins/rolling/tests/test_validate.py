@@ -227,6 +227,28 @@ class DetourValidationTest(WorldTest):
     def test_a_pointer_may_name_a_directory(self):
         self.assertEqual(self.step_faults(self.STEP.replace("- src/greet.sh", "- src")), [])
 
+    def test_a_pointer_may_be_written_as_prose(self):
+        """The two spellings every run of the detour eval produced, and
+        the first write was refused every time: the path formatted as
+        code, and a note on why it matters after a dash or a colon."""
+        for dressed in ("- `src/greet.sh`",
+                        "- `src/greet.sh` — the greeting, and where it reads its argument",
+                        "- **src/greet.sh**",
+                        "- src/greet.sh: the greeting itself",
+                        "- `src/greet.sh`.",
+                        "- src/greet.sh - the one to follow"):
+            with self.subTest(dressed):
+                self.assertEqual(self.step_faults(self.STEP.replace("- src/greet.sh", dressed)), [])
+
+    def test_a_dressed_pointer_that_is_not_there_still_faults_on_the_path(self):
+        """The accommodation is to the dressing, not to the check: a
+        path that is absent is still absent, and the fault quotes the
+        path rather than the line, so the writer sees what was read."""
+        self.assertIn("pointer 'src/nowhere.sh' is not in the tree",
+                      self.step_faults(self.STEP.replace("- src/greet.sh", "- `src/nowhere.sh` — a note")))
+        self.assertIn("pointer 'src/greet.sh' is listed twice",
+                      self.step_faults(self.STEP.replace("- src/greet.sh", "- src/greet.sh\n- `src/greet.sh`: again")))
+
 
 class TaskValidationTest(WorldTest):
     def faults(self, **fields):

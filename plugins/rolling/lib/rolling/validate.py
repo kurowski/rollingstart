@@ -389,6 +389,37 @@ def _unknown_step_field(key: str) -> str:
     return f"unknown field '{key}'"
 
 
+_GLOSS = re.compile(r"\s+(?:—|–|--|-)\s+|\s*:\s+")
+_WRAPS = ("`", "**", "*")
+
+
+def _pointer_path(item: str) -> str:
+    """The path in a `- <path>` pointer line, which may be dressed.
+
+    The section is in the body, not the frontmatter, because the paths
+    are the lesson's own prose as much as a declaration — and prose is
+    how they get written: the path formatted as code, and a note on
+    why it matters. Every run of the detour eval wrote one that way
+    (`` - `billing/invoice.py` — the Line type ``), and the first
+    write was refused every time, with a message that read as the file
+    being absent. So the dressing comes off here instead: a wrapping
+    pair of backticks or asterisks, a sentence's full stop, and a
+    note after a spaced dash or a colon. The note stays in the file, where whoever reads the lesson
+    reads it; only the check reads past it.
+
+    A path that itself contains a spaced dash has to go without a note,
+    which is a trade for one real case against a pathological one. The
+    faults below quote what was tried, so either way the writer can
+    see what the check read.
+    """
+    text = _GLOSS.split(item.strip(), 1)[0].strip().rstrip(".,;")
+    for wrap in _WRAPS:
+        n = len(wrap)
+        while text.startswith(wrap) and text.endswith(wrap) and len(text) > 2 * n:
+            text = text[n:-n].strip().rstrip(".,;")
+    return text
+
+
 def _pointer_faults(where: str, path: Path, top: Path) -> List[Fault]:
     """Every `- <path>` line under `## Pointers`: a plain
     repository-relative path that is in the tree now. The step is the
@@ -405,7 +436,8 @@ def _pointer_faults(where: str, path: Path, top: Path) -> List[Fault]:
         return [Fault(where, "## Pointers has no `- <path>` lines")]
     faults: List[Fault] = []
     seen = set()
-    for ptr in pointers:
+    for item in pointers:
+        ptr = _pointer_path(item)
         if not rules.is_plain_relpath(ptr):
             faults.append(Fault(where, f"pointer '{ptr}' is not a plain repository-relative path"))
             continue

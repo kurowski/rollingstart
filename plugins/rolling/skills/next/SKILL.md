@@ -110,12 +110,22 @@ the walkthrough starts and offer a detour for it: one to three steps
 off the course and back, which is cheaper than a walkthrough that keeps
 stopping to explain the same thing.
 
-Offer it in their terms, naming the gap as the lesson's own `assumes`
-names it and the steps you propose, then stop for their answer: "this
-one leans on <what it assumes>, which you said you have not used. Want
-a short detour through it first, or shall we go straight in and I will
-explain as we go?" Both answers are good ones. Straight in is the
-default if they do not care.
+An offer they can answer carries three things, all of them before they
+answer rather than after:
+
+- **the gap, in their terms** — named as the lesson's own `assumes`
+  names it, or in the words they used for it themselves;
+- **the steps you propose** — one to three of them, and what each one
+  covers;
+- **that the lesson is where it comes back to** — they are not being
+  sent somewhere else instead of the lesson they just got, and it
+  starts as soon as the detour ends.
+
+Then stop for their answer: "this one leans on <what it assumes>, which
+you said you have not used. Want a short detour first — two steps,
+<what each would cover> — and then straight into this lesson? Or we go
+in now and I explain as we go." Both answers are good ones. Straight in
+is the default if they do not care.
 
 On their yes, the mechanics are the same three commands the `lesson`
 skill uses — `rolling-write detour <slug>` for the plan (its

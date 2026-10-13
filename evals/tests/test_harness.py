@@ -219,6 +219,22 @@ class GraderTest(World):
         self.assertTrue(graders.learner_file({"name": "r", "file": "evidence/*.md", "pattern": "Route"}, learner).passed)
         self.assertFalse(graders.learner_file({"name": "r", "file": "evidence/*.md", "pattern": "Route", "absent": True}, learner).passed)
 
+    def test_command(self) -> None:
+        """The mirror: a mechanism the tutor's words cannot prove it
+        used. A refused attempt counts, as it does for no_command,
+        because what is measured is that it reached for the command."""
+        t = self.t(use("a", "Bash", command="rolling-show task"), use("b", "Bash", command="rolling-begin-detour dataclasses"))
+        v = graders.command({"name": "d", "pattern": "rolling-begin-detour"}, t)
+        self.assertTrue(v.passed)
+        self.assertIn("rolling-begin-detour dataclasses", v.reason)
+        refused = self.t(use("a", "Bash", command="rolling-begin-detour x"), fail("a", "refused"))
+        self.assertTrue(graders.command({"name": "d", "pattern": "rolling-begin-detour"}, refused).passed)
+        self.assertFalse(graders.command({"name": "d", "pattern": "rolling-begin-detour"}, self.t(say("I took a detour for you."))).passed,
+                         "saying it is not doing it")
+        note = self.t(use("a", "Bash", command="rolling-note x <<'EOF'\n**Route.** rolling-begin-detour was the plan.\nEOF"))
+        self.assertFalse(graders.command({"name": "d", "pattern": "rolling-begin-detour"}, note).passed,
+                         "the pen's text is not a command")
+
     def test_no_command(self) -> None:
         t = self.t(use("a", "Bash", command="rolling-show task"), use("b", "Bash", command="rolling-claim-session 1234"), fail("b", "refused"))
         v = graders.no_command({"name": "c", "pattern": "rolling-claim-session"}, t)

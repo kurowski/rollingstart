@@ -400,9 +400,42 @@ branch for finding a detour already open; and `close-task` catches a
 git failure as well as a refusal, so its exit-0 promise holds. One nit
 declined: `Learner.step_file` joins a slug without checking it, which
 every caller does check — the contract is written where the join is. `rolling` 0.4.3, a patch, as
-every slice inside a checkpoint now takes (#48). The eval case the
-done-when names is written and not yet run: a run is the maintainer's
-to authorise, and it is the one thing this slice leaves open.
+every slice inside a checkpoint now takes (#48).
+
+The eval case, `detour-and-back`, found four things the review had not,
+and it found them by running the tutor rather than reading it. The pen
+refused the first `rolling-write step` in every run that wrote one:
+the tutor dressed its pointers as prose (`` - `billing/invoice.py` —
+the Line type ``), which is what the skill's own template invites in a
+markdown body, and the check read the whole line as the path and said
+it was not in the tree. The path is read out of the line now, the note
+is kept, and a run after the fix wrote its pointers unrefused. The
+offer of a detour did not survive the weaker arm: Sonnet never named
+the steps or said the task was waiting, and in one run offered no
+detour at all, because the trigger list and the hedge beneath it
+pulled against each other — a gap "worth a detour when explaining it
+keeps interrupting" let a model answer once and move on. The offer's
+three parts are a list now, with the profile named as evidence and the
+answer and the offer said not to be alternatives. The case itself was
+wrong twice: it could pass with no detour in existence (a judge
+credited grounded content and an honest route back), which a new
+`command` grader now holds, the mirror of `no_command`; and its
+step-boundary criterion graded an ambiguity, failing one run for the
+behaviour `done` prescribes and then, reworded, failing another for
+offering `/rolling:lesson` — a learner's own command, which a
+deterministic grader already covers. Both clauses are gone.
+
+Two runs of three on both arms, 2026-10-13: before the fixes, Opus
+2/3 and Sonnet 1/3 ($6.30); after, Opus 2/3 and Sonnet 3/3 ($5.55),
+the one Opus failure being the criterion clause described above. Every
+stored run of both passes the corrected criterion when re-graded from
+its transcript, which is cheap (judge calls only) and is not a fresh
+run. A four-turn case costs about $1.05 a run, not the $0.09 that 2.3's
+one-turn case suggested: each turn re-sends the skill and a
+conversation that has grown. #50 (the judge's answer is parsed by
+luck, and its raw record is not kept) and #51 (the tutor chains two
+step writes into one command and the grant refuses it) came out of
+the same runs and are deliberately left for their own branches.
 
 ---
 

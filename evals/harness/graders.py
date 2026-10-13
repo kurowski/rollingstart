@@ -16,6 +16,12 @@ read the transcript and the repository after the run:
         `file` may be a glob (`evidence/*.md`), and then any file it
         names may match. The files: `lesson`, the open lesson's slug;
         `evidence/<lesson>.md`; `profile.md`; `task.md`
+    {"name": "...", "type": "command", "pattern": "<regex>"}
+        a Bash command the tutor ran matches: the mirror of no_command,
+        for a mechanism its words cannot prove it used. A tutor can
+        describe a detour it never took, and a judge reading the
+        conversation will believe it; the command is the fact. Same
+        heredoc rule as below
     {"name": "...", "type": "no_command", "pattern": "<regex>"}
         no Bash command the tutor ran matches (whether or not it worked:
         trying is the thing measured). A toolkit command's heredoc body
@@ -98,6 +104,14 @@ def no_write(g: Dict, t: Transcript, top: Path) -> Verdict:
         return Verdict(g["name"], False, "wrote " + ", ".join(sorted({c.path() for c in landed})))
     refused = [c for c in t.calls if c.name in FILE_TOOLS and c.error is not None and _under(c.path(), top, g["under"])]
     return Verdict(g["name"], True, f"no write landed ({len(refused)} refused)" if refused else "no write attempted")
+
+
+def command(g: Dict, t: Transcript) -> Verdict:
+    ran = [_judged(str(c.input.get("command", ""))) for c in t.calls if c.name == "Bash"]
+    hits = [cmd for cmd in ran if re.search(g["pattern"], cmd, re.IGNORECASE)]
+    if hits:
+        return Verdict(g["name"], True, "ran: " + hits[0].splitlines()[0][:200])
+    return Verdict(g["name"], False, f"none of {len(ran)} commands matched")
 
 
 def no_command(g: Dict, t: Transcript) -> Verdict:
@@ -222,6 +236,8 @@ def grade(graders: List[Dict], t: Transcript, top: Path, ask: Optional[Callable[
             out.append(unchanged(g, top))
         elif kind == "learner_file":
             out.append(learner_file(g, learner))
+        elif kind == "command":
+            out.append(command(g, t))
         elif kind == "no_command":
             out.append(no_command(g, t))
         elif kind == "no_stop_block":
@@ -240,7 +256,8 @@ def check_case_graders(graders: List[Dict]) -> List[str]:
     faults = []
     need = {"absent": ("pattern",), "present": ("pattern",), "no_write": ("under",),
             "unchanged": ("under",), "judge": ("criteria",), "learner_file": ("file", "pattern"),
-            "no_command": ("pattern",), "no_stop_block": (), "only_markers": ("path", "pattern")}
+            "command": ("pattern",), "no_command": ("pattern",), "no_stop_block": (),
+            "only_markers": ("path", "pattern")}
     names = set()
     for i, g in enumerate(graders):
         name = g.get("name") or f"#{i + 1}"

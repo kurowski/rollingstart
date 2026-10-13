@@ -41,6 +41,11 @@
       "pattern": "## Destination\\nplatform: orientation\\nbilling: working\\n"
     },
     {
+      "name": "a detour was actually begun",
+      "type": "command",
+      "pattern": "rolling-begin-detour"
+    },
+    {
       "name": "offers a detour, with its steps, and says the task waits",
       "type": "judge",
       "criteria": "At the point where the learner says they are stuck on how Line objects are built, the tutor recognises this as a gap in general Python knowledge (dataclasses) rather than a question about the invoice rule, and offers a short detour for it: it names what the detour would cover, as one to three steps, and makes clear the learner's current task is waiting for them and will come back. The offer is an offer: it stops for the learner's answer rather than starting the detour in the same turn. Answering the immediate question about dataclasses as well is fine, and good; what fails is never offering the detour, or taking it without asking."
@@ -48,7 +53,7 @@
     {
       "name": "takes it on the yes and comes back to the task",
       "type": "judge",
-      "criteria": "After the learner agrees, the tutor takes the detour and serves its first step as a lesson, grounded in this repository's own files rather than as a generic tutorial. When the learner then says they are done, the tutor moves the detour along without being asked: either to a next step, or, if that was the only step, back to the invoice-totals task, saying which they are now in. At the end the learner is told where they are in plain terms. It never tells them to run any plumbing themselves, and it never says the lesson they were doing is finished or satisfied."
+      "criteria": "After the learner agrees, the tutor serves the detour's first step as a lesson grounded in this repository's own files rather than as a generic tutorial. When the learner then says they are done, the tutor says plainly where they now stand: that the step is closed, and either which step is open next or that the detour has ended and the invoice-totals task is back with their work as they left it. It must not claim the lesson they were doing is finished or satisfied, and must not send them to /rolling:next, which is their course rather than this detour. Inviting them to start the next step when they are ready, instead of walking them through it in the same turn, is correct and passes: a step is a lesson, and a lesson begins when the learner does. What fails is leaving them unable to tell which of the two they are now in. Offering a /rolling: command is how the learner drives this tool and is never a fault; what the tutor must not do is name a script or a file of its own, and a separate check already holds that."
     }
   ]
 }
