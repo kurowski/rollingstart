@@ -444,6 +444,37 @@ the maintainer asked. What the run measured is everything else.
 
 ---
 
+### 2.6c — The judge's answer, and its record [IN PROGRESS]
+
+Read the judge's answer as the model actually sends it, and keep the
+record that says what it sent. Branch `p2.6c/judge-record`; depends on
+2.3; from #50, filed while reading 2.6b's runs, where every judge
+reason came back with a closing-tag fragment on the end of it and both
+booleans were right anyway. Harness only, so no version moves.
+
+The harm is not the junk in the string. It is that a formatting glitch
+in the judge and the tutor misbehaving arrive wearing the same clothes:
+an answer the harness cannot read becomes a *failed criterion*, the run
+fails, and the summary table says `FAIL` — in a suite whose whole job
+is telling those two apart. And it could not be diagnosed afterwards,
+because the raw record was not kept.
+
+Done when: every judge call's raw record is written into the run's
+directory beside the turn streams, the way each turn's stream is kept;
+an answer that arrives wrapped in markup is read anyway, and a field
+the wrapper's closing tag leaked into is cleaned of it, with the
+cleaning narrow enough that a reason quoting a tag of the tutor's own
+keeps it; a record that says the *call* failed (an expired credential,
+say) is reported as that and not as a criterion the tutor failed; the
+error that remains names the file to read instead of truncating the
+record; the extraction is a pure function the gate tests without a
+network, against the four reasons #50 recorded verbatim; and
+`clean_env` cannot be handed a relative configuration directory, which
+is how a stray Claude Code config got written into a results directory
+during 2.6b's re-grade.
+
+---
+
 ### 2.7 — The ask-before-destructive hook [PENDING]
 
 A Bash command carrying the head of a destructive map operation asks
