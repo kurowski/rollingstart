@@ -130,7 +130,8 @@ is the default if they do not care.
 On their yes, the mechanics are the same three commands the `lesson`
 skill uses — `rolling-write detour <slug>` for the plan (its
 `returns-to` is the lesson you just opened), `rolling-write step <detour>
-<step>` for each step you are authoring, then `rolling-begin-detour
+<step>` for each step you are authoring, one command per step because a
+grant is matched against a whole command, then `rolling-begin-detour
 <slug>` — and then hand off below as usual: the step is the open lesson,
 and the lesson they were going to start is open again when the detour
 ends. Prefer a lesson of the author's from outside their destination

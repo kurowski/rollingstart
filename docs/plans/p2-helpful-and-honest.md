@@ -432,10 +432,14 @@ stored run of both passes the corrected criterion when re-graded from
 its transcript, which is cheap (judge calls only) and is not a fresh
 run. A four-turn case costs about $1.05 a run, not the $0.09 that 2.3's
 one-turn case suggested: each turn re-sends the skill and a
-conversation that has grown. #50 (the judge's answer is parsed by
-luck, and its raw record is not kept) and #51 (the tutor chains two
-step writes into one command and the grant refuses it) came out of
-the same runs and are deliberately left for their own branches.
+conversation that has grown. #50, the judge's answer parsed by luck
+with its raw record not kept, came out of the same runs and waits for
+its own branch. #51 — the tutor chaining two step writes into one
+command, where a grant is matched against the whole of it — is fixed
+here, in a clause of the same two skills, along with a line saying a
+pointer may carry its note; both were held back from the first commit
+so the run's evidence covered the prose exactly as run, and taken once
+the maintainer asked. What the run measured is everything else.
 
 ---
 

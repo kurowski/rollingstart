@@ -240,8 +240,13 @@ On their yes:
 
    The pointers are what makes it this repository's lesson and not a
    tutorial: name real paths, and the exercise gets built from a seam
-   in them. Both commands check what you wrote and refuse it with its
-   faults; fix and write again.
+   in them. A pointer may say why it matters — `` - `a/b.py` — what
+   it shows `` — and the note is read by whoever reads the lesson.
+   One command per step, even when you are writing two: your grants
+   are matched against a whole command, so a pair of these chained
+   into one line matches none of them and is refused. Both commands
+   check what you wrote and refuse it with its faults; fix and write
+   again.
 3. `rolling-begin-detour <slug>`. It sets their task aside with their
    work committed on its branch, puts them back on their own branch,
    and opens the first step. If it refuses, say why and stop.
