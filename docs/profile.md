@@ -421,24 +421,93 @@ the learner agreed.
 - **`steps`** (required, one to three). In order. Each is a step the
   tutor wrote under `detours/<slug>/`, or a map lesson's slug. The pen
   refuses a fourth: a gap that needs more is bigger than a detour, and
-  the tutor says so and suggests a teammate. Above, `dataclass-basics`
-  is the tutor's own and `shared-models` is the author's: a `platform`
-  lesson at `working` depth, outside a destination of
-  `platform: orientation`.
+  the tutor says so and suggests a teammate. It refuses the same slug
+  twice as well, because the open step is found by its slug and two of
+  them would leave "which step is this" unanswerable. Above,
+  `dataclass-basics` is the tutor's own and `shared-models` is the
+  author's: a `platform` lesson at `working` depth, outside a
+  destination of `platform: orientation`.
 
-A step the tutor writes is a lesson in the format of `docs/map.md`,
-with `region` and `depth` those of the lesson it returns to, `requires`
-and `exercise` left out, and pointer paths into the repository in its
-body, each checked to be in the tree when it is written. Its slug may
-not name a map lesson. It is served like a map lesson, walkthrough and
-exercise, and `task` builds its exercise from a seam in its pointer
-paths unless a fix in the history obviously matches.
+The plan is written by `rolling-write detour <slug>` and checked as it
+lands, the way `task.md` is: a malformed one is refused with its
+faults, so nothing downstream reads one.
 
-When a step is done, `done` records it in evidence as any lesson. A
+### A step the tutor writes
+
+A lesson in the format of [`map.md`](map.md), written by `rolling-write
+step <detour> <step>`, with `region` and `depth` those of the lesson
+the detour returns to, `requires` and `exercise` left out, and a
+`## Pointers` section of `- <path>` lines, each checked to be in the
+tree when the step is written.
+
+```markdown
+---
+title: Dataclasses, and what they generate
+region: billing
+depth: working
+assumes: [python]
+---
+
+What they are, and where this repository leans on them …
+
+## Pointers
+
+- src/billing/models.py
+- src/billing/totals.py
+
+## Rubric
+
+- The learner can say what `@dataclass` generates, and name one place
+  here that depends on it.
+```
+
+Its slug may not name a map lesson: a slug is resolved as a step first
+and a lesson second, so one in both places would make the detour's own
+step unreachable. The pointers are the step's grounding and the `task`
+skill's: it builds the exercise from a seam in those paths unless a fix
+in the history obviously matches. They are paths, not citations with a
+line number, because the lines move and the file is the lesson.
+
+### Which step is open
+
+`open-detour` holds the detour's slug while one is open, and the
+`lesson` marker holds the open step's, exactly as it holds any open
+lesson's. That is the whole of the bookkeeping, and it is deliberate: a
+step is a lesson, so everything that already reads the marker — the
+walkthrough, `rolling-begin-task`, evidence, `done` — serves a step
+without being told it is one, and the step's position is its slug found
+in the plan's `steps`.
+
+`rolling-begin-detour <slug>` opens one. It refuses while a detour is
+already open, parks the open task if there is one (§ `parked/`), writes
+`open-detour`, and opens the first step. The park is what frees the
+marker, since parking takes the task's lesson with it.
+
+`rolling-close-task` on a step closes it the way it closes any lesson
+and then moves the detour on: the next step opens, or, after the last
+one, the detour ends. Ending it removes `open-detour` and puts the
+learner back where they left the course — the parked task resumed if
+one is parked, else `returns-to` opened as the lesson. A `returns-to`
+the map no longer has is said rather than opened, since the lesson it
+names is gone.
+
+`rolling-close-detour` ends a detour the learner stopped
+(`/rolling:cancel` mid-detour). It ends the detour, not the step: a
+step is not something the learner chose, so there is nothing to skip
+within one. It resumes the parked task and then clears `open-detour`,
+in that order, because a resume the tree refuses leaves the detour open
+and the task parked — both still there to try again — rather than
+orphaning either.
+
+### What a detour does not touch
+
+`## Destination` is the learner's, and a detour never changes it: that
+is what makes it a side trip rather than a reroute. When a step is
+done, `done` records it in evidence as it records any lesson. A
 borrowed map lesson is also written to `## Satisfied`: it is the
 author's lesson, done, and `next` should not serve it again if the
-learner later adds its region. A step the tutor wrote never is. The
-destination is never touched by a detour.
+learner later adds its region. A step the tutor wrote never is, because
+no author has vouched for it.
 
 ## `parked/` (P2)
 

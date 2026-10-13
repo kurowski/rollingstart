@@ -384,6 +384,14 @@ the directory can be opened as an Obsidian vault.
   `postgres`. Not checked against anything; the tutor reads it against
   the learner's background to go faster where it is covered and to
   offer a detour where it is not. A lesson is never skipped for it.
+  A detour the tutor offers for a gap here may borrow another lesson
+  of yours from outside the learner's destination — named, never
+  copied, and marked satisfied for them afterwards, since it is your
+  lesson, done — or may be a step the tutor writes for this learner
+  alone. Either way the destination is untouched, so `assumes` widens
+  what the tutor can offer without rerouting anybody; a gap too big
+  for three steps is not a detour, and the tutor says so rather than
+  improvising a course. `docs/profile.md` § `detours/` has the shape.
 - **`exercise`** (optional). `none`, for a lesson that is its
   walkthrough: a look around a region with nothing worth changing for
   its own sake. Left out, the tutor offers an exercise at the end of
