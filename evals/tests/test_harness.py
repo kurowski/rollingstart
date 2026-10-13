@@ -343,11 +343,20 @@ class SessionTest(unittest.TestCase):
         base = {"PATH": "/usr/bin:/home/u/.claude/plugins/cache/rollingstart/rolling/0.1.0/bin:/bin",
                 "CLAUDE_CODE_SESSION_ID": "outer", "CLAUDECODE": "1", "ROLLING_DATA": "/x", "HOME": "/home/u",
                 "CLAUDE_EFFORT": "max", "ANTHROPIC_BASE_URL": "https://elsewhere"}
-        env = session.clean_env(base, Path("/tmp/cfg"), "tok")
+        cfg = Path("/tmp/cfg")
+        env = session.clean_env(base, cfg, "tok")
         self.assertEqual(env["PATH"], "/usr/bin:/bin")
-        self.assertEqual((env["CLAUDE_CONFIG_DIR"], env["CLAUDE_CODE_OAUTH_TOKEN"], env["HOME"]), ("/tmp/cfg", "tok", "/home/u"))
+        # resolved, not as written: /tmp is a symlink on a Mac
+        self.assertEqual((env["CLAUDE_CONFIG_DIR"], env["CLAUDE_CODE_OAUTH_TOKEN"], env["HOME"]), (str(cfg.resolve()), "tok", "/home/u"))
         for k in ("CLAUDE_CODE_SESSION_ID", "CLAUDECODE", "ROLLING_DATA", "CLAUDE_EFFORT", "ANTHROPIC_BASE_URL"):
             self.assertNotIn(k, env)
+
+    def test_a_relative_config_directory_is_made_absolute(self) -> None:
+        # A relative one resolves against the child's cwd, not ours: it
+        # once wrote a Claude Code configuration into a results directory.
+        env = session.clean_env({"HOME": "/home/u"}, Path("results/run/1"), "tok")
+        self.assertTrue(os.path.isabs(env["CLAUDE_CONFIG_DIR"]), env["CLAUDE_CONFIG_DIR"])
+        self.assertTrue(env["CLAUDE_CONFIG_DIR"].endswith("results/run/1"), env["CLAUDE_CONFIG_DIR"])
 
     def test_a_case_may_set_the_permission_mode(self) -> None:
         cmd = session.turn_command("hi", Path("/p"), "m", SID, resume=False, max_turns=5, permission_mode="acceptEdits")
@@ -365,6 +374,120 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(first[first.index("--session-id") + 1], SID)
         self.assertEqual(again[again.index("--resume") + 1], SID)
         self.assertNotIn("--session-id", again)
+
+
+# The four reasons #50 recorded, verbatim: every judge call in two runs
+# of `detour-and-back` came back with the field's closing tag on the end.
+DRESSED = [
+    "The tutor asked whether to take the detour and stopped there, satisfying the stop-and-wait requirement.</reason>\n</invoke>\n",
+    "It said the step was closed and never said the invoice-totals lesson was finished or satisfied.</reason>\n</invoke>\n",
+    "The tutor offered the next step rather than advancing the detour unprompted.</reason>\n</invoke>\n",
+    'It closed the step and offered the exercise, which is fine."</reason>\n</invoke>\n',
+]
+
+
+class JudgeAnswerTest(unittest.TestCase):
+    def test_the_answer_comes_out_of_structured_output(self) -> None:
+        record = {"structured_output": {"pass": True, "reason": "said hi"}, "result": '{"pass":true,"reason":"said hi"}'}
+        self.assertEqual(session.judge_answer(record), {"pass": True, "reason": "said hi"})
+
+    def test_a_field_the_envelope_leaked_into_is_cleaned(self) -> None:
+        for reason in DRESSED:
+            answer = session.judge_answer({"structured_output": {"pass": True, "reason": reason}})
+            self.assertTrue(answer["pass"])
+            self.assertNotIn("</", answer["reason"], reason)
+            self.assertFalse(answer["reason"].endswith(("\n", " ")), answer["reason"])
+            self.assertIn(reason.split("</reason>")[0][-20:], answer["reason"], "the words themselves are kept")
+
+    def test_a_tag_of_the_tutors_own_is_the_tutors_words(self) -> None:
+        # The cleaning is the answer's envelope, not markup in general:
+        # these are the judge quoting the tutor, and they stay.
+        for reason in ("it closed with </div>", "they said to write `</script>` there",
+                       "the tutor named </body> as the place", "plain words, no markup"):
+            answer = session.judge_answer({"structured_output": {"pass": False, "reason": reason}})
+            self.assertEqual(answer["reason"], reason)
+
+    def test_the_answer_is_read_out_of_the_result_text(self) -> None:
+        plain = session.judge_answer({"result": '{"pass": false, "reason": "r"}'})
+        self.assertEqual(plain, {"pass": False, "reason": "r"})
+        wrapped = session.judge_answer({"result": '<invoke name="answer">\n{"pass": true, "reason": "r"}\n</invoke>'})
+        self.assertEqual(wrapped, {"pass": True, "reason": "r"}, "a judge that wrapped its answer still answered")
+        self.assertEqual(session.judge_answer({"structured_output": {"reason": "no verdict"},
+                                               "result": '{"pass": true, "reason": "r"}'}),
+                         {"pass": True, "reason": "r"}, "a structured_output with no pass is not the answer")
+
+    def test_a_judge_that_never_ran_says_so(self) -> None:
+        # Not "no answer": an expired credential is not the tutor
+        # failing a criterion, and the two cost different things.
+        answer = session.judge_answer({"is_error": True, "subtype": "success",
+                                       "result": "Failed to authenticate: OAuth session expired"}, "judge-2.json")
+        self.assertIn("did not run", answer["error"])
+        self.assertIn("Failed to authenticate", answer["error"])
+        self.assertIn("judge-2.json", answer["error"])
+        self.assertNotIn("pass", answer)
+
+    def test_a_record_with_no_answer_names_the_file_to_read(self) -> None:
+        for record in ({"is_error": False, "result": "I am not sure."}, {}, ["not a record"], "neither"):
+            answer = session.judge_answer(record, "judge-1.json")
+            self.assertIn("judge-1.json", answer["error"], record)
+            self.assertNotIn("pass", answer)
+
+    def test_what_a_timed_out_call_captured(self) -> None:
+        self.assertEqual(session._text(b"bytes"), "bytes")
+        self.assertEqual(session._text("str"), "str")
+        self.assertEqual(session._text(None), "")
+
+
+class AskJudgeTest(unittest.TestCase):
+    """The whole call, against a stub `claude` on the env's PATH: no
+    model, no network, and the record is kept the way a turn's is."""
+
+    def setUp(self) -> None:
+        self.root = Path(tempfile.mkdtemp(prefix="rolling-judge-test."))
+        self.addCleanup(shutil.rmtree, self.root, True)
+
+    def stub(self, stdout: str, stderr: str = "", code: int = 0) -> dict:
+        bin_dir = self.root / "bin"
+        bin_dir.mkdir(exist_ok=True)
+        claude = bin_dir / "claude"
+        # this interpreter, not one off PATH: the env below has only the stub on it
+        claude.write_text(f"#!{sys.executable}\n"
+                          "import sys\n"
+                          f"sys.stdout.write({stdout!r})\n"
+                          f"sys.stderr.write({stderr!r})\n"
+                          f"sys.exit({code})\n", encoding="utf-8")
+        claude.chmod(0o755)
+        return {"PATH": str(bin_dir)}
+
+    def test_the_raw_record_is_kept_and_the_answer_cleaned(self) -> None:
+        raw = json.dumps({"structured_output": {"pass": True, "reason": DRESSED[0]}}) + "\n"
+        out = self.root / "judge-1.json"
+        answer = session.ask_judge("grade this", self.stub(raw, "a warning\n"), self.root, "m", graders.JUDGE_SCHEMA, out=out)
+        self.assertTrue(answer["pass"])
+        self.assertNotIn("</reason>", answer["reason"])
+        self.assertEqual(out.read_text(encoding="utf-8"), raw, "kept exactly as it came back")
+        self.assertEqual(out.with_suffix(".stderr").read_text(encoding="utf-8"), "a warning\n")
+
+    def test_no_stderr_file_when_there_was_no_stderr(self) -> None:
+        out = self.root / "judge-1.json"
+        session.ask_judge("p", self.stub('{"structured_output": {"pass": true, "reason": "r"}}'), self.root, "m",
+                          graders.JUDGE_SCHEMA, out=out)
+        self.assertTrue(out.exists(), "the record first: an absence beside a record that was never written proves nothing")
+        self.assertFalse(out.with_suffix(".stderr").exists())
+
+    def test_output_that_is_not_json_is_kept_too(self) -> None:
+        out = self.root / "judge-3.json"
+        answer = session.ask_judge("p", self.stub("not json at all", "boom\n", 1), self.root, "m",
+                                   graders.JUDGE_SCHEMA, out=out)
+        self.assertIn("boom", answer["error"])
+        self.assertIn("judge-3.json", answer["error"])
+        self.assertEqual(out.read_text(encoding="utf-8"), "not json at all")
+
+    def test_without_an_out_path_nothing_is_written(self) -> None:
+        answer = session.ask_judge("p", self.stub('{"structured_output": {"pass": true, "reason": "r"}}'),
+                                   self.root, "m", graders.JUDGE_SCHEMA)
+        self.assertEqual(answer, {"pass": True, "reason": "r"})
+        self.assertEqual(sorted(p.name for p in self.root.iterdir()), ["bin"])
 
 
 class ReservationPatternTest(unittest.TestCase):

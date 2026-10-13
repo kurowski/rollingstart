@@ -41,10 +41,11 @@ What a run leaves behind, under `evals/results/<stamp>/` (kept out of
 the tree by .gitignore): `summary.md`, a table of cases by model with
 each failing verdict's reason, and `summary.json`; and per run,
 `<model>/<case>/<n>/` with each turn's stream (`turn-1.jsonl`, ...),
-the conversation as the judge read it, `verdicts.json`, and
-`learner/`, a copy of the learner's directory as the run left it. The
-temporary directory is removed unless --keep, and the maintainer's own
-configuration is never touched.
+every judge call's raw record (`judge-1.json`, ... , in the order the
+graders ran), the conversation as the judge read it, `verdicts.json`,
+and `learner/`, a copy of the learner's directory as the run left it.
+The temporary directory is removed unless --keep, and the maintainer's
+own configuration is never touched.
 
 Exits 0 when every case passed on every model, 1 when one did not, and
 2 when the run could not start (no token, a case with faults).
@@ -137,8 +138,13 @@ def run_one(case: Dict, model: str, judge_model: str, token: str, out: Path, kee
                 broken.append(why)
                 break
 
+        judged = 0
+
         def ask(prompt: str) -> Dict:
-            return session.ask_judge(prompt, env, root, judge_model, graders.JUDGE_SCHEMA)
+            nonlocal judged
+            judged += 1   # numbered as the turns are, in the order the graders run
+            return session.ask_judge(prompt, env, root, judge_model, graders.JUDGE_SCHEMA,
+                                     out=out / f"judge-{judged}.json")
 
         learners = sorted((world.data / "repos").glob("*"))
         learner = learners[0] if len(learners) == 1 else None

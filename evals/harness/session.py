@@ -19,13 +19,18 @@ file (`claude setup-token` makes one), read at run time and passed as
 CLAUDE_CODE_OAUTH_TOKEN; it is never written anywhere.
 
 A turn is one `claude -p`. The first names its session id, which the
-seed has already claimed as the tutor's; a follow-up resumes it.
+seed has already claimed as the tutor's; a follow-up resumes it. The
+judge is one too, tool-less and answering against a schema, and its
+raw record is kept beside the turns: an answer the harness cannot read
+has to be readable by a person, or a glitch in the judge and a tutor
+misbehaving look the same afterwards.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -54,7 +59,9 @@ def clean_env(base: Dict[str, str], config: Path, token: str) -> Dict[str, str]:
            if not (k.startswith("CLAUDE") or k.startswith("ANTHROPIC_") or k == "ROLLING_DATA")}
     parts = [p for p in env.get("PATH", "").split(os.pathsep) if p and "/plugins/cache/" not in p]
     env["PATH"] = os.pathsep.join(parts)
-    env["CLAUDE_CONFIG_DIR"] = str(config)
+    # Absolute: a relative path here resolves against the child's cwd,
+    # which once wrote a configuration into a results directory.
+    env["CLAUDE_CONFIG_DIR"] = str(Path(config).resolve())
     env["CLAUDE_CODE_OAUTH_TOKEN"] = token
     return env
 
@@ -106,24 +113,105 @@ def run_turn(cwd: Path, env: Dict[str, str], cmd: List[str], out: Path, timeout:
     return text.splitlines(), problem
 
 
-def ask_judge(prompt: str, env: Dict[str, str], cwd: Path, model: str, schema: str, timeout: int = 300) -> Dict:
-    """One tool-less `claude -p` answering with JSON against schema."""
+# The closing tags of the answer's own envelope, and nothing else. A
+# judge that writes its answer in tool-call syntax leaves the field's
+# closing tag on the end of the field (2026-10-13, #50: every reason in
+# two runs ended `</reason>\n</invoke>\n`), and the value is otherwise
+# the answer. Narrow on purpose: a reason quoting a tag of the tutor's
+# own — `</div>`, say — is the tutor's words and stays.
+_ENVELOPE = re.compile(
+    r"(?:\s*</(?:[A-Za-z][\w.-]*:)?(?:pass|reason|invoke|parameter|function_calls|result)\s*>)+\s*\Z",
+    re.IGNORECASE,
+)
+
+
+def _undressed(value: object) -> object:
+    return _ENVELOPE.sub("", value) if isinstance(value, str) else value
+
+
+def _from_text(said: object) -> Optional[Dict]:
+    """The answer out of the result text: the whole of it when that is
+    JSON, else the first JSON object in it, which is what a judge that
+    wrapped its answer in prose or markup leaves behind."""
+    if not isinstance(said, str):
+        return None
+    decoder = json.JSONDecoder()
+    for i, ch in enumerate(said):
+        if ch == "{":
+            try:
+                found, _ = decoder.raw_decode(said, i)
+            except ValueError:
+                continue
+            if isinstance(found, dict):
+                return found
+    return None
+
+
+def judge_answer(record: object, where: str = "") -> Dict:
+    """The judge's answer, out of the record `claude -p` returned.
+
+    `structured_output` is the answer when the call went well, and the
+    same JSON is in `result`. When it did not, the harness has to say
+    which of two things happened, because they cost different things:
+    a judge that answered oddly is a formatting problem, and a judge
+    that never ran (an expired credential, a timeout) is not an answer
+    at all. Neither is the tutor failing a criterion, which is what a
+    missing `pass` turns into downstream.
+
+    So an answer is taken wherever one can be found, and only a record
+    with none in it is an error — reported in the record's own words,
+    naming the file to read rather than truncating the record into the
+    verdict.
+    """
+    hint = f"; the record is in {where}" if where else ""
+    if not isinstance(record, dict):
+        return {"error": f"not a result record: {str(record)[:200]}{hint}"}
+    answer = record.get("structured_output")
+    if not isinstance(answer, dict) or "pass" not in answer:
+        answer = _from_text(record.get("result")) or answer
+    if isinstance(answer, dict) and "pass" in answer:
+        return {k: _undressed(v) for k, v in answer.items()}
+    said = record.get("result")
+    if record.get("is_error") and isinstance(said, str) and said.strip():
+        return {"error": f"the judge did not run: {said.strip()[:300]}{hint}"}
+    return {"error": f"no answer in the judge's record{hint}"}
+
+
+def _keep(out: Optional[Path], stdout: str, stderr: str) -> None:
+    """The record as it came back, beside the turn streams."""
+    if out is None:
+        return
+    out.write_text(stdout, encoding="utf-8")
+    if stderr.strip():
+        out.with_suffix(".stderr").write_text(stderr, encoding="utf-8")
+
+
+def ask_judge(prompt: str, env: Dict[str, str], cwd: Path, model: str, schema: str, timeout: int = 300,
+              out: Optional[Path] = None) -> Dict:
+    """One tool-less `claude -p` answering with JSON against schema.
+    The raw record is kept at out, the way a turn's stream is."""
     cmd = ["claude", "-p", prompt, "--model", model, "--tools", "", "--output-format", "json",
            "--json-schema", schema, "--no-session-persistence"]
+    # No stdin: the CLI waits seconds for input that is never coming.
     try:
-        res = subprocess.run(cmd, cwd=str(cwd), env=env, capture_output=True, text=True, timeout=timeout, check=False)
-    except subprocess.TimeoutExpired:
+        res = subprocess.run(cmd, cwd=str(cwd), env=env, capture_output=True, text=True,
+                             stdin=subprocess.DEVNULL, timeout=timeout, check=False)
+    except subprocess.TimeoutExpired as e:
+        _keep(out, _text(e.stdout), _text(e.stderr))
         return {"error": f"the judge timed out after {timeout}s"}
+    _keep(out, res.stdout, res.stderr)
+    where = out.name if out is not None else ""
     try:
         record = json.loads(res.stdout)
     except ValueError:
-        return {"error": (res.stderr or res.stdout).strip()[:500]}
-    if not isinstance(record, dict):
-        return {"error": f"not a result record: {str(record)[:500]}"}
-    answer: Optional[object] = record.get("structured_output")
-    if answer is None and isinstance(record.get("result"), str):
-        try:
-            answer = json.loads(record["result"])
-        except ValueError:
-            answer = None
-    return answer if isinstance(answer, dict) else {"error": f"no structured answer: {str(record)[:500]}"}
+        said = (res.stderr or res.stdout).strip()[:500]
+        return {"error": (said or "the judge printed nothing") + (f"; the record is in {where}" if where else "")}
+    return judge_answer(record, where)
+
+
+def _text(raw: object) -> str:
+    """What a timed-out subprocess captured, which is bytes or str or
+    nothing depending on how far it got."""
+    if isinstance(raw, bytes):
+        return raw.decode("utf-8", errors="replace")
+    return raw if isinstance(raw, str) else ""
