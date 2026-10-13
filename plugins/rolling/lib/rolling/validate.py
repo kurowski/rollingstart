@@ -403,8 +403,8 @@ def _pointer_path(item: str) -> str:
     (`` - `billing/invoice.py` — the Line type ``), and the first
     write was refused every time, with a message that read as the file
     being absent. So the dressing comes off here instead: a wrapping
-    pair of backticks or asterisks, a sentence's full stop, and a
-    note after a spaced dash or a colon. The note stays in the file, where whoever reads the lesson
+    wrapping of backticks or asterisks in any nesting, a sentence's
+    full stop, and a note after a spaced dash or a colon. The note stays in the file, where whoever reads the lesson
     reads it; only the check reads past it.
 
     A path that itself contains a spaced dash has to go without a note,
@@ -413,10 +413,14 @@ def _pointer_path(item: str) -> str:
     see what the check read.
     """
     text = _GLOSS.split(item.strip(), 1)[0].strip().rstrip(".,;")
-    for wrap in _WRAPS:
-        n = len(wrap)
-        while text.startswith(wrap) and text.endswith(wrap) and len(text) > 2 * n:
-            text = text[n:-n].strip().rstrip(".,;")
+    changed = True
+    while changed:                     # until stable: a bold code span
+        changed = False                # wraps one kind inside another
+        for wrap in _WRAPS:
+            n = len(wrap)
+            if text.startswith(wrap) and text.endswith(wrap) and len(text) > 2 * n:
+                text = text[n:-n].strip().rstrip(".,;")
+                changed = True
     return text
 
 
@@ -439,7 +443,9 @@ def _pointer_faults(where: str, path: Path, top: Path) -> List[Fault]:
     for item in pointers:
         ptr = _pointer_path(item)
         if not rules.is_plain_relpath(ptr):
-            faults.append(Fault(where, f"pointer '{ptr}' is not a plain repository-relative path"))
+            # the line itself when the parse came back with nothing, so
+            # the fault quotes something the writer can recognise
+            faults.append(Fault(where, f"pointer '{ptr or item.strip()}' is not a plain repository-relative path"))
             continue
         if ptr in seen:
             faults.append(Fault(where, f"pointer '{ptr}' is listed twice"))

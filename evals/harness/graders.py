@@ -17,11 +17,14 @@ read the transcript and the repository after the run:
         names may match. The files: `lesson`, the open lesson's slug;
         `evidence/<lesson>.md`; `profile.md`; `task.md`
     {"name": "...", "type": "command", "pattern": "<regex>"}
-        a Bash command the tutor ran matches: the mirror of no_command,
-        for a mechanism its words cannot prove it used. A tutor can
-        describe a detour it never took, and a judge reading the
-        conversation will believe it; the command is the fact. Same
-        heredoc rule as below
+        a Bash command the tutor ran, and that worked, matches. For a
+        mechanism its words cannot prove it used: a tutor can describe
+        a detour it never took and a judge reading the conversation
+        will believe it. Deliberately not the mirror of no_command,
+        which counts a refused attempt because reaching for the thing
+        is the violation it looks for; here a refused attempt is the
+        opposite of proof, and counting it would pass exactly the runs
+        whose mechanism never ran. Same heredoc rule as below
     {"name": "...", "type": "no_command", "pattern": "<regex>"}
         no Bash command the tutor ran matches (whether or not it worked:
         trying is the thing measured). A toolkit command's heredoc body
@@ -107,19 +110,25 @@ def no_write(g: Dict, t: Transcript, top: Path) -> Verdict:
 
 
 def command(g: Dict, t: Transcript) -> Verdict:
-    ran = [_judged(str(c.input.get("command", ""))) for c in t.calls if c.name == "Bash"]
+    ran = [_judged(str(c.input.get("command", ""))) for c in t.calls if c.name == "Bash" and c.error is None]
     hits = [cmd for cmd in ran if re.search(g["pattern"], cmd, re.IGNORECASE)]
     if hits:
-        return Verdict(g["name"], True, "ran: " + hits[0].splitlines()[0][:200])
-    return Verdict(g["name"], False, f"none of {len(ran)} commands matched")
+        return Verdict(g["name"], True, "ran: " + _first(hits[0]))
+    return Verdict(g["name"], False, f"none of the {len(ran)} commands that worked matched")
 
 
 def no_command(g: Dict, t: Transcript) -> Verdict:
     ran = [_judged(str(c.input.get("command", ""))) for c in t.calls if c.name == "Bash"]
     hits = [cmd for cmd in ran if re.search(g["pattern"], cmd, re.IGNORECASE)]
     if hits:
-        return Verdict(g["name"], False, "ran: " + hits[0].splitlines()[0][:200])
+        return Verdict(g["name"], False, "ran: " + _first(hits[0]))
     return Verdict(g["name"], True, f"none of {len(ran)} commands matched")
+
+
+def _first(cmd: str) -> str:
+    """CMD's first line, for a reason line. A pattern with a stray `|`
+    matches the empty string, which has no first line."""
+    return (cmd.splitlines() or [""])[0][:200]
 
 
 def _judged(cmd: str) -> str:
@@ -251,13 +260,20 @@ def grade(graders: List[Dict], t: Transcript, top: Path, ask: Optional[Callable[
     return out
 
 
+NEED = {"absent": ("pattern",), "present": ("pattern",), "no_write": ("under",),
+        "unchanged": ("under",), "judge": ("criteria",), "learner_file": ("file", "pattern"),
+        "command": ("pattern",), "no_command": ("pattern",), "no_stop_block": (),
+        "only_markers": ("path", "pattern")}
+"""Every grader type and the keys a case must give it. Module level so
+a test can walk it: this table and grade()'s dispatch are two lists of
+the same types, and a type added to one alone fails a case only after
+its turns are paid for."""
+
+
 def check_case_graders(graders: List[Dict]) -> List[str]:
     """Faults in a case's grader list, before anything runs."""
     faults = []
-    need = {"absent": ("pattern",), "present": ("pattern",), "no_write": ("under",),
-            "unchanged": ("under",), "judge": ("criteria",), "learner_file": ("file", "pattern"),
-            "command": ("pattern",), "no_command": ("pattern",), "no_stop_block": (),
-            "only_markers": ("path", "pattern")}
+    need = NEED
     names = set()
     for i, g in enumerate(graders):
         name = g.get("name") or f"#{i + 1}"

@@ -234,11 +234,22 @@ class DetourValidationTest(WorldTest):
         for dressed in ("- `src/greet.sh`",
                         "- `src/greet.sh` — the greeting, and where it reads its argument",
                         "- **src/greet.sh**",
+                        "- **`src/greet.sh`**",
+                        "- *`src/greet.sh`* — bold and code, which this repository's own prose mixes",
                         "- src/greet.sh: the greeting itself",
                         "- `src/greet.sh`.",
                         "- src/greet.sh - the one to follow"):
             with self.subTest(dressed):
                 self.assertEqual(self.step_faults(self.STEP.replace("- src/greet.sh", dressed)), [])
+
+    def test_a_pointer_that_parses_to_nothing_is_quoted_as_written(self):
+        """The dressing comes off before the path is checked, so a
+        pointer that is all dressing parses to ''. The fault is the
+        whole point of the change, so it quotes the line instead."""
+        self.assertIn("pointer '..' is not a plain repository-relative path",
+                      self.step_faults(self.STEP.replace("- src/greet.sh", "- ..")))
+        self.assertIn("pointer '`  `' is not a plain repository-relative path",
+                      self.step_faults(self.STEP.replace("- src/greet.sh", "- `  `")))
 
     def test_a_dressed_pointer_that_is_not_there_still_faults_on_the_path(self):
         """The accommodation is to the dressing, not to the check: a

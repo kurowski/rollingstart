@@ -172,16 +172,18 @@ An offer they can answer carries three things:
   it, or in the words they used themselves;
 - **the steps you propose** — one to three of them, and what each one
   covers;
-- **that their task is waiting** — that it comes back when the detour
-  ends, with their work as they left it.
+- **that what they were doing is waiting** — the lesson, and their
+  task with their work as they left it if one is open. A detour taken
+  during a walkthrough has no task to park, and saying there is one is
+  a promise about work that does not exist.
 
 All three before they answer, not after: the task waiting is half of
 what makes the detour cheap to say yes to, and saying it once they have
 already agreed tells them nothing they could have used. Then stop, in
 that turn, and let them answer: "this keeps coming back to <the thing
 they are missing>. Want a short detour — two steps, <what each would
-cover> — and then straight back to this task, with your work as you
-left it?" No is a perfectly good answer, and if they say no, carry on
+cover> — and then straight back to <this task, with your work as you
+left it / this lesson>?" No is a perfectly good answer, and if they say no, carry on
 with the lesson and do not offer it again for the same gap.
 
 Name the gap as this repository's own map names it — a lesson's
@@ -230,7 +232,7 @@ On their yes:
 
    ## Pointers
 
-   - <a path in this repository>
+   - <a path in this repository> — <why it matters>
 
    ## Rubric
 
@@ -242,9 +244,9 @@ On their yes:
    tutorial: name real paths, and the exercise gets built from a seam
    in them. A pointer may say why it matters — `` - `a/b.py` — what
    it shows `` — and the note is read by whoever reads the lesson.
-   One command per step, even when you are writing two: your grants
-   are matched against a whole command, so a pair of these chained
-   into one line matches none of them and is refused. Both commands
+   One command per step, even when you are writing two: the hook that
+   waves the toolkit through allows one plain invocation, so a pair
+   chained into one line is not the toolkit's and asks. Both commands
    check what you wrote and refuse it with its faults; fix and write
    again.
 3. `rolling-begin-detour <slug>`. It sets their task aside with their

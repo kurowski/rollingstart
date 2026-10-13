@@ -441,7 +441,8 @@ the detour returns to, `requires` and `exercise` left out, and a
 tree when the step is written.
 
 A pointer may say why it matters, and may be dressed as prose: the path
-formatted as code, a note after a dash or a colon. The check reads the
+formatted as code or emphasis, in any nesting, a note after a dash or a
+colon. The check reads the
 path out of the line and the note stays in the file, because the
 section is in the body precisely so the paths are talked about rather
 than declared, and a path with a reason beside it teaches more than a

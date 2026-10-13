@@ -220,15 +220,25 @@ class GraderTest(World):
         self.assertFalse(graders.learner_file({"name": "r", "file": "evidence/*.md", "pattern": "Route", "absent": True}, learner).passed)
 
     def test_command(self) -> None:
-        """The mirror: a mechanism the tutor's words cannot prove it
-        used. A refused attempt counts, as it does for no_command,
-        because what is measured is that it reached for the command."""
+        """A mechanism the tutor's words cannot prove it used, and the
+        one place this is not no_command's mirror: a refused attempt is
+        the opposite of proof. Counting it would pass the runs that
+        found this, where the pen refused the steps and begin-detour
+        then refused the detour."""
+        g = {"name": "d", "pattern": "rolling-begin-detour"}
         t = self.t(use("a", "Bash", command="rolling-show task"), use("b", "Bash", command="rolling-begin-detour dataclasses"))
-        v = graders.command({"name": "d", "pattern": "rolling-begin-detour"}, t)
+        v = graders.command(g, t)
         self.assertTrue(v.passed)
         self.assertIn("rolling-begin-detour dataclasses", v.reason)
-        refused = self.t(use("a", "Bash", command="rolling-begin-detour x"), fail("a", "refused"))
-        self.assertTrue(graders.command({"name": "d", "pattern": "rolling-begin-detour"}, refused).passed)
+        refused = self.t(use("a", "Bash", command="rolling-begin-detour x"), fail("a", "no such detour"))
+        self.assertFalse(graders.command(g, refused).passed, "a refused attempt is not the mechanism running")
+        retried = self.t(use("a", "Bash", command="rolling-begin-detour x"), fail("a", "no such detour"),
+                         use("b", "Bash", command="rolling-begin-detour x"))
+        self.assertTrue(graders.command(g, retried).passed, "the second one worked, so it ran")
+        empty = self.t(use("a", "Bash", command=""))
+        for fn in (graders.command, graders.no_command):   # a stray `|` matches the empty
+            self.assertIsInstance(fn({"name": "d", "pattern": "rolling-begin-detour|"}, empty).reason, str,
+                                  "a command with no first line reports rather than raising")
         self.assertFalse(graders.command({"name": "d", "pattern": "rolling-begin-detour"}, self.t(say("I took a detour for you."))).passed,
                          "saying it is not doing it")
         note = self.t(use("a", "Bash", command="rolling-note x <<'EOF'\n**Route.** rolling-begin-detour was the plan.\nEOF"))
@@ -249,6 +259,22 @@ class GraderTest(World):
         self.assertFalse(graders.no_command({"name": "c", "pattern": "open\\([^)]*'w"}, plain).passed, "no heredoc, nothing skipped")
         heredoc = self.t(use("a", "Bash", command="python3 - <<'EOF'\nopen('billing/invoice.py', 'w')\nEOF"))
         self.assertFalse(graders.no_command({"name": "c", "pattern": "open\\([^)]*'w"}, heredoc).passed, "another program's heredoc is")
+
+    def test_every_grader_type_is_wired_into_grade(self) -> None:
+        """graders.NEED and grade()'s dispatch are two lists of the same
+        types. A type in one and not the other raises CaseError after a
+        run's turns are already paid for, so the pairing is pinned here."""
+        args = {"absent": {"pattern": "zzz"}, "present": {"pattern": "go"},
+                "command": {"pattern": "zzz"}, "no_command": {"pattern": "zzz"},
+                "no_write": {"under": ["billing"]}, "unchanged": {"under": ["billing"]},
+                "learner_file": {"file": "profile.md", "pattern": "x"}, "no_stop_block": {},
+                "only_markers": {"path": "tests/test_slots.py", "pattern": r"^\s*#"},
+                "judge": {"criteria": "anything at all"}}
+        self.assertEqual(sorted(args), sorted(graders.NEED), "a new grader type needs a line here too")
+        gs = [dict(args[kind], name=kind, type=kind) for kind in sorted(args)]
+        self.assertEqual(graders.check_case_graders(gs), [])
+        out = graders.grade(gs, self.t(say("go")), self.fx.top, lambda prompt: {"pass": True, "reason": "stub"}, self.root)
+        self.assertEqual([v.name for v in out], sorted(args))
 
     def test_no_stop_block(self) -> None:
         self.assertTrue(graders.no_stop_block({"name": "s"}, self.t(say("Fine."))).passed)

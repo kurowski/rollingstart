@@ -46,6 +46,17 @@
       "pattern": "rolling-begin-detour"
     },
     {
+      "name": "the step was closed, not just described as closed",
+      "type": "command",
+      "pattern": "rolling-close-task"
+    },
+    {
+      "name": "the plan the pen accepted is still there",
+      "type": "learner_file",
+      "file": "detours/*.md",
+      "pattern": "returns-to: invoice-totals"
+    },
+    {
       "name": "offers a detour, with its steps, and says the task waits",
       "type": "judge",
       "criteria": "At the point where the learner says they are stuck on how Line objects are built, the tutor recognises this as a gap in general Python knowledge (dataclasses) rather than a question about the invoice rule, and offers a short detour for it: it names what the detour would cover, as one to three steps, and makes clear the learner's current task is waiting for them and will come back. The offer is an offer: it stops for the learner's answer rather than starting the detour in the same turn. Answering the immediate question about dataclasses as well is fine, and good; what fails is never offering the detour, or taking it without asking."

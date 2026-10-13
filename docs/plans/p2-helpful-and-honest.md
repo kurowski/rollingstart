@@ -435,7 +435,8 @@ one-turn case suggested: each turn re-sends the skill and a
 conversation that has grown. #50, the judge's answer parsed by luck
 with its raw record not kept, came out of the same runs and waits for
 its own branch. #51 — the tutor chaining two step writes into one
-command, where a grant is matched against the whole of it — is fixed
+command, which the plugin's own hook does not wave through, so it asks
+and in a print-mode run an ask is a refusal — is fixed
 here, in a clause of the same two skills, along with a line saying a
 pointer may carry its note; both were held back from the first commit
 so the run's evidence covered the prose exactly as run, and taken once
