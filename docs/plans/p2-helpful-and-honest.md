@@ -444,7 +444,7 @@ the maintainer asked. What the run measured is everything else.
 
 ---
 
-### 2.6c — The judge's answer, and its record [IN PROGRESS]
+### 2.6c — The judge's answer, and its record [COMPLETE]
 
 Read the judge's answer as the model actually sends it, and keep the
 record that says what it sent. Branch `p2.6c/judge-record`; depends on
@@ -472,6 +472,29 @@ network, against the four reasons #50 recorded verbatim; and
 `clean_env` cannot be handed a relative configuration directory, which
 is how a stray Claude Code config got written into a results directory
 during 2.6b's re-grade.
+
+Done: `judge_answer` and the kept records, PR #52. A probe settled the
+shape first, for $0.04: a call that goes well holds the answer as a
+clean object in `structured_output` and the same JSON as a string in
+`result`, so the markup in 2.6b was *inside* the extracted field and
+the parse had been working by luck. Running that probe with the wrong
+credentials turned up the second shape, which is in the slice because
+of it — an expired credential arrives as `is_error` with the message in
+`result` and no answer at all, and was being reported as the tutor
+failing a criterion.
+
+The review round found two defects in the first cut, both of them the
+false `FAIL` this slice exists to prevent, arriving by the back door:
+the answer was taken from the *first* JSON object in the result text,
+which a preamble quoting the tutor's own code can supply, so a record
+with an answer in it reported none; and a `pass` that was not a boolean
+was passed through to `bool()`, which makes `"pass": "false"` a silent
+green — the one failure this suite cannot afford, in the path that had
+just stopped going through the schema. A verdict now has to be a
+boolean to be a verdict. The judge's 19 real reasons from 2.6b are
+committed as the test's corpus rather than four reconstructed ones,
+because the runs that produced them cost about $8 and their directories
+are gitignored.
 
 ---
 
