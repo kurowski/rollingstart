@@ -403,9 +403,10 @@ def _pointer_path(item: str) -> str:
     (`` - `billing/invoice.py` — the Line type ``), and the first
     write was refused every time, with a message that read as the file
     being absent. So the dressing comes off here instead: a wrapping
-    wrapping of backticks or asterisks in any nesting, a sentence's
-    full stop, and a note after a spaced dash or a colon. The note stays in the file, where whoever reads the lesson
-    reads it; only the check reads past it.
+    of backticks or asterisks in any nesting, a sentence's full stop,
+    and a note after a spaced dash or a colon. The note stays in the
+    file, where whoever reads the lesson reads it; only the check
+    reads past it.
 
     A path that itself contains a spaced dash has to go without a note,
     which is a trade for one real case against a pathological one. The
