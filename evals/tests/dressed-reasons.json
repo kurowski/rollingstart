@@ -1,0 +1,119 @@
+{
+  "note": "Judge reasons as the harness stored them in the 2.6b runs of 2026-10-13, verbatim, tails and all. Every one came back with the answer's own closing tags on the end of the field (#50); the words before them are the judge's and were right. The runs themselves cost about $8 and their directories are gitignored, so this is the only copy. Test data, not a record to keep current: these are what the regex has to clean, not what the suite now does.",
+  "reasons": [
+    {
+      "run": "20261013-075605/claude-opus-5-5/detour-and-back/1",
+      "criterion": "offers a detour, with its steps, and says the task waits",
+      "passed": true,
+      "reason": "After answering the immediate dataclass question, the tutor explicitly offered a detour rather than starting it: \"If dataclasses keep tripping you up after this, I can do a short detour of two steps: 1. What @dataclass generates... 2. How a test here builds and compares those objects... Then we'd come back to this task, and your work would stay as you left it. If what I've explained is enough, just carry on.\" It then stopped and waited for the learner's \"yes, that would help, let's do that first\" before beginning the detour in the next turn, satisfying the stop-and-wait requirement.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-075605/claude-opus-5-5/detour-and-back/1",
+      "criterion": "takes it on the yes and comes back to the task",
+      "passed": true,
+      "reason": "After the learner agreed (\"yes, that would help, let's do that first\"), the tutor delivered step 1 grounded in the repo's own code: \"**Detour step 1 of 2: What `@dataclass` generates.**\" using the actual `Line` and `Slot` classes from `billing/invoice.py` and `scheduling/slots.py`, not a generic tutorial. When the learner typed `/rolling:done`, the tutor proactively advanced state and stated location plainly: \"Step 1 is closed... **Step 2 of 2 is now open:** building dataclasses in tests... After that, the detour ends and you're back on the invoice totals task with your work as you left it.\" It handled all rolling-note/rolling-write/rolling-begin-detour plumbing itself via tool calls, never asking the learner to run them, and never claimed the original invoice-totals lesson was finished or satisfied.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-075605/claude-opus-5-5/detour-and-back/2",
+      "criterion": "offers a detour, with its steps, and says the task waits",
+      "passed": true,
+      "reason": "After answering the dataclass question, the tutor offered a detour rather than taking it: \"Since you've been stuck on this twice, if decorators and dataclasses keep getting in the way, I could set up a short detour first. It would be two steps: one on what a decorator is, and one on what `@dataclass` generates, both using code from this repository. Then we'd come back here, and your task would be waiting as you left it. If the explanation above was enough, carry on.\" It named the steps, made clear the task would be waiting, and stopped the turn for the learner's answer instead of starting the detour unprompted.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-075605/claude-opus-5-5/detour-and-back/2",
+      "criterion": "takes it on the yes and comes back to the task",
+      "passed": true,
+      "reason": "After the learner agreed (\"yes, that would help, let's do that first\"), the tutor delivered the first detour step grounded entirely in repo files (\"There's exactly one decorator, used twice. In `billing/invoice.py`:... In `scheduling/slots.py`:...\"). When the learner typed /rolling:done, the tutor advanced unprompted and stated position plainly: \"Decorators is closed, so step 1 of the detour is done... Step 2 of 2 is open now: **what `@dataclass` generates**... After that, you're back to the invoice totals with your work as you left it,\" without asking the learner to run any plumbing (only the plugin command \"/rolling:lesson\") and without claiming mastery/satisfaction — instead honestly noting \"You took the walkthrough without the exercise, which is fine.\"</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-075605/claude-opus-5-5/detour-and-back/3",
+      "criterion": "takes it on the yes and comes back to the task",
+      "passed": false,
+      "reason": "The tutor served step 1 as a grounded lesson and, after /rolling:done, correctly announced the transition (\"Step 1 is closed and step 2 of 2 is open... After this step the detour ends and your invoice-totals task comes back exactly as you left it\") without claiming the lesson was finished — but it then stopped short of actually advancing to step 2 and instead told the learner to trigger it themselves: \"Run `/rolling:lesson` when you're ready to start step 2.\" This requires the learner to ask/act to continue rather than the tutor moving the detour along on its own, which is exactly the behavior the criteria rule out.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-075605/claude-sonnet-5/detour-and-back/1",
+      "criterion": "takes it on the yes and comes back to the task",
+      "passed": true,
+      "reason": "After the learner agreed (\"yes, that would help, let's do that first\"), the tutor served the detour grounded in the repo itself — \"Here's scheduling/slots.py:7-10... Same pattern as Line: no __init__ written anywhere, but @dataclass generates one\" — rather than a generic explanation. When the learner then invoked done, the tutor ran the checks itself (never telling the learner to run anything), found nothing fixed, and explicitly routed back to the main task stating where they stood: \"Sounds like we got sidetracked into the dataclass question and /rolling:done came before the actual edit... 'The total multiplies each line's price by its quantity' — not yet... Want to go back and make the fix now\" — at no point claiming the lesson was finished or satisfied.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-075605/claude-sonnet-5/detour-and-back/2",
+      "criterion": "offers a detour, with its steps, and says the task waits",
+      "passed": true,
+      "reason": "After explaining dataclasses enough to answer the immediate question, the tutor explicitly offered a detour rather than taking it: \"Does that unblock you on `Line`, or is `@dataclass`/decorators in general still fuzzy enough that a short detour on them would help before you go back to `total`?\" This names the detour topic, makes clear the invoice task is paused and will be returned to (\"before you go back to `total`\"), and stops there for the learner's answer instead of launching into the detour unprompted — the learner then replies \"yes, that would help, let's do that first\" before any detour content is given.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-075605/claude-sonnet-5/detour-and-back/2",
+      "criterion": "takes it on the yes and comes back to the task",
+      "passed": true,
+      "reason": "The tutor grounded the detour's single step entirely in the repo's own files (\"In billing/invoice.py:7-11... scheduling/slots.py:7-10 is the same pattern... tests/test_slots.py:13 constructs it positionally\") rather than a generic dataclass tutorial. When the learner said /rolling:done, the tutor itself (not the learner) ran the plumbing (rolling-note, rolling-close-task) and then automatically routed back to the main task, stating plainly \"you're back on invoice-totals exactly where you left it: total in billing/invoice.py still ignoring quantity, working tree clean, nothing lost\" — telling the learner where they are without claiming the invoice-totals lesson itself was finished, and never instructing the learner to run any commands.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-075605/claude-sonnet-5/detour-and-back/3",
+      "criterion": "offers a detour, with its steps, and says the task waits",
+      "passed": false,
+      "reason": "The tutor's offer itself was vague and omitted the required elements: it only said \\\"Does that unblock you, or is there more about dataclasses tripping you up... If this keeps coming up I can set up a short detour on it instead of explaining piecemeal.\\\" This neither names what the detour would cover as discrete steps nor states that the current invoice task is waiting and will resume — it only asks if more help is needed. The \\\"parked, untouched, and waiting\\\" reassurance only appears after the learner already agreed and the detour was already being started (\\\"Now let's start the detour\\\" followed by the begin-detour tool call), so the required framing came after the decision was made rather than as part of the offer.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-075605/claude-sonnet-5/detour-and-back/3",
+      "criterion": "takes it on the yes and comes back to the task",
+      "passed": true,
+      "reason": "The tutor opens the detour and delivers its single step grounded in the repo's own `billing/invoice.py`, `scheduling/slots.py`, and `tests/test_slots.py` rather than generic tutorial content. When the learner says `/rolling:done`, the tutor autonomously closes the detour and returns to the parked task, stating plainly \"You're back on `rolling/invoice-totals-20261013-081002`, invoice-totals open again exactly as you left it (clean tree, nothing lost).\" It never instructs the learner to run any rolling plumbing itself (all `rolling-write`/`rolling-begin-detour`/`rolling-close-task` calls are the tutor's own tool invocations), and its closing remark — \"That closes the detour — it was just the one step\" — describes bookkeeping/navigation state rather than declaring the lesson content finished or satisfied.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-093130/claude-opus-5-5/detour-and-back/1",
+      "criterion": "offers a detour, with its steps, and says the task waits",
+      "passed": true,
+      "reason": "After answering the immediate question, the tutor explicitly offered a detour with named steps — \"would you like a short detour first? It would be two steps: 1. What @dataclass generates... 2. What a decorator is...\" — and made clear the task would wait (\"Your invoice task would wait, with your work as you left it, and we'd come straight back to it afterwards\"), then stopped for the learner's answer rather than starting it, ending with \"If you'd rather keep going now that you know where the constructor comes from, that's fine too.\" The detour only began after the learner replied \"yes, that would help, let's do that first.\"</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-093130/claude-opus-5-5/detour-and-back/1",
+      "criterion": "takes it on the yes and comes back to the task",
+      "passed": false,
+      "reason": "The tutor correctly states the step-closed/next-step status (\"I've closed step 1 without an exercise... Step 2 of 2, what a decorator is, is open now\"), but then ends with \"Run /rolling:lesson to start it.\" This instructs the learner to run the tutor's own plumbing command themselves (the same Skill-tool invocation the tutor had performed on its own for step 1), which the grading criteria explicitly marks as a failure mode, distinct from the acceptable approach of simply inviting them to begin when ready.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-093130/claude-opus-5-5/detour-and-back/2",
+      "criterion": "offers a detour, with its steps, and says the task waits",
+      "passed": true,
+      "reason": "After answering the dataclass question, the tutor explicitly offered a detour rather than taking it: \"Do you want a short detour first? It would be two steps: 1. Dataclasses... 2. Decorators in general... After that you come straight back to this invoice task, with your work exactly as you left it. If you'd rather keep going now, that's fine too.\" It then stopped and waited for the learner's \"yes, that would help, let's do that first\" before beginning the detour, satisfying the stop-and-wait requirement.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-093130/claude-opus-5-5/detour-and-back/2",
+      "criterion": "takes it on the yes and comes back to the task",
+      "passed": true,
+      "reason": "The tutor grounded the first detour step entirely in repo files (quoting billing/invoice.py's Line and scheduling/slots.py's Slot, and tests/test_slots.py) rather than generic dataclass tutorial content. After /rolling:done, it stated plainly: \"I've closed the dataclasses step after the walkthrough... it isn't added to your satisfied lessons\" (avoiding any false claim of completion/satisfaction), named the next open step (\"The second and last step, what a decorator is, is open now\"), and invited rather than walked through it (\"Run /rolling:lesson when you're ready to start it\"), which is the user-facing lesson command, not the detour's internal plumbing or the unrelated /rolling:next course command.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-093130/claude-opus-5-5/detour-and-back/3",
+      "criterion": "offers a detour, with its steps, and says the task waits",
+      "passed": true,
+      "reason": "The tutor explicitly reframes the stuck point as a general Python gap and offers a bounded detour before acting: \"I could set up a short detour, about two steps: 1. Decorators... 2. Dataclasses... Then it's straight back to this task, with your work as you left it. Want to do that, or keep going with the task?\" It stops there, waiting for the learner's \"yes, that would help, let's do that first\" before any detour tooling/content begins, satisfying the offer-then-wait requirement.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-093130/claude-opus-5-5/detour-and-back/3",
+      "criterion": "takes it on the yes and comes back to the task",
+      "passed": true,
+      "reason": "The tutor grounded the decorators step entirely in repo files (\"Here's billing/invoice.py: ... @dataclass class Line\" and \"scheduling/slots.py uses the same import and decorator ... That's where tests/test_slots.py gets Slot(at(9), at(11)) from\"), rather than a generic tutorial. After the learner typed /rolling:done, the tutor stated plainly: \"I've closed the decorators step after the walkthrough, with no exercise, which is fine... The Dataclasses step is open now. It's step 2 of 2... After that, the invoice totals task comes back with your work as you left it,\" inviting them to \"Run /rolling:lesson when you're ready for the walkthrough\" — which is the learner's own normal entry command (as they used to start this very detour), not internal plumbing like rolling-write/rolling-begin-detour, and it correctly avoided pointing them to /rolling:next.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-093130/claude-sonnet-5/detour-and-back/1",
+      "criterion": "takes it on the yes and comes back to the task",
+      "passed": true,
+      "reason": "The lesson step was grounded in the repo's own files (billing/invoice.py's @dataclass, scheduling/slots.py's Slot, tests/test_slots.py) rather than generic dataclass tutorial content. When the learner said /rolling:done, the tutor stated clearly: \"That was the detour's only step, so it's done... You're back on rolling/invoice-totals-20261013-093712, and the invoice totals task is open again exactly as you left it (still unwritten, billing/invoice.py's total still ignoring quantity).\" This unambiguously closes the step, ends the detour, and restores the original task state without claiming the invoice task itself is finished, and without directing the learner to run /rolling:next or any tutor plumbing. It then invites continuation (\"Want me to re-brief the task, or are you picking it back up?\") rather than walking through the next step unprompted.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-093130/claude-sonnet-5/detour-and-back/2",
+      "criterion": "takes it on the yes and comes back to the task",
+      "passed": true,
+      "reason": "The step lesson was grounded in the repo's own files (\"Look at billing/invoice.py: @dataclass class Line... scheduling/slots.py is the same pattern... tests/test_slots.py builds one positionally: Slot(at(9), at(11))\"). On /rolling:done, the tutor stated plainly: \"That closes the dataclasses step... That was the last (and only) step, so the detour's done: you're back on rolling/invoice-totals-20261013-093920, invoice-totals is open again, and your work there is exactly as you left it.\" It explicitly avoided claiming the invoice-totals lesson was finished/satisfied (noting the detour step \"doesn't count toward your profile's Satisfied list\") and pointed only to `/rolling:lesson`, not `/rolling:next`.</reason>\n</invoke>\n"
+    },
+    {
+      "run": "20261013-093130/claude-sonnet-5/detour-and-back/3",
+      "criterion": "takes it on the yes and comes back to the task",
+      "passed": true,
+      "reason": "The final message clearly closes the loop: \"That was the last step, so the detour's done. You're back on rolling/invoice-totals-20261013-094133, with invoice-totals open again and your work exactly as you left it.\" It explicitly avoids claiming the lesson was \"finished or satisfied\" by noting \"it doesn't get added to your profile's satisfied list — it was scaffolding for the actual lesson, not a destination itself,\" and it invites rather than walks through next steps (\"Ready to pick invoice-totals back up — want the brief again, or are you set to dig into total()?\"), pointing to /rolling:lesson (not /rolling:next) without asking the user to run any internal plumbing.</reason>\n</invoke>\n"
+    }
+  ]
+}

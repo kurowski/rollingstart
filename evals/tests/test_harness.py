@@ -343,11 +343,20 @@ class SessionTest(unittest.TestCase):
         base = {"PATH": "/usr/bin:/home/u/.claude/plugins/cache/rollingstart/rolling/0.1.0/bin:/bin",
                 "CLAUDE_CODE_SESSION_ID": "outer", "CLAUDECODE": "1", "ROLLING_DATA": "/x", "HOME": "/home/u",
                 "CLAUDE_EFFORT": "max", "ANTHROPIC_BASE_URL": "https://elsewhere"}
-        env = session.clean_env(base, Path("/tmp/cfg"), "tok")
+        cfg = Path("/tmp/cfg")
+        env = session.clean_env(base, cfg, "tok")
         self.assertEqual(env["PATH"], "/usr/bin:/bin")
-        self.assertEqual((env["CLAUDE_CONFIG_DIR"], env["CLAUDE_CODE_OAUTH_TOKEN"], env["HOME"]), ("/tmp/cfg", "tok", "/home/u"))
+        # resolved, not as written: /tmp is a symlink on a Mac
+        self.assertEqual((env["CLAUDE_CONFIG_DIR"], env["CLAUDE_CODE_OAUTH_TOKEN"], env["HOME"]), (str(cfg.resolve()), "tok", "/home/u"))
         for k in ("CLAUDE_CODE_SESSION_ID", "CLAUDECODE", "ROLLING_DATA", "CLAUDE_EFFORT", "ANTHROPIC_BASE_URL"):
             self.assertNotIn(k, env)
+
+    def test_a_relative_config_directory_is_made_absolute(self) -> None:
+        # A relative one resolves against the child's cwd, not ours: it
+        # once wrote a Claude Code configuration into a results directory.
+        env = session.clean_env({"HOME": "/home/u"}, Path("results/run/1"), "tok")
+        self.assertTrue(os.path.isabs(env["CLAUDE_CONFIG_DIR"]), env["CLAUDE_CONFIG_DIR"])
+        self.assertTrue(env["CLAUDE_CONFIG_DIR"].endswith("results/run/1"), env["CLAUDE_CONFIG_DIR"])
 
     def test_a_case_may_set_the_permission_mode(self) -> None:
         cmd = session.turn_command("hi", Path("/p"), "m", SID, resume=False, max_turns=5, permission_mode="acceptEdits")
@@ -365,6 +374,166 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(first[first.index("--session-id") + 1], SID)
         self.assertEqual(again[again.index("--resume") + 1], SID)
         self.assertNotIn("--session-id", again)
+
+
+# Every judge reason the 2.6b runs stored, as they came back: all 19 of
+# them, from 12 runs across two models, each with the answer's own
+# closing tags on the end of the field (#50). Real data, because the
+# results directories are gitignored and those runs cost about $8.
+DRESSED_FIXTURE = json.loads((Path(__file__).resolve().parent / "dressed-reasons.json").read_text(encoding="utf-8"))
+DRESSED = [r["reason"] for r in DRESSED_FIXTURE["reasons"]]
+
+
+class JudgeAnswerTest(unittest.TestCase):
+    def test_the_answer_comes_out_of_structured_output(self) -> None:
+        record = {"structured_output": {"pass": True, "reason": "said hi"}, "result": '{"pass":true,"reason":"said hi"}'}
+        self.assertEqual(session.judge_answer(record), {"pass": True, "reason": "said hi"})
+
+    def test_every_field_the_envelope_leaked_into_is_cleaned(self) -> None:
+        self.assertEqual(len(DRESSED), 19, "the whole corpus, not a sample")
+        for reason in DRESSED:
+            answer = session.judge_answer({"structured_output": {"pass": True, "reason": reason}})
+            self.assertTrue(answer["pass"])
+            self.assertNotIn("</", answer["reason"], reason)
+            self.assertFalse(answer["reason"].endswith(("\n", " ")), answer["reason"])
+            self.assertIn(reason.split("</reason>")[0][-40:], answer["reason"], "the words themselves are kept")
+
+    def test_a_tag_of_the_tutors_own_is_the_tutors_words(self) -> None:
+        # The cleaning is the answer's envelope, not markup in general:
+        # these are the judge quoting the tutor, and they stay.
+        # Each of these ends on the tag: one that does not is held by the
+        # anchor rather than by the tag set, and would survive a widening
+        # of the pattern, so it would not be checking anything.
+        for reason in ("it closed with </div>", "they wrote `</script>`",
+                       "the tag it never closed was </body>", "the element ends at </section>"):
+            answer = session.judge_answer({"structured_output": {"pass": False, "reason": reason}})
+            self.assertEqual(answer["reason"], reason)
+
+    def test_the_answer_is_read_out_of_the_result_text(self) -> None:
+        plain = session.judge_answer({"result": '{"pass": false, "reason": "r"}'})
+        self.assertEqual(plain, {"pass": False, "reason": "r"})
+        wrapped = session.judge_answer({"result": '<invoke name="answer">\n{"pass": true, "reason": "r"}\n</invoke>'})
+        self.assertEqual(wrapped, {"pass": True, "reason": "r"}, "a judge that wrapped its answer still answered")
+        self.assertEqual(session.judge_answer({"structured_output": {"reason": "no verdict"},
+                                               "result": '{"pass": true, "reason": "r"}'}),
+                         {"pass": True, "reason": "r"}, "a structured_output with no pass is not the answer")
+
+    def test_the_answer_is_found_past_an_object_that_is_not_one(self) -> None:
+        # The judge quotes the tutor and the tutor talks about code, so
+        # the preamble to a wrapped answer can carry an object of its
+        # own. Taking that one reports "no answer" for a record that has
+        # one, which is a failed criterion downstream.
+        said = 'Looking at it: the tutor wrote {"name": "x"} in package.json.\n{"pass": false, "reason": "it wrote the code"}'
+        self.assertEqual(session.judge_answer({"result": said}), {"pass": False, "reason": "it wrote the code"})
+        only = 'no verdict here, just {"name": "x"}'
+        self.assertIn("no answer", session.judge_answer({"result": only})["error"])
+
+    def test_a_pass_that_is_not_a_boolean_is_not_an_answer(self) -> None:
+        # `graders.judge` reads pass through bool(), so a string would
+        # pass the criterion: a silent false green, and nobody reads the
+        # reason of a verdict that passed.
+        for value in ("false", "no", "true", 0, 1, None, [], {}):
+            answer = session.judge_answer({"structured_output": {"pass": value, "reason": "r"}}, "judge-1.json")
+            self.assertNotIn("pass", answer, repr(value))
+            self.assertIn("judge-1.json", answer["error"])
+        for value in (True, False):
+            self.assertEqual(session.judge_answer({"structured_output": {"pass": value, "reason": "r"}}),
+                             {"pass": value, "reason": "r"})
+
+    def test_a_string_pass_does_not_reach_a_verdict(self) -> None:
+        # The same thing from the grader's side, which is where it would
+        # have cost something: the whole way through, not just the parse.
+        t = transcript.Transcript()
+        verdict = graders.judge({"name": "j", "criteria": "c"}, t,
+                                lambda p: session.judge_answer({"structured_output": {"pass": "false", "reason": "it did not"}}))
+        self.assertFalse(verdict.passed, "a string must not become a pass")
+        self.assertIn("did not answer", verdict.reason)
+
+    def test_a_judge_that_never_ran_says_so(self) -> None:
+        # Not "no answer": an expired credential is not the tutor
+        # failing a criterion, and the two cost different things.
+        answer = session.judge_answer({"is_error": True, "subtype": "success",
+                                       "result": "Failed to authenticate: OAuth session expired"}, "judge-2.json")
+        self.assertIn("did not run", answer["error"])
+        self.assertIn("Failed to authenticate", answer["error"])
+        self.assertIn("judge-2.json", answer["error"])
+        self.assertNotIn("pass", answer)
+
+    def test_a_record_with_no_answer_names_the_file_to_read(self) -> None:
+        for record in ({"is_error": False, "result": "I am not sure."}, {}, ["not a record"], "neither"):
+            answer = session.judge_answer(record, "judge-1.json")
+            self.assertIn("judge-1.json", answer["error"], record)
+            self.assertNotIn("pass", answer)
+
+    def test_what_a_timed_out_call_captured(self) -> None:
+        self.assertEqual(session._text(b"bytes"), "bytes")
+        self.assertEqual(session._text("str"), "str")
+        self.assertEqual(session._text(None), "")
+
+
+class AskJudgeTest(unittest.TestCase):
+    """The whole call, against a stub `claude` on the env's PATH: no
+    model, no network, and the record is kept the way a turn's is."""
+
+    def setUp(self) -> None:
+        self.root = Path(tempfile.mkdtemp(prefix="rolling-judge-test."))
+        self.addCleanup(shutil.rmtree, self.root, True)
+
+    def stub(self, stdout: str, stderr: str = "", code: int = 0) -> dict:
+        bin_dir = self.root / "bin"
+        bin_dir.mkdir(exist_ok=True)
+        claude = bin_dir / "claude"
+        # this interpreter, not one off PATH: the env below has only the stub on it
+        claude.write_text(f"#!{sys.executable}\n"
+                          "import sys\n"
+                          f"sys.stdout.write({stdout!r})\n"
+                          f"sys.stderr.write({stderr!r})\n"
+                          "sys.stdout.flush(); sys.stderr.flush()\n"
+                          f"sys.exit({code})\n", encoding="utf-8")
+        claude.chmod(0o755)
+        return {"PATH": str(bin_dir)}
+
+    def test_the_raw_record_is_kept_and_the_answer_cleaned(self) -> None:
+        raw = json.dumps({"structured_output": {"pass": True, "reason": DRESSED[0]}}) + "\n"
+        out = self.root / "judge-1.json"
+        answer = session.ask_judge("grade this", self.stub(raw, "a warning\n"), self.root, "m", graders.JUDGE_SCHEMA, out=out)
+        self.assertTrue(answer["pass"])
+        self.assertNotIn("</reason>", answer["reason"])
+        self.assertEqual(out.read_text(encoding="utf-8"), raw, "kept exactly as it came back")
+        self.assertEqual(out.with_suffix(".stderr").read_text(encoding="utf-8"), "a warning\n")
+
+    def test_no_stderr_file_when_there_was_no_stderr(self) -> None:
+        out = self.root / "judge-1.json"
+        session.ask_judge("p", self.stub('{"structured_output": {"pass": true, "reason": "r"}}'), self.root, "m",
+                          graders.JUDGE_SCHEMA, out=out)
+        self.assertTrue(out.exists(), "the record first: an absence beside a record that was never written proves nothing")
+        self.assertFalse(out.with_suffix(".stderr").exists())
+
+    def test_output_that_is_not_json_is_kept_too(self) -> None:
+        out = self.root / "judge-3.json"
+        answer = session.ask_judge("p", self.stub("not json at all", "boom\n", 1), self.root, "m",
+                                   graders.JUDGE_SCHEMA, out=out)
+        self.assertIn("boom", answer["error"])
+        self.assertIn("judge-3.json", answer["error"])
+        self.assertEqual(out.read_text(encoding="utf-8"), "not json at all")
+
+    def test_a_timed_out_call_keeps_what_it_printed_and_says_where(self) -> None:
+        out = self.root / "judge-9.json"
+        env = self.stub('{"partial": true}', "warming up\n")
+        claude = self.root / "bin" / "claude"
+        claude.write_text(claude.read_text(encoding="utf-8").replace("sys.exit(0)", "import time; time.sleep(30)"),
+                          encoding="utf-8")
+        claude.chmod(0o755)
+        answer = session.ask_judge("p", env, self.root, "m", graders.JUDGE_SCHEMA, timeout=1, out=out)
+        self.assertIn("timed out after 1s", answer["error"])
+        self.assertIn("judge-9.json", answer["error"], "the only error whose record is a partial")
+        self.assertEqual(out.read_text(encoding="utf-8"), '{"partial": true}')
+
+    def test_without_an_out_path_nothing_is_written(self) -> None:
+        answer = session.ask_judge("p", self.stub('{"structured_output": {"pass": true, "reason": "r"}}'),
+                                   self.root, "m", graders.JUDGE_SCHEMA)
+        self.assertEqual(answer, {"pass": True, "reason": "r"})
+        self.assertEqual(sorted(p.name for p in self.root.iterdir()), ["bin"])
 
 
 class ReservationPatternTest(unittest.TestCase):
@@ -386,6 +555,16 @@ class RunnerTest(unittest.TestCase):
         self.assertEqual(runner.turn_problem(2, None, False), "turn 2: the stream ended without a result record")
         self.assertEqual(runner.turn_problem(1, "timed out after 900s", False), "turn 1: timed out after 900s")
         self.assertEqual(runner.turn_problem(1, "claude exited 1: boom", True), "turn 1: claude exited 1: boom")
+
+    def test_a_judge_that_decided_nothing_is_the_runs_problem(self) -> None:
+        # Beside a turn that broke, not only in the verdict it decided:
+        # `run_one` counts these into the run's errors, so a run whose
+        # judge never answered reads as ungraded rather than as failed.
+        self.assertIsNone(runner.judge_problem(1, {"pass": False, "reason": "it did not"}))
+        self.assertIsNone(runner.judge_problem(1, {"pass": True, "reason": ""}))
+        self.assertEqual(runner.judge_problem(2, {"error": "the judge did not run: no credential; the record is in judge-2.json"}),
+                         "judge 2: the judge did not run: no credential; the record is in judge-2.json")
+        self.assertEqual(runner.judge_problem(3, {}), "judge 3: no answer")
 
     def test_runs_must_be_positive(self) -> None:
         with self.assertRaises(SystemExit) as cm:

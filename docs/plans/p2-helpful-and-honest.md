@@ -444,6 +444,60 @@ the maintainer asked. What the run measured is everything else.
 
 ---
 
+### 2.6c — The judge's answer, and its record [COMPLETE]
+
+Read the judge's answer as the model actually sends it, and keep the
+record that says what it sent. Branch `p2.6c/judge-record`; depends on
+2.3; from #50, filed while reading 2.6b's runs, where every judge
+reason came back with a closing-tag fragment on the end of it and both
+booleans were right anyway. Harness only, so no version moves.
+
+The harm is not the junk in the string. It is that a formatting glitch
+in the judge and the tutor misbehaving arrive wearing the same clothes:
+an answer the harness cannot read becomes a *failed criterion*, the run
+fails, and the summary table says `FAIL` — in a suite whose whole job
+is telling those two apart. And it could not be diagnosed afterwards,
+because the raw record was not kept.
+
+Done when: every judge call's raw record is written into the run's
+directory beside the turn streams, the way each turn's stream is kept;
+an answer that arrives wrapped in markup is read anyway, and a field
+the wrapper's closing tag leaked into is cleaned of it, with the
+cleaning narrow enough that a reason quoting a tag of the tutor's own
+keeps it; a record that says the *call* failed (an expired credential,
+say) is reported as that and not as a criterion the tutor failed; the
+error that remains names the file to read instead of truncating the
+record; the extraction is a pure function the gate tests without a
+network, against the four reasons #50 recorded verbatim; and
+`clean_env` cannot be handed a relative configuration directory, which
+is how a stray Claude Code config got written into a results directory
+during 2.6b's re-grade.
+
+Done: `judge_answer` and the kept records, PR #52. A probe settled the
+shape first, for $0.04: a call that goes well holds the answer as a
+clean object in `structured_output` and the same JSON as a string in
+`result`, so the markup in 2.6b was *inside* the extracted field and
+the parse had been working by luck. Running that probe with the wrong
+credentials turned up the second shape, which is in the slice because
+of it — an expired credential arrives as `is_error` with the message in
+`result` and no answer at all, and was being reported as the tutor
+failing a criterion.
+
+The review round found two defects in the first cut, both of them the
+false `FAIL` this slice exists to prevent, arriving by the back door:
+the answer was taken from the *first* JSON object in the result text,
+which a preamble quoting the tutor's own code can supply, so a record
+with an answer in it reported none; and a `pass` that was not a boolean
+was passed through to `bool()`, which makes `"pass": "false"` a silent
+green — the one failure this suite cannot afford, in the path that had
+just stopped going through the schema. A verdict now has to be a
+boolean to be a verdict. The judge's 19 real reasons from 2.6b are
+committed as the test's corpus rather than four reconstructed ones,
+because the runs that produced them cost about $8 and their directories
+are gitignored.
+
+---
+
 ### 2.7 — The ask-before-destructive hook [PENDING]
 
 A Bash command carrying the head of a destructive map operation asks
