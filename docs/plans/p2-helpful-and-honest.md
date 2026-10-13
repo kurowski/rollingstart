@@ -323,7 +323,7 @@ tutor's session id lives.
 
 ---
 
-### 2.6b — Detours [PENDING]
+### 2.6b — Detours [COMPLETE]
 
 A side-quest off the course, of one to three steps, taken on the
 learner's yes (the decision above). Branch `p2.6b/detours`; depends on
@@ -354,6 +354,55 @@ destination is untouched throughout; and a case on the fixture, a
 learner whose background lacks what `invoice-totals` assumes and who
 shows it mid-task, is offered a detour for it and comes back to the
 task.
+Done: `rolling-begin-detour` and `rolling-close-detour`, the pen's two
+new roles, and the five skills, PR #49. The decision row above is what
+the build settled: the open step is the open-lesson marker, so nothing
+had to be taught that a step is not a lesson.
+
+Two integration points were found by running it rather than by reading
+it. The task validator rejected a task whose lesson was a step,
+because it checks the lesson against the map — so no step could ever
+have had an exercise; it now takes the open detour's step directory.
+And `rolling-close-detour` first refused whenever a task file existed,
+which is after `rolling-end-task` as well as before it, so a learner
+who had ended their step's exercise could not cancel; it reads the
+branch instead, which is what says whether their work is committed
+yet. The first test written for that one passed with the fix backed
+out, so it was replaced by one that ends the task first, as the skill
+does; every other fix was backed out in a throwaway copy too, and each
+test fails there.
+
+`cancel` mid-detour runs `close-detour` in place of `close-task`;
+`close-task` on a step advances the detour itself and reports a detour
+it cannot finish at exit 0, since closing the step is what it was
+asked to do. Forty-four new tests: 37 in `test_detours.py`, and 7 on
+the two validators' fault lists.
+
+The review found four things worth the round. A skill named a framework
+(`next` offered "this one leans on Prisma"), which is the one crossing
+`CLAUDE.md` blocks a pull request over, and the diff introduced it: no
+skill had named one before. The offers now name the gap as the lesson's
+own `assumes` names it, and the Python-flavoured examples beside them
+went the same way. `advance` cleared `open-detour` without going
+through `end` when a plan could not be read — the one path that left a
+parked task with nothing to resume it, while saying "nothing is left
+half-open"; it ends the ordinary way now. And three sentences the tutor
+reads were false: that `/rolling:done` could pick up an unfinished
+detour (its step's lesson has closed by then, so `done` has nothing to
+be about), and that `/rolling:next` might offer a stopped step again
+(nothing serves a step but its detour). `cancel`'s and `done`'s "no
+open lesson" branches also short-circuited the one recovery that
+works, so both now check for a detour first. Taken from the same round:
+`returns-to` is held in code against the open lesson rather than only
+asserted in two skills' prose, since a detour ending on a lesson the
+learner never picked is the tutor choosing their route; `next` has a
+branch for finding a detour already open; and `close-task` catches a
+git failure as well as a refusal, so its exit-0 promise holds. One nit
+declined: `Learner.step_file` joins a slug without checking it, which
+every caller does check — the contract is written where the join is. `rolling` 0.4.3, a patch, as
+every slice inside a checkpoint now takes (#48). The eval case the
+done-when names is written and not yet run: a run is the maintainer's
+to authorise, and it is the one thing this slice leaves open.
 
 ---
 

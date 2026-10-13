@@ -4,8 +4,11 @@ Two exit conventions. A command a skill runs inline (show,
 claim-session, session-start, diff, verify, report) always exits 0 and
 reports in words, because a non-zero inline exit aborts the skill. A
 command a skill runs as an action (begin-task, end-task, park-task,
-resume-task, close-task, the checks, export, write, note, keep-task)
-exits non-zero on refusal and says what it refused.
+resume-task, close-task, begin-detour, close-detour, the checks,
+export, write, note, keep-task) exits non-zero on refusal and says what
+it refused. close-task is the one in between: closing the step is what
+it was asked to do, so a detour it cannot then finish is a note at exit
+0, while close-detour, whose whole job that is, exits non-zero.
 """
 
 from __future__ import annotations
@@ -18,7 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from . import diff as diffmod, frontmatter as fm, heldtest, mapsource, paths, reference, rules, session, validate, writes
+from . import detours as detourmod, diff as diffmod, frontmatter as fm, heldtest, mapsource, paths, reference, rules, session, validate, writes
 from .model import Learner, LoadError, Map, Task
 from .repo import GitError, Repo
 from .tasks import Refused, Tasks
@@ -104,8 +107,39 @@ def _parked_note(w: Where) -> str:
     return f"(no open task; {lesson} is parked on {t.branch}: rolling-resume-task picks it up)"
 
 
+def _detours(w: Where) -> detourmod.Detours:
+    return detourmod.Detours(w.repo, w.learner, w.map_dir)
+
+
+def _detour_lines(w: Where, slug: str) -> List[str]:
+    """What rolling-show detour says: the named detour's plan, or the
+    open one's with the open step marked and the parked task named."""
+    open_slug = w.learner.open_detour()
+    if not slug:
+        slug = open_slug
+        if not slug:
+            return ["(no open detour)"]
+    if not rules.is_slug(slug):
+        return [f"('{slug}' is not a detour slug)"]
+    plan = w.learner.detour_plan(slug)
+    path = w.learner.detours / f"{slug}.md"
+    if plan is None:
+        return [f"(no detour '{slug}': {path} does not exist)" if not path.is_file() else f"(detour '{slug}' cannot be read as a plan)"]
+    step = w.learner.open_lesson() if slug == open_slug else ""
+    out = [f"### {slug}" + ("" if slug == open_slug else " (not the open detour)"), _file_or(path, ""), ""]
+    for i, s in enumerate(plan.steps, start=1):
+        kind = "the tutor's" if w.learner.step_file(slug, s).is_file() else "borrowed from the map"
+        out.append(f"step {i} of {len(plan.steps)}: {s} ({kind})" + ("  <- open" if s == step else ""))
+    if slug == open_slug and step and not plan.has_step(step):
+        out.append(f"note: the open lesson is {step}, which is not one of these steps")
+    if w.learner.has_parked():
+        t = w.learner.parked_task()
+        out.append(f"parked: {(t.lesson if t else '') or 'a task'}, picked up again when the detour ends")
+    return out
+
+
 def cmd_show(args: List[str]) -> int:
-    usage = "usage: rolling-show map|map-check|lessons|lesson [slug]|profile|task|reference|evidence [slug]|corpus|tree|state-dir"
+    usage = "usage: rolling-show map|map-check|lessons|lesson [slug]|detour [slug]|profile|task|reference|evidence [slug]|corpus|tree|state-dir"
     what = args[0] if args else ""
     w = locate()
     if w is None:
@@ -149,10 +183,25 @@ def cmd_show(args: List[str]) -> int:
         if not rules.is_slug(slug):
             say(f"('{slug}' is not a lesson slug)")
         else:
-            f = w.map_dir / "lessons" / f"{slug}.md"
+            d = _detours(w) if w.learner else None
+            f = d.lesson_path(slug) if d else w.map_dir / "lessons" / f"{slug}.md"
             # The slug on the first line: the file does not carry it, and the
-            # skills need it for the commands that take a lesson.
-            say(f"### {slug}", _file_or(f, f"(no lesson '{slug}': {f} does not exist)"))
+            # skills need it for the commands that take a lesson. A step says
+            # so, because the tutor offers it as a side trip, not as a lesson
+            # of the course.
+            open_detour = w.learner.open_detour() if w.learner else ""
+            # "or step" only while a detour is open: with none, a step is
+            # not a thing the learner could be looking for.
+            absent = f"(no lesson{' or step' if open_detour else ''} '{slug}': {f} does not exist)"
+            say(f"### {slug}" + (f" (step of detour {open_detour})" if d and d.is_step(slug) else ""), _file_or(f, absent))
+    elif what == "detour":
+        # The plan, with the open step marked, so the skills can say where
+        # in the detour the learner is without counting anything themselves.
+        slug = args[1] if len(args) > 1 else ""
+        if w.learner is None:
+            say(f"({paths.NO_DATA_MSG})")
+        else:
+            say(*_detour_lines(w, slug))
     elif what == "profile":
         say(_file_or(w.learner.profile, "(no profile: this is a new learner, or /rolling:start has not run)") if w.learner else f"({paths.NO_DATA_MSG})")
     elif what == "task":
@@ -414,8 +463,9 @@ def cmd_begin_lesson(args: List[str]) -> int:
     if w.learner.has_task():
         t = w.learner.task()
         raise Refused(f"a task is open ({t.lesson if t else '?'}); its lesson is the open one until rolling-close-task")
-    if not (w.map_dir / "lessons" / f"{slug}.md").is_file():
-        raise Refused(f"no lesson '{slug}' in the map")
+    if not _detours(w).lesson_path(slug).is_file():
+        open_detour = w.learner.open_detour()
+        raise Refused(f"no lesson '{slug}' in the map" + (f" and no step by that name in the open detour ({open_detour})" if open_detour else ""))
     marker = w.learner.lesson_file
     if marker.is_symlink():
         raise Refused(f"{marker} is a symbolic link; the open-lesson marker is a plain file the toolkit writes, so remove the link first")
@@ -486,18 +536,84 @@ def cmd_close_task(args: List[str]) -> int:
         return 0
     if not repair_first(w):
         say("note: a previous run could not be finished (see above; the reference may still be in the tree); task files removed anyway, the record kept")
+    # The marker's slug before close removes it: it is what says which
+    # step of the detour just finished.
+    closed = w.learner.open_lesson()
     say(*Tasks(w.repo, w.learner).close())
+    if w.learner.open_detour():
+        # Closing the step is what this command was asked to do and it is
+        # done, so a detour that cannot be finished now is a note at exit
+        # 0, not a refusal; rolling-close-detour is what finishes it.
+        try:
+            say(*_detours(w).advance(closed))
+        except (Refused, GitError) as e:
+            # GitError as well as Refused: the invariant above is "the
+            # step is closed, so this exits 0", and git failing inside
+            # the resume would otherwise break it.
+            say(str(e), "the step is closed; the detour is still open, and rolling-close-detour ends it")
     return 0
+
+
+def cmd_begin_detour(args: List[str]) -> int:
+    """rolling-begin-detour <slug>: take the detour whose plan is
+    written. Parks the open task if there is one, records the detour,
+    and opens its first step."""
+    w = _need(locate())
+    if not repair_first(w):
+        raise Refused("a previous run could not be finished (see above); no detour was begun")
+    say(*_detours(w).begin(args[0] if args else ""))
+    return 0
+
+
+def cmd_close_detour(args: List[str]) -> int:
+    """rolling-close-detour: end the open detour without finishing it,
+    which is what /rolling:cancel does mid-detour. Removes the open
+    step's own files the way close-task does, then puts the learner back
+    where they left the course. Ends the detour, not the step: a step is
+    not something the learner chose, so there is nothing to skip within
+    one."""
+    w = _need(locate())
+    if not w.learner.open_detour():
+        raise Refused("no detour is open; nothing to end")
+    if not repair_first(w):
+        raise Refused("a previous run could not be finished (see above); the detour is left open")
+    # A task whose branch is still checked out has not been ended: its
+    # work is uncommitted, and removing the task file would leave that
+    # work on a branch nothing points at. Once end-task has run, the
+    # files are ours to remove, which is close-task's half of the pair.
+    task = w.learner.task()
+    if task is not None and task.branch and w.repo.branch() == task.branch:
+        raise Refused(
+            f"a task is open on this step and the repository is still on {task.branch}; run rolling-end-task first, so "
+            "their work is committed there and they are back where they were, and then end the detour"
+        )
+    say(*Tasks(w.repo, w.learner).close())
+    out = _detours(w).end()
+    say(*out)
+    # The resume is the half that can be refused, and it leaves the detour
+    # open on purpose. Saying so with a non-zero exit is the honest report
+    # for a command whose whole job was to end it.
+    return 1 if w.learner.open_detour() else 0
 
 
 def cmd_write(args: List[str]) -> int:
     """rolling-write task|profile|reference|patch < the file. The tutor's pen:
     the model's text, checked, into the learner's directory. Or
     rolling-write patch --from-tree <path>..., the diff of those paths
-    against HEAD, which are then restored."""
+    against HEAD, which are then restored. A detour's plan and a step
+    the tutor writes take a slug after the role: rolling-write detour
+    <slug>, rolling-write step <detour> <step>."""
     w = _need(locate())
     try:
-        if args[:2] == ["patch", "--from-tree"]:
+        if args[:1] == ["detour"]:
+            if len(args) != 2:
+                raise Refused("that is spelled: rolling-write detour <slug> < the plan")
+            say(*writes.write_detour(w.learner, args[1], writes.read_stdin(), w.map_dir))
+        elif args[:1] == ["step"]:
+            if len(args) != 3:
+                raise Refused("that is spelled: rolling-write step <detour> <step> < the step")
+            say(*writes.write_step(w.learner, args[1], args[2], writes.read_stdin(), w.top, w.map_dir))
+        elif args[:2] == ["patch", "--from-tree"]:
             # Everything after --from-tree is a path, so a path may begin with a dash.
             if not repair_first(w):
                 raise Refused("a previous run could not be finished (see above); not touching the tree")
@@ -588,7 +704,7 @@ def cmd_check_profile(args: List[str]) -> int:
 def cmd_check_task(args: List[str]) -> int:
     w = _need(locate())
     t = w.learner.task_file
-    faults = validate.validate_task(t, w.top, w.map_dir, w.learner.held)
+    faults = validate.validate_task(t, w.top, w.map_dir, w.learner.held, w.learner.open_step_dir())
     if faults:
         say(*map(str, faults))
         if t.is_file() and w.learner.task() is not None:
@@ -608,6 +724,7 @@ INLINE: Dict[str, Callable[[List[str]], int]] = {
 ACTIONS: Dict[str, Callable[[List[str]], int]] = {
     "begin-task": cmd_begin_task, "begin-lesson": cmd_begin_lesson, "end-task": cmd_end_task, "close-task": cmd_close_task,
     "park-task": cmd_park_task, "resume-task": cmd_resume_task,
+    "begin-detour": cmd_begin_detour, "close-detour": cmd_close_detour,
     "export": cmd_export, "check-map": cmd_check_map, "check-profile": cmd_check_profile, "check-task": cmd_check_task,
     "write": cmd_write, "note": cmd_note, "keep-task": cmd_keep_task,
 }

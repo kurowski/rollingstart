@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import List, NoReturn, Optional
 
 from . import frontmatter as fm, rules, session, validate
-from .model import Learner, LoadError, Map, Task
+from .model import Detour, Learner, LoadError, Map, Task
 from .repo import GitError, Repo, literal
 
 FILES = ("task", "profile", "reference", "patch")
@@ -182,6 +182,106 @@ def patch_from_tree(learner: Learner, repo: Repo, paths: List[str]) -> List[str]
     return [f"wrote {learner.patch.name} from the tree:"] + ["  " + l for l in stat] + ["restored " + ", ".join(paths) + " to HEAD" + (" (new files removed; their content is in the patch)" if new else "")]
 
 
+def write_detour(learner: Learner, slug: str, text: str, mdir: Path) -> List[str]:
+    """Write TEXT as the plan of detour SLUG, checked first. The open
+    detour's own plan is refused: its `steps` list is where the open
+    step's position is read from, so rewriting it mid-detour could leave
+    the open step belonging to no detour at all. Ending the detour
+    (`rolling-close-detour`) and planning again is the way round, and it
+    is the honest one — the learner agreed to these steps."""
+    if not rules.is_slug(slug):
+        raise Refused(f"'{slug}' is not a detour slug (lowercase kebab-case)")
+    if learner.open_detour() == slug:
+        raise Refused(f"the detour '{slug}' is open; its plan is what the open step's place is read from. Finish it, or end it with rolling-close-detour, before planning it again")
+    dest = learner.detours / f"{slug}.md"
+    return _land(learner, dest, text, "detour", lambda tmp: validate.validate_detour(tmp, mdir))
+
+
+def write_step(learner: Learner, detour: str, slug: str, text: str, top: Path, mdir: Path) -> List[str]:
+    """Write TEXT as step SLUG of detour DETOUR, checked first: a lesson
+    whose pointers are in the tree, named in that detour's plan, and not
+    sharing a slug with a lesson of the map."""
+    if not rules.is_slug(detour):
+        raise Refused(f"'{detour}' is not a detour slug (lowercase kebab-case)")
+    if not rules.is_slug(slug):
+        raise Refused(f"'{slug}' is not a step slug (lowercase kebab-case)")
+    plan = learner.detour_plan(detour)
+    if plan is None:
+        raise Refused(f"no detour '{detour}': its plan is written first (rolling-write detour {detour}), and it is what says which steps there are")
+    if (mdir / "lessons" / f"{slug}.md").is_file():
+        raise Refused(
+            f"'{slug}' is a lesson in the map; a step the tutor writes may not share its slug, because a slug resolves to a "
+            f"step before a lesson and this one would hide the author's. Borrow it instead — name it in the plan's steps and "
+            f"write no step file — or pick another slug"
+        )
+    if not plan.has_step(slug):
+        raise Refused(f"'{slug}' is not a step of '{detour}' ({', '.join(plan.steps) or 'it names none'}); nothing would serve it. Name it in the plan first, or fix the spelling")
+    faults = _step_place_faults(plan, slug, mdir, text)
+    if faults:
+        raise Refused("\n".join(faults) + f"\n{len(faults)} fault(s); {slug}.md not written")
+    dest = learner.step_file(detour, slug)
+    return _land(learner, dest, text, "step", lambda tmp: validate.validate_step(tmp, top))
+
+
+def _step_place_faults(plan: Detour, slug: str, mdir: Path, text: str) -> List[str]:
+    """A step takes the region and depth of the lesson the detour
+    returns to: it is a side trip off that lesson, and the learner's
+    record should not say they went somewhere else. Checked here rather
+    than in validate_step, because only the plan knows which lesson that
+    is. A returns-to the map cannot load is not second-guessed."""
+    try:
+        lesson = Map(dir=mdir).lesson(plan.returns_to) if rules.is_slug(plan.returns_to) else None
+    except LoadError:
+        return []
+    if lesson is None:
+        return []
+    f = fm.parse(text)
+    if f is None:
+        return []   # validate_step will say so
+    out = []
+    for field, want in (("region", lesson.region), ("depth", lesson.depth)):
+        got = f.scalar(field)
+        if want and got and got != want:
+            out.append(f"{slug}.md: {field} is '{got}', but the detour returns to {plan.returns_to}, whose {field} is '{want}'")
+    return out
+
+
+def _land(learner: Learner, dest: Path, text: str, what: str, check) -> List[str]:
+    """Write TEXT at DEST through a temporary file, checked before the
+    rename, the way write() lands the fixed-destination files. CHECK
+    takes the temporary path and returns its faults."""
+    if not text.strip():
+        raise Refused(f"nothing to write: the {what} arrives on standard input, as a heredoc")
+    if not text.endswith("\n"):
+        text += "\n"
+    if dest.is_symlink():
+        raise Refused(f"{dest.name} is a symbolic link; the tutor's files are plain files it writes, so remove the link first")
+    tmp = _tmp_for(dest)
+    notes: List[str] = []
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        tmp.write_text(text, encoding="utf-8", errors="surrogateescape")
+        results = check(tmp)
+        rendered = [str(r).replace(str(tmp), str(dest)) for r in results]
+        faults = [r for r, res in zip(rendered, results) if not res.warning]
+        if faults:
+            raise Refused("\n".join(faults) + f"\n{len(faults)} fault(s); {dest.name} not written")
+        notes = rendered
+        os.replace(tmp, dest)
+    except (Refused, OSError) as e:
+        _discard(tmp, e)
+    return notes + [f"wrote {_under(learner, dest)}"]
+
+
+def _under(learner: Learner, p: Path) -> str:
+    """A written path as the tutor should hear it: relative to the
+    learner's directory, which is the only place the pen writes."""
+    try:
+        return str(p.relative_to(learner.dir))
+    except ValueError:
+        return p.name
+
+
 def _stamped(learner: Learner, text: str) -> str:
     """The task with the tutor's session id as its tutor-session line,
     whatever the text said: the open task's current line if a task is
@@ -203,7 +303,7 @@ def _check(what: str, tmp: Path, dest: Path, learner: Learner, top: Path, map_di
     if what in ("reference", "patch"):
         return []
     if what == "task":
-        results = validate.validate_task(tmp, top, map_dir, learner.held)
+        results = validate.validate_task(tmp, top, map_dir, learner.held, learner.open_step_dir())
     else:
         results = validate.validate_profile(tmp, _regions(map_dir))
     rendered = [str(f).replace(str(tmp), str(dest)) for f in results]

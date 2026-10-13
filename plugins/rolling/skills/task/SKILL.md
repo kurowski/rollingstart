@@ -146,6 +146,27 @@ Then write, with the pen:
   why; for a seam, what your solution does and why, in prose (the
   code itself is the patch, taken from the tree above).
 
+## If the open lesson is a step of a detour
+
+The lesson shown below says so on its first line — `### <slug> (step of
+detour <name>)` — when it is a step you wrote. (A borrowed step shows
+as an ordinary lesson, because that is exactly what it is: the author's
+own, with their task sources, so nothing below applies to it.) Reverse
+the order above. Prefer **3, an extension along a seam in its pointer
+paths** — that is what the pointers are for, and a step is about a
+general thing as this repository does it, which a seam shows and a
+history search usually does not. Take **2, a reverted fix**, only when
+one obviously matches: a fix in the history of those same paths, about
+the same thing the step is about, with a test you can hold. A fix that
+merely touches the paths is not a match; building the exercise around
+it would teach the lesson the fix was about instead of the one the
+learner agreed to.
+
+There is no author's task to prefer (nobody wrote one for a lesson
+that did not exist an hour ago), and nothing else changes: the branch,
+the proof, the reference, and the task file are the same, and the
+task's `lesson:` is the step's slug.
+
 ## Proving the task
 
 Both ways, on the task branch, before the learner sees anything, each

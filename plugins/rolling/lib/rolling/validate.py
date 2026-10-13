@@ -15,7 +15,7 @@ from typing import Dict, List, Optional, Sequence
 
 from . import frontmatter as fm, rules
 from .frontmatter import Shape
-from .model import Lesson, LoadError, Map, Task
+from .model import Detour, Lesson, LoadError, Map, Task
 
 
 @dataclass(frozen=True)
@@ -32,21 +32,39 @@ MAP_FIELDS = ("name", "mode", "commands", "operations", "destructive")
 LESSON_FIELDS = ("title", "region", "depth", "mode", "requires", "assumes", "test", "exercise")
 AUTHOR_TASK_FIELDS = ("mode", "scope", "scaffold", "setup", "verify", "held", "held-verify", "expect-fail-on-base", "fix")
 TASK_FIELDS = ("lesson", "branch", "base", "return-to", "started", "tutor-session", "task") + AUTHOR_TASK_FIELDS
+DETOUR_FIELDS = ("gap", "returns-to", "steps")
+# A step is a lesson, minus the two fields that only make sense inside a
+# map: `requires` names map lessons by slug, and a step is never served
+# by `next`, which is what reads it; `exercise: none` would make a step
+# a walkthrough, and a gap worth a detour is worth doing something about.
+STEP_FIELDS = ("title", "region", "depth", "mode", "assumes", "test")
+MAX_STEPS = 3
 
 SHAPES = {
     # what shape each field must have where it appears; a scalar where a
     # list is wanted would otherwise read as an empty list and pass
     "map": {"commands": Shape.MAP, "operations": Shape.MAP, "destructive": Shape.LIST},
     "lesson": {"requires": Shape.LIST, "assumes": Shape.LIST},
+    "step": {"assumes": Shape.LIST},
+    "detour": {"steps": Shape.LIST},
 }
 
 
+KNOWN = {"map": MAP_FIELDS, "lesson": LESSON_FIELDS, "step": STEP_FIELDS, "detour": DETOUR_FIELDS}
+
+
 def _shape_faults(where: str, path: Path, kind: str) -> List[Fault]:
+    """What shape each field was written in, against what it takes. A
+    key that is not a field here is skipped: it is already reported as
+    unknown, and saying a misspelled `requries: [a]` "takes one value"
+    would be advice towards a field that does not exist."""
     f = fm.read(path)
     if f is None:
         return []
     faults = []
     for fld in f.fields:
+        if fld.key not in KNOWN[kind]:
+            continue
         want = SHAPES[kind].get(fld.key)
         if want is None:
             if fld.shape is not Shape.SCALAR:
@@ -290,6 +308,134 @@ def _task_command_faults(where: str, t: Task, m: Optional[Map]) -> List[Fault]:
 # ------------------------------------------------------------ profile
 
 
+# ------------------------------------------------------------ detour
+
+
+def validate_detour(path: Path, mdir: Path) -> List[Fault]:
+    """A detour's plan. The steps are checked for shape only — a slug,
+    at most three, none twice — and not for existing: a step the tutor
+    writes is written after the plan that names it, since `rolling-write
+    step` takes the detour's slug. Whether every step can be served is
+    `rolling-begin-detour`'s check, which is when it has to be true."""
+    where = str(path)
+    try:
+        d = Detour.load(path)
+    except LoadError as e:
+        return [Fault(where, e.reason + (" (no such detour)" if not path.is_file() else ""))]
+    faults = [Fault(where, f"unknown field '{k}'") for k in d.keys if k not in DETOUR_FIELDS]
+    faults += _shape_faults(where, path, "detour")
+    if not d.gap:
+        faults.append(Fault(where, "gap is missing: what the learner is missing, in their words"))
+    if not d.returns_to:
+        faults.append(Fault(where, "returns-to is missing: the lesson the detour was taken from"))
+    elif not rules.is_slug(d.returns_to):
+        faults.append(Fault(where, f"returns-to '{d.returns_to}' is not a slug"))
+    elif not (mdir / "lessons" / f"{d.returns_to}.md").is_file():
+        faults.append(Fault(where, f"returns-to '{d.returns_to}' is not a lesson in the map; a detour is taken from the course, and returns to it"))
+    if not d.steps:
+        faults.append(Fault(where, "steps is missing: one to three, in order"))
+    elif len(d.steps) > MAX_STEPS:
+        faults.append(Fault(where, f"{len(d.steps)} steps; a detour is at most {MAX_STEPS}. A gap that needs more is bigger than a detour: say so, and suggest a teammate"))
+    seen = set()
+    for s in d.steps:
+        if not rules.is_slug(s):
+            faults.append(Fault(where, f"step '{s}' is not a slug (lowercase kebab-case)"))
+        elif s in seen:
+            faults.append(Fault(where, f"step '{s}' is listed twice; the open step is found by its slug, so two of them leave no way to say which one is open"))
+        elif s == d.returns_to:
+            faults.append(Fault(where, f"step '{s}' is the lesson the detour returns to; a detour does not step through its own starting point"))
+        seen.add(s)
+    if not _body_text(path):
+        faults.append(Fault(where, "no body: a sentence or two on why these steps, as they were proposed and agreed"))
+    return faults
+
+
+def validate_step(path: Path, top: Path) -> List[Fault]:
+    """A step the tutor wrote: a lesson, with pointer paths that are in
+    the tree. `region` and `depth` are required as any lesson's are and
+    are not checked against the map's regions here, because the step's
+    own file does not say which lesson it returns to; the plan does, and
+    `rolling-write step` checks them against it."""
+    where = str(path)
+    try:
+        lesson = Lesson.load(path)
+    except LoadError as e:
+        return [Fault(where, e.reason + (" (no such step)" if not path.is_file() else ""))]
+    faults = [Fault(where, _unknown_step_field(k)) for k in lesson.keys if k not in STEP_FIELDS]
+    faults += _shape_faults(where, path, "step")
+    if not lesson.title:
+        faults.append(Fault(where, "title is missing"))
+    if not lesson.region:
+        faults.append(Fault(where, "region is missing: the region of the lesson the detour returns to"))
+    if not lesson.depth:
+        faults.append(Fault(where, "depth is missing: the depth of the lesson the detour returns to"))
+    elif lesson.depth not in rules.DEPTHS:
+        faults.append(Fault(where, f"depth '{lesson.depth}' is not orientation, working, or deep"))
+    if lesson.mode and lesson.mode not in rules.MODES:
+        faults.append(Fault(where, f"mode '{lesson.mode}' is not write or direct"))
+    if lesson.test and lesson.test not in rules.TESTS:
+        faults.append(Fault(where, f"test '{lesson.test}' is not held or shown"))
+    faults += _pointer_faults(where, path, top)
+    if not fm.body_has_h2(path, "Rubric"):
+        faults.append(Fault(where, "no ## Rubric heading; a step is served as a lesson, and a lesson says what done looks like"))
+    return faults
+
+
+def _unknown_step_field(key: str) -> str:
+    if key == "requires":
+        return "requires is for a map lesson: a step's order is the detour's steps: list, and nothing serves a step but the detour"
+    if key == "exercise":
+        return "exercise is for a map lesson: a step the tutor wrote offers one, since a gap worth a detour is worth doing something about"
+    return f"unknown field '{key}'"
+
+
+def _pointer_faults(where: str, path: Path, top: Path) -> List[Fault]:
+    """Every `- <path>` line under `## Pointers`: a plain
+    repository-relative path that is in the tree now. The step is the
+    tutor's grounding in this repository, and a pointer that is not
+    there grounds nothing."""
+    try:
+        text = path.read_text(encoding="utf-8", errors="surrogateescape")
+    except OSError:
+        return [Fault(where, "cannot be read")]
+    if not fm.body_has_h2(path, "Pointers"):
+        return [Fault(where, "no ## Pointers heading: a step names the paths it is about, as `- <path>` lines, and task builds its exercise from a seam in them")]
+    pointers = fm.body_items(text, "Pointers")
+    if not pointers:
+        return [Fault(where, "## Pointers has no `- <path>` lines")]
+    faults: List[Fault] = []
+    seen = set()
+    for ptr in pointers:
+        if not rules.is_plain_relpath(ptr):
+            faults.append(Fault(where, f"pointer '{ptr}' is not a plain repository-relative path"))
+            continue
+        if ptr in seen:
+            faults.append(Fault(where, f"pointer '{ptr}' is listed twice"))
+        seen.add(ptr)
+        target = top / ptr
+        if not (target.is_file() or target.is_dir()):
+            faults.append(Fault(where, f"pointer '{ptr}' is not in the tree"))
+    return faults
+
+
+def _body_text(path: Path) -> str:
+    """What follows the frontmatter block, stripped."""
+    try:
+        text = path.read_text(encoding="utf-8", errors="surrogateescape")
+    except OSError:
+        return ""
+    lines = text.split("\n")
+    if not lines or lines[0].rstrip("\r") != "---":
+        return text.strip()
+    for i, line in enumerate(lines[1:], start=1):
+        if line.rstrip("\r") == "---":
+            return "\n".join(lines[i + 1:]).strip()
+    return ""
+
+
+# ----------------------------------------------------------- profile
+
+
 def validate_profile(path: Path, regions: Optional[Sequence[str]]) -> List[Fault]:
     """REGIONS is the map's list when a map is at hand; an unknown
     region is then a warning, not a fault. Without a map it is not
@@ -340,7 +486,11 @@ def _section(lines: List[str], name: str) -> List[str]:
 # --------------------------------------------------------------- task
 
 
-def validate_task(task_path: Path, top: Path, mdir: Path, held_dir: Path) -> List[Fault]:
+def validate_task(task_path: Path, top: Path, mdir: Path, held_dir: Path, step_dir: Optional[Path] = None) -> List[Fault]:
+    """STEP_DIR is the open detour's own directory, when one is open: a
+    task's lesson may be a step the tutor wrote there, which is no
+    lesson of the map's and must still validate, or a step could never
+    have an exercise."""
     where = str(task_path)
     try:
         t = Task.load(task_path)
@@ -359,8 +509,8 @@ def validate_task(task_path: Path, top: Path, mdir: Path, held_dir: Path) -> Lis
     if t.lesson:
         if not rules.is_slug(t.lesson):
             faults.append(Fault(where, f"lesson '{t.lesson}' is not a slug"))
-        if not (mdir / "lessons" / f"{t.lesson}.md").is_file():
-            faults.append(Fault(where, f"lesson '{t.lesson}' is not in the map"))
+        elif not (mdir / "lessons" / f"{t.lesson}.md").is_file() and not (step_dir and (step_dir / f"{t.lesson}.md").is_file()):
+            faults.append(Fault(where, f"lesson '{t.lesson}' is not in the map" + (" and is no step of the open detour" if step_dir else "")))
     if t.base and not rules.is_sha(t.base):
         faults.append(Fault(where, f"base '{t.base}' is not 7 to 40 hex characters"))
     faults += _return_to_faults(where, t.return_to, top)

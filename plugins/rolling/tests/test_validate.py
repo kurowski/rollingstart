@@ -165,6 +165,69 @@ class ProfileValidationTest(WorldTest):
         self.assertTrue(any("satisfied line is not" in f for f in faults))
 
 
+class DetourValidationTest(WorldTest):
+    """validate_detour and validate_step on the fault list, rather than
+    on the pen's rendering of it (test_detours.py has that)."""
+
+    PLAN = "---\ngap: never used dataclasses\nreturns-to: greet-politely\nsteps:\n  - one\n---\n\nWhy this step.\n"
+    STEP = "---\ntitle: T\nregion: greeting\ndepth: working\n---\n\nBody.\n\n## Pointers\n\n- src/greet.sh\n\n## Rubric\n\n- Can say so.\n"
+
+    def plan_faults(self, text):
+        p = self.w.root / "plan.md"
+        p.write_text(text, encoding="utf-8")
+        return whats(validate.validate_detour(p, self.w.top / ".rolling"))
+
+    def step_faults(self, text):
+        p = self.w.root / "step.md"
+        p.write_text(text, encoding="utf-8")
+        return whats(validate.validate_step(p, self.w.top))
+
+    def test_a_clean_plan_and_step_have_no_faults(self):
+        self.assertEqual(self.plan_faults(self.PLAN), [])
+        self.assertEqual(self.step_faults(self.STEP), [])
+
+    def test_a_missing_plan_says_so(self):
+        self.assertEqual(whats(validate.validate_detour(self.w.root / "nope.md", self.w.top / ".rolling")),
+                         ["does not exist (no such detour)"])
+
+    def test_steps_must_be_a_list_of_one_to_three_unique_slugs(self):
+        self.assertIn("steps is missing: one to three, in order", self.plan_faults(self.PLAN.replace("steps:\n  - one\n", "")))
+        self.assertIn("4 steps; a detour is at most 3", " ".join(self.plan_faults(self.PLAN.replace("  - one", "  - a\n  - b\n  - c\n  - d"))))
+        self.assertIn("step 'a' is listed twice", " ".join(self.plan_faults(self.PLAN.replace("  - one", "  - a\n  - a"))))
+        self.assertIn("is not a slug", " ".join(self.plan_faults(self.PLAN.replace("  - one", "  - Not A Slug"))))
+        self.assertIn("but it must be a list", " ".join(self.plan_faults(self.PLAN.replace("steps:\n  - one", "steps: one"))))
+
+    def test_an_unknown_field_is_reported_once_and_not_advised_on(self):
+        """A misspelled field gets the unknown-field fault and nothing
+        about its shape: advice towards a field that does not exist. The
+        misspelling here is list-shaped, which is what makes the shape
+        check skip load-bearing."""
+        faults = self.plan_faults(self.PLAN.replace("gap: never used dataclasses", "gaps: [a, b]"))
+        self.assertEqual([f for f in faults if "gaps" in f], ["unknown field 'gaps'"])
+        self.assertIn("gap is missing: what the learner is missing, in their words", faults)
+
+    def test_a_steps_pointers_must_be_in_the_tree(self):
+        self.assertIn("pointer 'src/nowhere.sh' is not in the tree",
+                      self.step_faults(self.STEP.replace("- src/greet.sh", "- src/nowhere.sh")))
+        self.assertIn("pointer '../outside' is not a plain repository-relative path",
+                      self.step_faults(self.STEP.replace("- src/greet.sh", "- ../outside")))
+        self.assertIn("pointer 'src/greet.sh' is listed twice",
+                      self.step_faults(self.STEP.replace("- src/greet.sh", "- src/greet.sh\n- src/greet.sh")))
+        self.assertIn("## Pointers has no `- <path>` lines",
+                      self.step_faults(self.STEP.replace("- src/greet.sh\n", "")))
+
+    def test_a_step_is_a_lesson_minus_requires_and_exercise(self):
+        self.assertIn("requires is for a map lesson: a step's order is the detour's steps: list, and nothing serves a step but the detour",
+                      self.step_faults(self.STEP.replace("depth: working", "depth: working\nrequires: [setup]")))
+        self.assertIn("exercise is for a map lesson: a step the tutor wrote offers one, since a gap worth a detour is worth doing something about",
+                      self.step_faults(self.STEP.replace("depth: working", "depth: working\nexercise: none")))
+        for want in ("title is missing", "region is missing", "depth is missing"):
+            self.assertIn(want, " ".join(self.step_faults("---\nassumes: [x]\n---\n\nB.\n\n## Pointers\n\n- src/greet.sh\n\n## Rubric\n\n- x\n")))
+
+    def test_a_pointer_may_name_a_directory(self):
+        self.assertEqual(self.step_faults(self.STEP.replace("- src/greet.sh", "- src")), [])
+
+
 class TaskValidationTest(WorldTest):
     def faults(self, **fields):
         p = self.w.task(**fields)

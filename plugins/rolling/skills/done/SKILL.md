@@ -13,7 +13,10 @@ honestly and located, and their word closes the lesson.
 
 ## If there is no open lesson
 
-Say so in a line and offer `/rolling:next`. Nothing else.
+Check the detour below first. If one is open, go to § If a detour is
+open: a detour whose step has already closed leaves no open lesson, and
+it is the one state where there is still something to finish. Otherwise
+say so in a line and offer `/rolling:next`. Nothing else.
 
 ## If the learner is stopping without finishing
 
@@ -144,6 +147,41 @@ point with its location and provenance, and the outcome. Then:
 - **Open, because the learner is keeping going:** leave everything in
   place and say what they said they would do next.
 
+## If the open lesson is a step of a detour
+
+Everything above holds — the change is read, the feedback is said, the
+evidence entry is written the same way — with two changes.
+
+**What goes to `## Satisfied`.** The detour below says, for each step,
+whether it is one you wrote or one borrowed from the map.
+
+- **Borrowed from the map:** append it, exactly as for any lesson. It
+  is the author's lesson, done, and if the learner later adds its
+  region `next` should not serve it to them again.
+- **One you wrote:** do not. It satisfies nothing, because no author
+  vouched for it: it was your proposal for this learner's gap, an hour
+  old. The evidence entry is its whole record. Do not rewrite the
+  profile at all in this case — not the Satisfied list, not anything.
+
+Never add the lesson the detour returns to, either: they have not
+finished it, they left it to take a side trip.
+
+**What happens when the step closes.** `rolling-close-task` moves the
+detour along by itself: the next step opens, or, after the last one,
+their parked task comes back on its branch with their work as they
+left it. Read what it printed and say what actually happened — the next
+step, or the lesson and task they are back in. Do not offer
+`/rolling:next` after a step: they are mid-detour, and their course is
+where the detour returns to. Offer `/rolling:lesson` instead, which
+presents whatever is open now.
+
+If it says the detour could not be finished (a tree too dirty to put
+them back on their task), say what it needs — commit, stash, or discard
+— and that `/rolling:cancel` picks it up once the tree allows. Say
+`/rolling:cancel` and not `/rolling:done`: the step's own lesson has
+closed by then, so there is no lesson for `done` to be about, and
+nothing here can finish it. Do not move anything by hand.
+
 ## Evidence entry shape
 
 ```markdown
@@ -168,6 +206,10 @@ Outcome: closed by the learner; the tutor's view: met. | closed by the learner; 
 ## Open task, if any
 
 !`rolling-show task`
+
+## Open detour, if any
+
+!`rolling-show detour`
 
 ## Corpus pointers, from the map
 
