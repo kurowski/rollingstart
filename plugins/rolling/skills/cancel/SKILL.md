@@ -64,6 +64,13 @@ their work is as they left it.
    branch, and returns them to where they were. Then, in every case,
    run `rolling-close-task`: it removes the exercise and the open
    lesson and nothing else. Never touch the profile.
+
+   If the working tree says the repository is not on the task's branch,
+   skip `rolling-end-task` — it refuses without the branch, and there
+   is nothing for it to do: what they committed is already on the
+   branch, and what is uncommitted is where they are now and is theirs
+   to keep. Go straight to `rolling-close-task`, and in step 3 say
+   which branch holds the exercise's work and that they are not on it.
 3. Say in a line or two what happened, the lesson first: that it is
    stopped unfinished and not counted, so `/rolling:next` may offer it
    again; then, only if there was an exercise, that its branch is kept

@@ -26,9 +26,52 @@ to restart": stopping is theirs to choose, and it is not a close; it is
 with `Outcome: stopped by the learner, not finished: <their words>.`;
 with a task open, run `rolling-end-task` (their work is committed on
 the kept branch and they are returned) and then `rolling-close-task`;
-with only a lesson open, `rolling-close-task` alone. The profile is
+with only a lesson open, `rolling-close-task` alone. If the working
+tree says the repository is not on the task's branch, skip
+`rolling-end-task`: it refuses there and has nothing to do, since what
+they committed is already on the branch and what is uncommitted is
+where they are. Go straight to `rolling-close-task`. The profile is
 not touched, so the lesson stays unsatisfied and `next` may offer it
 again. Then offer `/rolling:next` and stop.
+
+## If a task is open and the repository is not on its branch
+
+**This case comes first and takes precedence over everything below.**
+The working tree says so, naming both branches: the learner switched by
+hand at some point. Nothing is lost — the task's branch still holds
+whatever they committed on it, and whatever is uncommitted is here,
+where they are now.
+
+**Give no feedback at all.** The change report above is not their
+exercise work. From another branch the same subtraction answers a
+different question — this branch against the task's starting state — so
+what it shows is whatever this branch already had, which for a task cut
+from a real fix is the author's own fix; and the checks ran against that
+same tree. The report says so at its top. A green verifier there means
+nothing about the learner, and points built on it would be praise for
+code they did not write.
+
+The close cannot run from here either: leaving a task needs its branch
+and refuses without it. Do not run it to show them the refusal, and do
+not switch branches for them — you have no grant to, and it is their
+repository.
+
+So: say where things stand in a line or two, say plainly that you
+cannot see their exercise work from here and so have no feedback on it
+yet, and offer the two ways on. Let them pick.
+
+- Switch back to the exercise's branch and run `/rolling:done` again,
+  which reads the real change and closes the lesson properly.
+- `/rolling:cancel`, which stops the lesson unfinished, counts nothing,
+  and leaves the branch alone. If they are mid-detour it ends the whole
+  detour rather than the step; say so when that is where they are.
+
+Do not rewrite the profile or mark anything satisfied until a close
+actually happens.
+
+If the tree says that branch is gone, there is nothing to switch back
+to: drop the first option, say so, and offer `/rolling:cancel`, which
+is what clears the task.
 
 ## If a lesson is open and no task is (the walkthrough was the lesson)
 
@@ -131,19 +174,29 @@ it. Then note a **Feedback** entry with `rolling-note <lesson>` (shape
 below): the verifier's summary line, your feedback as given, every
 point with its location and provenance, and the outcome. Then:
 
+(If the repository is not on the task's branch, none of this runs yet:
+you are in § If a task is open and the repository is not on its branch,
+and no close has happened.)
+
 - **Closed, because the learner said so:** rewrite the profile with
   `- <lesson> (<YYYY-MM-DD>)` appended under `## Satisfied` and nothing
   else changed:
   `rolling-write profile <<'EOF' … EOF` with the whole file, as shown
-  below. Ask whether to leave the task's branch now. If yes, run
+  below. Then leave the task in the same step, without asking again:
   `rolling-end-task`, which commits anything uncommitted on the branch
   so nothing is lost, keeps the branch, and returns them to where they
   were, and then `rolling-close-task`, which removes the task and the
-  reference and nothing else; then offer `/rolling:next`. If no, run
-  neither: the task stays open on its branch, and they run
-  `/rolling:done` again when they are ready to leave. Close never runs
-  without end before it; a closed task cannot be ended, and the learner
-  would be stranded on the branch.
+  reference and nothing else. Closing the lesson is the decision to
+  leave — a learner who wants to stay on the branch has not closed it,
+  which is the case below, so there is no second question to ask.
+  Then say what the two commands reported: which branch they are on
+  now, and that their work is kept on the exercise's branch (name it;
+  deleting it is theirs to do). Then offer `/rolling:next`. Close never
+  runs without end before it; a closed task cannot be ended, and the
+  learner would be stranded on the branch. The one exception is a
+  repository that is not on the task's branch: end refuses there and
+  has nothing to do, so close goes alone, and nobody is stranded
+  because they have already left.
 - **Open, because the learner is keeping going:** leave everything in
   place and say what they said they would do next.
 
@@ -206,6 +259,10 @@ Outcome: closed by the learner; the tutor's view: met. | closed by the learner; 
 ## Open task, if any
 
 !`rolling-show task`
+
+## Working tree
+
+!`rolling-show tree`
 
 ## Open detour, if any
 
