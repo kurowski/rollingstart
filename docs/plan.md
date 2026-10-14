@@ -1156,3 +1156,47 @@ before the next checkpoint; the run is written up in its PR):
   which runs `claude -p --plugin-dir` in a temporary directory with a
   throwaway config, so git, permissions, and hooks behave as they do
   for a learner.
+
+**Building the destructive hook** (2026-10-14):
+
+- **The hook holds against accident, and is documented not to hold
+  against evasion.** Matching an operation's words in a command line
+  cannot be completed. Three review rounds found thirteen fail-opens
+  in 2.7, every one a path to a command that matching at a command's
+  *start* had not modelled; moving to a run of words anywhere closed
+  those, and a later sweep still found eleven more in one family —
+  `trap '<op>' EXIT`, `echo '<op>' | sh`, `x='<op>'; eval "$x"`,
+  `awk 'BEGIN{system("<op>")}'` — the last of which need the program
+  evaluated rather than the line read. § 1 puts a destructive
+  operation running unasked in the must-hold class, and this mechanism
+  does not hold it absolutely, so the guarantee is scoped rather than
+  the mechanism extended: the hook catches the operation as declared
+  and as a session ordinarily reaches it, and the limit is written
+  down in `docs/map.md` and in the handler instead of being hill-
+  climbed for a fourth round.
+- **What makes that enough is the size of what is at stake.** Nobody
+  here is an adversary: the tutor works for the learner with the
+  author's guidance, and the learner is the boss. A learner getting
+  to know a codebase is not writing mission-critical code or making
+  data that has to be retained, so what a destructive operation costs
+  them is a small amount of invested time. `docs/map.md` now asks
+  authors to mark only operations whose blast radius they could
+  describe in a sentence, and says an operation that could take
+  something irreplaceable does not belong in a map. The mechanism
+  that would hold absolutely — asking on every command the plugin
+  cannot positively recognise as safe — buys back a case nobody meets
+  at the price of a prompt on everything, and a prompt that fires
+  constantly is one the learner waves through.
+- **The parsing earns its keep on the declaration, not the match.**
+  Measured against a six-line regex over the raw line, on the corpus
+  built while fixing the thirteen: twelve fail-opens against
+  thirteen, the parser winning two shapes and losing one. On the
+  author's declaration it is not close — `cd "$(git rev-parse
+  --show-toplevel)" && pnpm db:reset --force` has to yield the head
+  `pnpm db:reset` and not `git rev-parse`, which would ask on every
+  `git rev-parse` in the session and never on the reset. Prior art
+  for the rest of it (`bashlex`, a port of bash's own grammar) is
+  third-party and out under the standard-library floor; `shlex` is a
+  tokenizer and does the quoting only. Worth saying at the spec stage
+  of anything like this: reading a command line is not a problem this
+  repository can own, and the answer is to need less from it.
