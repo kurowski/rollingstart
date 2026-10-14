@@ -16,6 +16,16 @@ the learner takes the offer at its end.
 Do not choose another. Invoke the `rolling:lesson` skill with the Skill
 tool and stop; it re-presents the open task.
 
+One thing first: if the working tree below says the repository is not
+on the task's branch, say that before you hand off, in a line. They
+left the branch by hand, the task is still open on it, and whatever is
+uncommitted is here rather than there. Offer the two ways on and let
+them pick — switch back to the exercise's branch and carry on, or
+`/rolling:cancel` to stop the lesson and leave the branch alone — then
+hand off as above. Do not switch branches for them. If the tree says
+that branch is gone, drop the first option: there is nothing to switch
+back to, and `/rolling:cancel` is what clears the task.
+
 ## If a detour is open
 
 Do not choose a lesson. A detour is a side trip off a lesson the
@@ -176,6 +186,10 @@ before it.
 ## Open task, if any
 
 !`rolling-show task`
+
+## Working tree
+
+!`rolling-show tree`
 
 ## Open detour, if any
 

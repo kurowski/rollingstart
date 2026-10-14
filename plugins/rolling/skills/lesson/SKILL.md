@@ -79,6 +79,17 @@ done. If a task was already presented in this session and the learner
 asked to be re-briefed, re-present it in a few lines and ask how it is
 going.
 
+If the working tree below says the repository is not on the task's
+branch, that comes first and the brief waits. They left the branch by
+hand: the task is still open on it, and whatever is uncommitted is
+where they are now. Say so in a line, offer the two ways on — switch
+back to the exercise's branch and pick up where they left off, or
+`/rolling:cancel` to stop the lesson and leave the branch alone — and
+ask which they want. If the tree says that branch is gone, drop the
+first option: there is nothing to switch back to, and `/rolling:cancel`
+is what clears the task. Do not switch branches for them, and do not
+brief them as though they were on the task.
+
 ## While they work
 
 - Explain, point, and ask. Point at files and lines; name the

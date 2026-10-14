@@ -107,6 +107,49 @@ def _parked_note(w: Where) -> str:
     return f"(no open task; {lesson} is parked on {t.branch}: rolling-resume-task picks it up)"
 
 
+def _off_branch_note(w: Where, status: List[str]) -> List[str]:
+    """An open task whose branch is not the one checked out, in words.
+
+    Leaving a task needs its branch: `tasks.Tasks._end_checks` refuses
+    otherwise, on the grounds that a learner who switched by hand has a
+    tree this code should not guess about. Nothing said so until
+    something refused, which is #29 — the learner answered "shall I
+    take you back?" with `git switch main`, their work came along
+    uncommitted, the task stayed open, and the next route found it
+    stale. So the state is reported wherever the tutor reads the tree,
+    and the skills offer to put it right rather than meeting it as a
+    refusal later.
+
+    Only an open task. A parked one is set aside for a detour, and the
+    detour's own branch is where HEAD belongs while that runs.
+    """
+    if w.learner is None or not w.learner.has_task():
+        return []
+    try:
+        t = Task.load(w.learner.task_file)
+    except LoadError:
+        return []                  # show task reports a task file it cannot read
+    cur = w.repo.branch()
+    lesson = t.lesson or "a task"
+    if not t.branch:
+        # The pen will not write a task without one, so this is a file
+        # edited by hand. Leaving it refuses for that reason rather than
+        # for where HEAD is, and the tutor should hear which.
+        return [f"note: {lesson}'s task is open and names no branch, so it cannot be left; it can only be cleared"]
+    if cur == t.branch:
+        return []
+    where = cur or "a detached HEAD"
+    n = len(status)
+    # Not "listed above": cmd_show prints only the first twenty.
+    carried = (f"{n} uncommitted change{'' if n == 1 else 's'} {'is' if n == 1 else 'are'} on {where} "
+               "and not on the task's branch" if status else "the tree is clean")
+    if not w.repo.branch_exists(t.branch):
+        return [f"note: {lesson}'s task is open on {t.branch}, that branch is gone, and the repository is on {where}",
+                f"{carried}; there is nothing to go back to, so the task can only be cleared"]
+    return [f"note: {lesson}'s task is open on {t.branch}, and the repository is on {where} instead",
+            f"{carried}; leaving the task needs that branch checked out again"]
+
+
 def _detours(w: Where) -> detourmod.Detours:
     return detourmod.Detours(w.repo, w.learner, w.map_dir)
 
@@ -256,6 +299,7 @@ def cmd_show(args: List[str]) -> int:
             say("(clean)")
         head = repo.head()
         say(f"HEAD {head} on {repo.branch() or '(detached)'}" if head else "HEAD (no commits yet)")
+        say(*_off_branch_note(w, status))
     elif what == "state-dir":
         say(str(w.learner.dir) if w.learner else f"({paths.NO_DATA_MSG})")
     else:
