@@ -31,8 +31,11 @@ What is allowed, exactly:
   the others hand off to.
 
 Everything else is silence: the session's own permissions decide, so a
-map's command, a destructive operation, and any compound command the
-tutor types still ask as they always did. A hook that blocks the
+map's command and any compound command the tutor types still ask as
+they always did, and a destructive operation asks because `rolling-ask`,
+the sibling handler on Bash, says so — an `ask` from one hook stands
+over an `allow` from another, and this one allows nothing of a map's in
+any case. A hook that blocks the
 session on its own failure would be worse than none, so any surprise is
 silence too. The handler never reads the learner's directory; it has no
 need of it.
@@ -57,7 +60,7 @@ HANDOFF_SKILLS = ("rolling:lesson", "rolling:task")
 PREFIX = "rolling-"
 _FORBIDDEN = frozenset(";|&$`<>(){}\\")   # outside quotes
 _HEREDOC = re.compile(r"\s<<(-?)\s*(['\"])([A-Za-z_][A-Za-z0-9_]*)\2\s*$")
-_HOOK_HANDLERS = frozenset(("rolling-allow", "rolling-check-reply", "rolling-guard", "rolling-session-start"))
+_HOOK_HANDLERS = frozenset(("rolling-allow", "rolling-ask", "rolling-check-reply", "rolling-guard", "rolling-session-start"))
 _STDERR_TO_STDOUT = re.compile(r"\s2>&1\s*$")
 
 

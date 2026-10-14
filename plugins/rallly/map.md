@@ -16,11 +16,15 @@ commands:
   integration: pnpm --filter @rallly/web test:integration
 operations:
   reset-db: pnpm db:reset --force
+  reset-db-run: pnpm run db:reset --force
+  reset-db-prisma: prisma migrate reset
   seed-db: pnpm db:seed
   apply-migrations: pnpm db:deploy
   regenerate-client: pnpm db:generate
 destructive:
   - reset-db
+  - reset-db-run
+  - reset-db-prisma
 ---
 
 # Rallly

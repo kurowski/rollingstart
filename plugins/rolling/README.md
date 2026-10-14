@@ -61,6 +61,7 @@ first finishes any held-test revert a killed run left behind.
 | `rolling-guard` | the PreToolUse hook | The `write`-mode scope guard: denies the tutor an edit inside the open task's scope. |
 | `rolling-check-reply` | the Stop hook | Checks the `path:line` citations in the tutor's turn and, when one points nowhere, has the tutor correct it before the learner answers (Hooks, below). |
 | `rolling-allow` | the PreToolUse hook, on Bash and Skill | Allows one plain invocation of a toolkit executable (word arguments, the pen's quoted heredoc, a trailing `2>&1`; nothing chained, substituted, or redirected) and the two hand-off skills; silent about everything else, which the session's own permissions decide. What makes the install two `/plugin` lines and no settings. |
+| `rolling-ask` | the PreToolUse hook, on Bash | Asks the learner before a command that runs an operation the map marks `destructive`, in every session and every permission mode: it looks for each such operation's head (the words that name it, up to its first flag) as a run of whole words anywhere in any command in the line, a wrapper's `-c` argument included, and names the operation in the reason. Silent for a near miss, with no map, and in a repository whose map marks nothing. |
 | `rolling-show <what>` | skills, inline | One piece of context: `map`, `map-check` (where the map came from and its faults in words, `MAP: ok`, or `MAP: none` with what is installed), `lessons` (the index), `lesson [slug]`, `profile`, `task`, `reference` (the held answer: the notes and the diff, for the tutor to relay when the learner asks), `evidence [slug]` (what the tutor has noted about the open task's lesson, or the one named), `corpus`, `tree`, `state-dir`. Always exits 0. |
 | `rolling-claim-session <id>` | skills, inline | Records the session as the tutor's, in the open task or the `session` file. |
 | `rolling-begin-lesson <slug>` | `next` | Records the lesson `next` chose as the open one, before any exercise exists; refuses while a task is open or for a slug the map lacks. |
@@ -123,7 +124,7 @@ docker run --rm -v "$PWD/plugins:/w/plugins:ro" -w /w python:3.9-alpine sh -c '
 
 ## Hooks
 
-`hooks/hooks.json` registers four handlers, all Python in `bin/`:
+`hooks/hooks.json` registers five handlers, all Python in `bin/`:
 
 - **SessionStart** runs `rolling-session-start`, which exports the
   plugin's data directory into the session's environment (above).
@@ -141,6 +142,15 @@ docker run --rm -v "$PWD/plugins:/w/plugins:ro" -w /w python:3.9-alpine sh -c '
   rule that must hold when the learner asks nicely is held by this
   hook, not by prose, and it holds in every permission mode.
 - **PreToolUse** on Bash and Skill runs `rolling-allow` (above).
+- **PreToolUse** on Bash runs `rolling-ask`: a command that runs an
+  operation the map marks `destructive` is answered `ask`, naming the
+  operation, so the learner decides that run. Every session and every
+  mode, task or no task, tutor or not: what the rule protects is the
+  learner's work, which costs them the same whoever typed the command.
+  An `ask` from a hook stands over an `allow` from another on the same
+  call, so this one and `rolling-allow` cannot disagree in the wrong
+  direction; in a mode with nobody to answer it becomes a refusal,
+  which fails safe. Silent for anything else, and for any surprise.
 - **Stop** runs `rolling-check-reply`: when the tutor's session ends a
   turn, every `path:line` the turn's text cites is checked against the
   working tree, and if one points nowhere (no such file, or fewer lines

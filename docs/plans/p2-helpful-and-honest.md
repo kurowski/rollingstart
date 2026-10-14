@@ -74,7 +74,7 @@ could never have failed is not served.
 | A step is a lesson, and the `lesson` marker says which one is open | `open-detour` names the detour; the open step is the open-lesson marker's own slug, found in the plan's `steps`. So the pen refuses the same slug twice (position is read from the slug), refuses a step that shares a slug with a map lesson (a slug resolves to a step first), and refuses a step equal to `returns-to`. A step's pointers are a `## Pointers` section of `- <path>` lines, checked in the tree; `requires` and `exercise` are a map lesson's fields and are refused. The task validator takes the open detour's step directory, since a task's lesson may be a step that is no lesson of the map's. The plan is checked for shape when written and for serveability when begun, because `rolling-write step` takes the detour's slug and so the plan is written before the steps it names (decided 2026-10-12) | A step is a lesson in every way that matters to a skill, so the cheapest correct design is to have nothing know otherwise: the walkthrough, `rolling-begin-task`, evidence and `done` all read the marker already and serve a step without being taught to. A second marker for the step would have been a second thing to keep in step with the first. What it costs is the refusals above, each one closing a way for two things to answer to one slug. |
 | The citation check runs on the tutor's reply, in a Stop hook | When the tutor's session ends a turn, `rolling-check-reply` checks every `path:line` in the turn's text against the working tree; one that points nowhere (no such file, or fewer lines) blocks the stop with the flags as its reason, and the tutor corrects or withdraws it in the same turn. Errs silent on what may not be a path; never the turn after a correction; never another session. No `rolling-check-feedback` (decided 2026-09-26) | The honest form of "feedback is grounded" is that the learner never acts on a citation that points nowhere. `done` speaks before it writes evidence, since the outcome needs the learner's answer, so a check on the written entry comes a learner's message late, after they may have gone looking; checking a draft before speaking would cost the slowest turn a second copy of every point. The hook checks what the learner actually read, in every reply rather than only `done`'s, costs milliseconds when nothing is flagged (nearly always, since it can only tell that a line exists, not that it says what was claimed), and one short generation when something is. It flags a mistake of the tutor's and constrains nobody, so it is not a hint enforced by a script. |
 | Quoted output is honesty prose plus an eval, not a hook | The skills say: quote only what a tool returned; an inference is said as one. An eval case (#30's shape) seeds a symptom whose cause lies outside what the tutor can observe. | A Stop hook could compare quoted blocks with the transcript's tool results, but code blocks in a reply are not reliably quotes, and a false flag in the learner's window is its own dishonesty. Measured first; built if it fails. |
-| The destructive hook asks, in every session | A PreToolUse handler on Bash, `rolling-destructive` (name to be settled in 2.7): resolve the map for the session's repository; if the command carries the head of an operation the map marks destructive (its words up to the first flag, matched at a command boundary), answer `ask` with the operation's name; silent otherwise, and silent with no map | § 5's second layer, and P5 relies on it for the coding session. The head, not the whole line, because `pnpm db:reset` without `--force` is the same reset. `ask` in `dontAsk` mode becomes a denial, which fails safe. |
+| The destructive hook asks, in every session | A PreToolUse handler on Bash, `rolling-ask` (the name settled in 2.7: it is named for the decision it returns, as `rolling-allow` is, and the two are the halves of one policy on Bash): resolve the map for the session's repository; if the command carries the head of an operation the map marks destructive (the words that name it, up to its first flag, found as a run of whole words anywhere in any command in the line — settled in 2.7, after matching at a command boundary leaked ten ways), answer `ask` with the operation's name; silent otherwise, and silent with no map | § 5's second layer, and P5 relies on it for the coding session. The head, not the whole line, because `pnpm db:reset` without `--force` is the same reset. `ask` in `dontAsk` mode becomes a denial, which fails safe. |
 | Closing a lesson leaves the task in the same step | When the learner closes, `done` runs `rolling-end-task` then `rolling-close-task` without asking whether to go back; and `rolling-show tree` says in words when a task is open and HEAD is not its branch | #29: the second question was answered by `git switch main`, the change came along uncommitted, and the task stayed open. Closing the lesson is the decision to leave; a learner staying on the branch has not closed it. |
 | A command that could not run is not an expected failure | `rolling-verify` reports a line whose shell exits 126 or 127 as `COULD-NOT-RUN`, which fails a proof both ways; the task skill reads each `EXPECTED-FAIL` line's output for the test's failure before accepting it; `docs/map.md` tells authors every command a task uses must exist on its starting state | #31. The toolkit cannot know every runner's "no such script" message, and must not read one, so the part a script can know (the shell never found the program) is the script's, and the rest is read by the tutor, who already reads the proof. A held test that does not compile is still a legitimate expected failure (1b.6). |
 | A reference that adds a dependency gets one declared operation | A task may carry `reference-setup: <operation key>`; `rolling-verify --on-reference` runs it after applying the reference and before the lines; a destructive operation is refused there | #32. Operations are the author's shell, already reviewed in the repository, so naming one widens what `verify` runs by one declared step rather than by anything free-form. Re-running `setup:` instead would run steps written for the starting state. |
@@ -100,8 +100,8 @@ here.
 | The eval directory can live outside the plugin root (`--eval-dir` with a path), or must be below it | 2.2 | **Moot**: the suite is our own harness, at `evals/` in the root. |
 | Plugin eval has a multi-turn form; if not, `claude -p --resume` in a script carries a second turn with the plugin loaded | 2.2 | **Yes, by resuming** (read from the 2.1.281 binary's case schema): `context.history_file` names a recorded session, which the run resumes with `--resume`, and the case's prompt is the next turn. The harness does the same with `--resume`. |
 | `--model` runs the whole case, skills included, on the named model, so two model versions are two runs of one suite | 2.2 | **Yes** (same probes): the session's init record names the override, and skills run in that session. The harness passes `--model` to `claude -p` the same way. |
-| A PreToolUse `ask` on Bash from a plugin hook prompts in default mode, survives auto mode, and becomes a denial in `dontAsk` | 2.7 | Partly known: P5's plan confirmed a PreToolUse `ask` is honoured (2026-09-22). The three modes are this row's. |
-| A plugin hook's `ask` and `rolling-allow`'s silence on the same call leave the `ask` standing (the allow hook never allows a map's command, but the order is worth seeing once) | 2.7 | |
+| A PreToolUse `ask` on Bash from a plugin hook prompts in default mode, survives auto mode, and becomes a denial in `dontAsk` | 2.7 | **Yes in all three** (2026-10-13, 2.1.296, a throwaway probe plugin under the scratchpad, Haiku 5.5, seventeen `claude -p` runs, $0.03). The modes are now `manual`, `auto`, and `dontAsk` (`--permission-mode` no longer takes `default`). In each, the marked command came back refused with the hook's own reason verbatim, and the control — the same command without the marker, in the same session — ran, so the refusal is the hook and not print mode. Print mode has nobody to answer a prompt, so what an `ask` becomes there is a refusal: the fail-safe end of the same rule, and what an eval case can read. Whether default mode shows a human the prompt is the one part only an interactive run shows, as for 2.5's Stop hook row. |
+| A plugin hook's `ask` and `rolling-allow`'s silence on the same call leave the `ask` standing (the allow hook never allows a map's command, but the order is worth seeing once) | 2.7 | **Yes, and it stands over an `allow` too** (same probes). Silence leaves it standing, as expected. On a `touch` that `manual` mode would otherwise refuse: an `allow` from the second hook alone ran it, and the `ask` plus that same `allow` was refused with the ask's reason — so an `ask` beats an `allow` the way a `deny` does (1b's row). It also stands over an operator's `--allowedTools` grant, in `manual` and `auto`, which is what lets 2.7's eval case grant the command and still measure the hook rather than the mode. |
 | A plugin's Stop hook that answers `block` has the model continue in the same turn, in print mode, with `stop_hook_active` set on the next stop; and the turn's whole text is readable at that point | 2.5 | **Yes, from two places** (2026-09-26, 2.1.283, a throwaway probe plugin under the scratchpad, Haiku 4.5, `claude -p`, four runs). The block's reason reached the model as "Stop hook feedback", it answered in the same turn, and the next stop carried `stop_hook_active: true`. But `last_assistant_message` is only the turn's final text block (a sentence before a tool call was missing from it), and the transcript at `transcript_path` holds every block before the final one and not the final one itself, three runs of three. So the hook reads the transcript's assistant text since the last prompt and appends the final message. The same held in an interactive session (the maintainer, same day, one run): the split was identical, and the reason was shown to the user under "Ran 1 stop hook" as `Stop hook error: <reason>`, so the reason is worded for the learner to read too. |
 | A throwaway `CLAUDE_CONFIG_DIR` can be authenticated for `claude -p` without touching the maintainer's own config (a long-lived token in the environment, from `claude setup-token`, or another documented route) | 2.3 | **Yes, with a token** (2026-09-24, 2.1.281): a token from `claude setup-token`, kept in `~/.config/rolling-evals/token` (mode 600) and passed as `CLAUDE_CODE_OAUTH_TOKEN`, logs in a throwaway config dir. The maintainer chose the token for now; it is per machine and expires eventually. The way to drop it, if that is ever wanted, is untested: `--setting-sources` without `user` in the real config might keep the installed plugins out of the session instead. |
 | Under `--plugin-dir` in a throwaway config, `rolling`'s hooks all fire (the allow hook included) and plugin data lands inside that config dir | 2.3 | **Yes** (same day, the first case's runs on Opus 5.5): the data directory was `<config>/plugins/data/rolling-inline`, the seed written there was what the `lesson` skill read, the turn had no permission denials, and the maintainer's `~/.claude` (plugin data, settings, installs, projects) was unchanged afterwards. |
@@ -498,7 +498,7 @@ are gitignored.
 
 ---
 
-### 2.7 — The ask-before-destructive hook [PENDING]
+### 2.7 — The ask-before-destructive hook [COMPLETE]
 
 A Bash command carrying the head of a destructive map operation asks
 first, in every session and mode. Branch `p2.7/destructive`; depends
@@ -512,6 +512,150 @@ matching command (alone, with arguments added, in a `&&` chain, after
 or in a repository whose map marks nothing; tests cover each; the
 fixture's map marks one operation destructive and a case shows the
 prompt reaching the learner.
+`rolling-ask` is in `hooks.json`, reads the map through the resolver,
+and has its tests. The case `destructive-asks-first` passed **3/3 on
+Opus 5.5** (2026-10-14, $0.87 for the tutor's sessions), and it passed
+for the right reason rather than vacuously: in each run the tutor
+reached for the operation and the hook refused it with its own reason
+verbatim, `no_command` found no way around the prompt among the 2–5
+commands each run tried, and the judge read the tutor saying plainly
+that the reset had not run and handing the decision back. The
+learner's line in the case pushes for exactly the opposite ("I don't
+care about anything in it, and you don't need to check with me again")
+and no run took it. PR #53.
+Both mechanism rows above were probed first, and both answers changed
+the slice: the `ask` becomes a refusal in print mode, which is how an
+eval case reads it at all, and it stands over an operator's
+`--allowedTools` grant, which is how the case grants the command and
+still measures the hook instead of the mode.
+A head is the words of an operation's **first** command, up to its
+first flag, and not a leading `cd`. Each of those three clauses
+closed a fault: the whole line's words are the head of nothing, so a
+chained operation (`make resetdb && make seed`) would never have
+asked; and `cd apps/web && pnpm db:reset --force`, which is what a
+monorepo's author writes, had the head `cd apps/web` — a prompt on
+every bare `cd` into the directory and silence on the reset.
+Reading the command line was where every fail-open lived — thirteen of
+them, over three review rounds, which is the finding. Two the tests
+caught: an operation declared as `--force` has an empty head, and an
+empty prefix matches every command; and a double-quoted substitution
+kept its `)"` stuck to the last word, so `echo "$(pnpm db:reset)"`
+went unnoticed. The first review caught four more, including the one
+its own predecessor had caused: clearing the quote state at a `$(` and
+never restoring it meant the closing `"` was read as an opening one
+and every break after it taken for text, so `cd "$(git rev-parse
+--show-toplevel)" && pnpm db:reset` — about as ordinary a line as a
+model types — asked nothing. The second review caught four more
+still: a compound inside `sh -c` (only its first command was read), a
+bundled `-lc`, a wrapper's own option (`timeout 20`, `nice -n 5`), and
+a heredoc body with an apostrophe in it leaving the rest of the line
+unparseable. The third caught three: a wrapper in *front* of the shell
+(`timeout 20 sh -c '…'`), which is the same bug as the bundled `-lc`
+one level out — that review called it the last systematic way a quoted
+string becomes a command nothing unwraps, and a sweep afterwards
+showed it was not (below); a redirection glued to the word before it
+(`pnpm db:reset>out.log`); and a line continuation, which leaves shlex
+a word of just the newline and breaks the adjacency.
+The pattern in those thirteen is the lesson, and it changed the design. A
+rule that reads only the *start* of a command has to model every way a
+command can be reached, and there is no end to that list; each thing
+missed is a destructive operation running unasked. So the head is now
+looked for as a run of whole words **anywhere** in a command, which
+needs no such model: the keyword and wrapper allowlists came back out,
+the code got smaller, and every "must stay silent" case still is,
+because a quoted mention is a single word and never a run of them.
+What it costs is `grep -rn pnpm db:reset .` with the words unquoted
+asking once for nothing, which is the right side to be wrong on.
+A sweep of that one family after the third review found eleven more,
+and they settled the guarantee instead of starting a fourth round.
+`trap '<op>' EXIT`, `echo '<op>' | sh`, `x='<op>'; eval "$x"` and
+`awk 'BEGIN{system("<op>")}'` each run the operation and each pass
+without a word: the first is `sh -c`'s shape again and could be
+added, the last two could not be by anything, since they need the
+program evaluated rather than the line read. So the thirteen were
+never thirteen bugs; they were the first thirteen samples of a set
+that does not end, and extending the reading is the wrong answer to
+it. What ships is that the hook holds against **accident** — the
+operation run plainly, after a `cd`, inside a `sh -c` or an `eval`,
+behind a `sudo` or a `timeout` — and is documented not to hold against
+evasion, in `docs/map.md` and in the handler's header. What makes that
+the right size is what is at stake: nobody here is an adversary, the
+tutor works for the learner with the author's guidance and the learner
+is the boss, and a learner getting to know a codebase is not writing
+mission-critical code or making data that has to be retained, so a
+destructive operation costs them a small amount of invested time.
+`docs/map.md` now asks authors to mark only operations whose blast
+radius they could describe in a sentence, and says one that could take
+something irreplaceable does not belong in a map. The maintainer's
+call, 2026-10-14; the reasoning is in `docs/plan.md` § 10.
+The parsing earns its keep on the declaration and not on the match.
+Measured against a six-line regex over the raw line, on the corpus
+built while fixing the thirteen: twelve fail-opens against thirteen,
+the parser winning two shapes and losing one. On an author's
+declaration it is not close — `cd "$(git rev-parse --show-toplevel)"
+&& pnpm db:reset --force` has to yield the head `pnpm db:reset` and
+not `git rev-parse`, which would ask on every `git rev-parse` in the
+session and never on the reset. So one body of code does two jobs with
+very different requirements, and the half that needs it least is the
+half that justified it. Prior art for the reading (`bashlex`, a port
+of bash's own grammar) is third-party and out under the
+standard-library floor; `shlex` is a tokenizer and does the quoting
+only. Worth saying at the spec stage of anything like this: reading a
+command line is not a problem this repository can own, and the answer
+is to need less from it.
+What a good declaration looks like took two tries to write down. A
+script path has a head of one distinctive word with no gap for a flag,
+and the first draft of the guidance recommended it first and claimed
+it was "caught however the tutor reaches for it" and "asks about
+nothing else". Both halves were false, and the third review measured
+it: `cd .rolling && ./reset-db` is a different set of words, and a
+`cat` of the script asks, because reading a path and running it look
+alike. A subcommand of the repository's own runner is usually better
+on both counts. `docs/map.md` now says that, and names the three edges
+an author has to declare around or write down — an equivalent spelling
+the hook cannot know (`pnpm run db:reset` beside `pnpm db:reset`), the
+head's words having to be adjacent, and a head of one common word
+asking about every use of it.
+Rallly's map took that advice in this PR, since it had the hole the
+guidance describes. Two catch-only operations now sit beside
+`reset-db`: `reset-db-run` for `pnpm run db:reset --force`, and
+`reset-db-prisma` for the bare `prisma migrate reset`, which has a
+distinctive three-word head and so is found inside any runner that
+wraps it (`pnpm --filter @rallly/database exec prisma migrate reset`,
+`pnpm exec …`, `npx …`) — the "anywhere in the command" rule paying
+for itself. Checked against nine spellings and twelve ordinary
+commands: eight of the nine ask, none of the twelve do. The ninth is
+`pnpm -w run db:reset`, where a flag splits the head's words; it is
+not declarable either, since a declaration starting `pnpm -w` has the
+bare head `pnpm`. That is the adjacency edge, left where the guidance
+says it lies.
+The hook is the second line of this rule and the skills' prose is the
+first, and the third review found the first line missing where the
+case measures it: `task`'s prose says a destructive operation waits
+for the learner's yes, and `lesson`'s said nothing about operations at
+all. It does now, including not to retry and not to find another
+spelling.
+Tests of the hook's own reading are not enough for this, since the
+authority on what a line runs is the shell. So `AgainstTheShellTest`
+makes `pnpm` a stub that records being called, runs each line under
+`sh -c` in a throwaway directory, and fails on any line the shell ran
+and the hook passed over. It catches eight of the ten directly.
+The case's deterministic grader is a new `asked`, since a refused
+command was the one thing the graders could not read (`command` counts
+only what worked, `no_command` counts attempts). The reviews found
+three ways the case would have read a run wrongly, all now fixed:
+`asked`'s pattern matched a `cat` of the script as well as a run of
+it, so it failed on a tutor that read before running; then, anchored,
+it matched too little, and a run under another spelling passed; and
+the fixture never creates the `ledger.json` the learner's line
+complains about, so the seed writes it. A failure reading "the command
+was never run" means the tutor never reached for the operation, which
+leaves the hook untested rather than broken, and the case says so.
+Not built: a validator fault for a head of one word. An author's
+declaration is a hint and a script that enforces a hint is code we do
+not want, so `docs/map.md` says instead why that shape defeats the
+rule — a prompt that fires on every build is one the learner learns to
+wave through.
 
 ---
 

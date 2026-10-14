@@ -50,7 +50,8 @@ mode denies rather than asks; the plugin's own `rolling-allow` hook
 answers that, in every mode, by allowing one plain invocation of a
 toolkit executable and the two hand-off skills, and nothing else. A
 map's command still asks when the tutor runs it, a destructive
-operation still prompts, and git's read-only commands are not
+operation prompts through the plugin's own `rolling-ask` hook (the
+`destructive` field below), and git's read-only commands are not
 pre-approved either, since a standing grant on `git diff *` would also
 cover its `--output` write.
 
@@ -239,9 +240,91 @@ together …
   `map.md` and `lessons/`. A map plugin's directory is not in the
   learner's tree, so its operations cannot name a path into it.
 - **`destructive`** (optional, a list of operation keys). The ones
-  that drop or overwrite something of the learner's. The tutor asks
-  before each run of one, in every permission mode, and the author's
-  `permissions.ask` rules (P3) make the tool itself ask too.
+  that drop or overwrite something of the learner's. A command that
+  runs one asks the learner first, in every session and every
+  permission mode: the plugin's `rolling-ask` hook takes each
+  destructive operation's **head** and asks about any command in the
+  session that runs it.
+
+  **Mark the operations whose cost is time, and keep it that way.**
+  This is here so a learner does not lose an afternoon's work to a
+  reset they did not see coming; it is not a guarantee that nothing
+  can ever be dropped. A learner getting to know a codebase should not
+  be holding data that has to be kept or code that could not be
+  written again, so an operation you mark destructive should have a
+  blast radius you could describe in a sentence: a local database, a
+  scratch branch, a generated directory. An operation that could take
+  something irreplaceable does not belong in a map.
+
+  The head is the words that name the operation: the first command in
+  the declaration that is the operation rather than the way to it, up
+  to the first word beginning with `-`. So `reset-db: pnpm db:reset
+  --force` has the head `pnpm db:reset` — not the whole line, because
+  the same reset without its `--force` is still the reset. A leading
+  `cd` or guard is skipped, so `cd apps/web && pnpm db:reset --force`
+  and `[ -f db ] && make reset` have the heads `pnpm db:reset` and
+  `make reset`; and a `sh -c '…'` is read through, so
+  `sh -c 'psql -f reset.sql'` has the head `psql`.
+
+  A command runs the operation when the head's words appear in it
+  whole, in order, and next to each other, with the shell's quoting
+  taken off. Whole words, so `pnpm db:reset-docs` and `pnpm run
+  db:reset` are different commands and pass without a word. Anywhere
+  in the command rather than only at its start, because there is no
+  end to the ways a command can be reached — `sudo`, `timeout 20`,
+  `nice -n 5`, a `then` out of an `if` — and a missed one is a
+  destructive operation running unasked. The cost of that choice is
+  the other kind of mistake: `grep -rn pnpm db:reset .`, with the
+  words left unquoted, asks once for nothing. A quoted mention is a
+  single word and never a run of them, so `git commit -m 'stop running
+  pnpm db:reset'` stays quiet. The author's `permissions.ask` rules
+  (P3) make the tool itself ask too, and the tutor's own confirmation
+  in conversation sits on top of both.
+
+  **Declare a destructive operation so that its head is distinctive,
+  and so that the way you wrote it is the way it gets run.** A
+  subcommand of the repository's own runner
+  (`reset-db: pnpm db:reset --force`) is usually the best of both: the
+  head is two words that mean nothing else, and it reads the same from
+  any directory. A script (`reset-db: .rolling/reset-db`) gives a head
+  of one distinctive word with no gap for a flag, but a path is only
+  one spelling of itself — `cd .rolling && ./reset-db` is a different
+  set of words and passes without a word — and a `cat` or a
+  `git diff` of the script asks, because reading a path and running it
+  look alike.
+
+  Three edges to know about, because what the hook cannot see you have
+  to write down or declare around:
+
+  - **An equivalent spelling is a different operation.** Where your
+    runner takes more than one way to say it — `pnpm run db:reset`
+    beside `pnpm db:reset`, say — only the one you declared is caught.
+    Declare the other as an operation of its own and mark it
+    destructive too; a key no task ever names is fine, since it is
+    there to be caught rather than to be run.
+  - **The head's words must be next to each other**, so
+    `python3 -u scripts/reset.py` is not `python3 scripts/reset.py`.
+  - **A head of one *common* word asks about every use of that word**,
+    which a flag early in the line will give you:
+    `pnpm --filter @acme/db db:reset --force` has the head `pnpm`, so
+    every build, test and install in the session prompts, and a prompt
+    that fires constantly is one the learner learns to wave through.
+    That is the rule defeating itself. Put that one in a script.
+
+  **What the hook holds against is accident, not evasion.** It catches
+  the operation as declared and as a session ordinarily reaches it:
+  plainly, after a `cd`, inside a `sh -c` or an `eval`, behind a
+  `sudo` or a `timeout`. A line can still spell the operation in a way
+  its words are not in — handed to `trap`, piped into a shell, put
+  through a variable and `eval`ed, run by an `awk` or a `python3 -c` —
+  and the last of those could not be read off a command line by
+  anything. That is a limit of the mechanism rather than a gap left
+  open in it: the ways a string becomes a command do not run out, so
+  the hook matches the words a session would run and stops there. It
+  is why the `lesson` skill's prose is the first line and this hook
+  the second, and why the paragraph above asks you to keep the blast
+  radius small — the hook stops the accident, and the size of the
+  operation is what makes that enough.
 
 ### Body sections
 

@@ -110,6 +110,13 @@ going.
   and read the result with them. Never bring services up or fix the
   environment; a command that fails because the stack is down is
   reported as that.
+- An operation the map marks destructive drops or overwrites something
+  of the learner's, and runs only after they say yes to that run. If
+  one comes back refused because of what it is, say plainly that it
+  has not run and that approving it is theirs: they can approve the
+  prompt, or run it themselves. Do not retry it, and do not find
+  another way to do the same thing — a different spelling of a reset
+  is still the reset.
 - Take what the learner reports as what they saw, and help by
   reproducing it: run the same command yourself and say what came
   back. If yours differs from theirs, say so plainly; the difference
