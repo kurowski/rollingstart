@@ -75,7 +75,7 @@ could never have failed is not served.
 | The citation check runs on the tutor's reply, in a Stop hook | When the tutor's session ends a turn, `rolling-check-reply` checks every `path:line` in the turn's text against the working tree; one that points nowhere (no such file, or fewer lines) blocks the stop with the flags as its reason, and the tutor corrects or withdraws it in the same turn. Errs silent on what may not be a path; never the turn after a correction; never another session. No `rolling-check-feedback` (decided 2026-09-26) | The honest form of "feedback is grounded" is that the learner never acts on a citation that points nowhere. `done` speaks before it writes evidence, since the outcome needs the learner's answer, so a check on the written entry comes a learner's message late, after they may have gone looking; checking a draft before speaking would cost the slowest turn a second copy of every point. The hook checks what the learner actually read, in every reply rather than only `done`'s, costs milliseconds when nothing is flagged (nearly always, since it can only tell that a line exists, not that it says what was claimed), and one short generation when something is. It flags a mistake of the tutor's and constrains nobody, so it is not a hint enforced by a script. |
 | Quoted output is honesty prose plus an eval, not a hook | The skills say: quote only what a tool returned; an inference is said as one. An eval case (#30's shape) seeds a symptom whose cause lies outside what the tutor can observe. | A Stop hook could compare quoted blocks with the transcript's tool results, but code blocks in a reply are not reliably quotes, and a false flag in the learner's window is its own dishonesty. Measured first; built if it fails. |
 | The destructive hook asks, in every session | A PreToolUse handler on Bash, `rolling-ask` (the name settled in 2.7: it is named for the decision it returns, as `rolling-allow` is, and the two are the halves of one policy on Bash): resolve the map for the session's repository; if the command carries the head of an operation the map marks destructive (the words that name it, up to its first flag, found as a run of whole words anywhere in any command in the line — settled in 2.7, after matching at a command boundary leaked ten ways), answer `ask` with the operation's name; silent otherwise, and silent with no map | § 5's second layer, and P5 relies on it for the coding session. The head, not the whole line, because `pnpm db:reset` without `--force` is the same reset. `ask` in `dontAsk` mode becomes a denial, which fails safe. |
-| Closing a lesson leaves the task in the same step | When the learner closes, `done` runs `rolling-end-task` then `rolling-close-task` without asking whether to go back; and `rolling-show tree` says in words when a task is open and HEAD is not its branch | #29: the second question was answered by `git switch main`, the change came along uncommitted, and the task stayed open. Closing the lesson is the decision to leave; a learner staying on the branch has not closed it. |
+| Closing a lesson leaves the task in the same step | When the learner closes, `done` runs `rolling-end-task` then `rolling-close-task` without asking whether to go back; and `rolling-show tree` says in words when a task is open and HEAD is not its branch, and `rolling-report` says when its diff is not the exercise's at all | #29: the second question was answered by `git switch main`, the change came along uncommitted, and the task stayed open. Closing the lesson is the decision to leave; a learner staying on the branch has not closed it. The report half was found in 2.8's review: off the branch the diff is the author's fix and the verifier passes on it, so silence there reads as the learner's work approved. |
 | A command that could not run is not an expected failure | `rolling-verify` reports a line whose shell exits 126 or 127 as `COULD-NOT-RUN`, which fails a proof both ways; the task skill reads each `EXPECTED-FAIL` line's output for the test's failure before accepting it; `docs/map.md` tells authors every command a task uses must exist on its starting state | #31. The toolkit cannot know every runner's "no such script" message, and must not read one, so the part a script can know (the shell never found the program) is the script's, and the rest is read by the tutor, who already reads the proof. A held test that does not compile is still a legitimate expected failure (1b.6). |
 | A reference that adds a dependency gets one declared operation | A task may carry `reference-setup: <operation key>`; `rolling-verify --on-reference` runs it after applying the reference and before the lines; a destructive operation is refused there | #32. Operations are the author's shell, already reviewed in the repository, so naming one widens what `verify` runs by one declared step rather than by anything free-form. Re-running `setup:` instead would run steps written for the starting state. |
 | Files the learner's branch ignores stay ignored on the task branch | `rolling-begin-task` appends the return-to branch's ignore patterns to `.git/info/exclude` between two marker lines, and `rolling-end-task` removes them | #33. The clean-tree check and `end-task`'s commit of what the learner left both see the tree the way the learner's branch does, so generated directories are neither dirt nor committed onto the task branch. `.git/info/exclude` is not in the tree, so nothing the tutor writes reaches it; the markers make a crash between begin and end repairable by the next begin. |
@@ -659,7 +659,7 @@ wave through.
 
 ---
 
-### 2.8 — Closing a lesson leaves the task [PENDING]
+### 2.8 — Closing a lesson leaves the task [COMPLETE]
 
 Closing returns the learner to where they were, with their work kept,
 without a second question. Branch `p2.8/close-returns`; depends on
@@ -670,6 +670,56 @@ when a task is open and HEAD is not on its branch, with what is
 uncommitted, and `next`, `lesson` and `done` offer to put it right;
 tests cover the detection; and `evals/cases/close-leaves-the-task`,
 which reproduces #29 and fails until this lands, passes. Closes #29.
+The close runs in one step, `rolling-show tree` reports an open task
+off its branch, `next`, `lesson`, `done` and `cancel` offer the way
+back, and twelve tests cover both halves. `evals/cases/close-leaves-
+the-task`, written in 2.4 and failing on purpose ever since, passed
+**3/3 on Opus 5.5** (2026-10-14, $0.89 for the tutor's sessions), and
+not vacuously: `task.md` was gone in every run, so the close actually
+ran, and the judge quoted the tutor naming both branches in the same
+reply — "You're back on `main`", "I committed your edit to
+`billing/invoice.py` on `rolling/invoice-totals-…`, which I've kept" —
+with no second question anywhere. PR #54.
+The close itself was four lines of prose: the second question goes, and
+`rolling-end-task` then `rolling-close-task` run in the same step, with
+both branches named in what the tutor says afterwards. #29's whole cost
+was that question — the learner answered it with `git switch main`, so
+end never ran, their change came along uncommitted, and the task stayed
+open behind them.
+The detection was the rest of it, and the review found the half that
+mattered. `rolling-show tree` naming both branches is the easy part.
+The sharp part is `rolling-report`, which `done` runs inline before the
+tutor can form an opinion: it subtracts the task's base from the
+working tree, and off the task's branch that subtraction answers a
+different question — the branch they are standing on, against the
+task's starting state. For a task cut from a real fix that is the
+author's fix, and the verifier passes on it. So the one state this
+slice exists to handle was the state in which the tutor would have
+praised the learner, with locations and a green check, for code the
+author wrote; and nothing in the report distinguished it, since the
+existing "HEAD has moved" line fires on any commit, on-branch included.
+`diff.capture` now carries the task's branch when it is not the one
+checked out, and `render` says before the diff that none of it is the
+learner's work and no feedback can rest on it. `done` says the same in
+prose and gives no feedback at all in that state.
+Four smaller findings of the same review, all fixed. `done`'s stopping
+case and its Recording case both ran `rolling-end-task` unconditionally
+and sat above the new section, so an off-branch close would have
+appended the lesson to `## Satisfied` and *then* met the refusal — a
+profile saying satisfied over a task still open, which is worse than
+#29. The standing rule "close never runs without end before it" now
+names its one exception, the state where end has nothing to do. `next`
+and `lesson` offered a switch back to a branch that may be gone. And
+the tree note named `rolling-end-task` and `rolling-close-task` in
+prose the tutor might repeat to the learner, which the suite's own
+`absent` grader would fail the case for; the names come out, because
+the skills already know which command to run and the note's job is the
+state.
+`/rolling:cancel` was advertised from three skills as the way out
+before it was one: its step 2 ran `rolling-end-task` unconditionally,
+which refuses off the branch. It skips it there now, which is right
+rather than a workaround — what the learner committed is already on the
+branch, and what is not is where they are standing.
 
 ---
 
