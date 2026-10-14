@@ -164,6 +164,138 @@ class ShowTest(WorldTest):
         self.assertEqual((rc, "(clean)" in out), (0, True))
 
 
+class OffBranchTest(WorldTest):
+    """show tree says when an open task's branch is not checked out,
+    and the change report says its diff is not the exercise's.
+
+    #29: leaving a task needs its branch (end-task refuses otherwise),
+    and nothing said so until something refused — the learner had
+    switched by hand, their work came with them, and the task stayed
+    open behind them. The report is the sharper half: off the branch it
+    subtracts the task's starting state from whatever branch they are
+    on, which for a task cut from a fix is the author's fix, with a
+    verifier that passes on it.
+    """
+
+    def _begun(self) -> str:
+        """A task open on its own branch: begin-task makes the branch,
+        and the pen writes task.md, which is what says a task is open."""
+        branch, base = self.w.begin("greet-politely", "--fix", self.w.fix, "--held", "tests/greet.test.sh")
+        self.w.held_task(branch, base)
+        return branch
+
+    # ---- the tree note
+
+    def test_on_the_task_branch_it_says_nothing_extra(self) -> None:
+        branch = self._begun()
+        tree = self.assertRuns("show", "tree")
+        self.assertIn(f"on {branch}", tree)
+        self.assertNotIn("note:", tree, "on the task's own branch there is nothing to report")
+
+    def test_off_the_task_branch_it_names_both_and_what_came_along(self) -> None:
+        branch = self._begun()
+        self.w.write("src/carried.sh", "x")
+        self.w.git("switch", "main")
+        tree = self.assertRuns("show", "tree")
+        self.assertIn("note:", tree)
+        self.assertIn(branch, tree, "the task's branch is named")
+        self.assertIn("on main", tree, "and where the repository actually is")
+        self.assertIn("greet-politely", tree, "and which lesson's task it is")
+        self.assertIn("1 uncommitted change is on main", tree, "singular, and where it actually is")
+        self.assertIn("needs that branch checked out again", tree, "and what leaving it would take")
+
+    def test_off_the_branch_with_a_clean_tree_says_so(self) -> None:
+        self._begun()
+        self.w.git("switch", "main")
+        tree = self.assertRuns("show", "tree")
+        self.assertIn("note:", tree)
+        self.assertIn("the tree is clean", tree, "nothing came along, which is worth saying too")
+
+    def test_the_count_is_the_tree_s_and_not_the_lines_shown(self) -> None:
+        """cmd_show prints the first twenty changes; the note must not
+        describe its number as what is listed."""
+        self._begun()
+        for i in range(25):
+            self.w.write(f"src/f{i}.sh", "x")
+        self.w.git("switch", "main")
+        tree = self.assertRuns("show", "tree")
+        self.assertIn("25 uncommitted changes are on main", tree)
+        self.assertIn("and 5 more", tree, "the listing itself is capped")
+        self.assertNotIn("listed above", tree, "which is why the note does not say that")
+
+    def test_a_task_branch_that_is_gone_says_only_clearing_is_left(self) -> None:
+        branch = self._begun()
+        self.w.git("switch", "main")
+        self.w.git("branch", "-D", branch)
+        tree = self.assertRuns("show", "tree")
+        self.assertIn("that branch is gone", tree)
+        self.assertIn("can only be cleared", tree, "going back is not on offer")
+        self.assertNotIn("checked out again", tree)
+
+    def test_a_task_naming_no_branch_says_that_instead(self) -> None:
+        """end-task refuses this one for its own reason, so the note
+        gives that reason rather than talking about where HEAD is."""
+        self.w.task(lesson="greet-politely", mode="write", base="x", return_to="main x")
+        tree = self.assertRuns("show", "tree")
+        self.assertIn("names no branch", tree)
+        self.assertIn("can only be cleared", tree)
+
+    def test_a_parked_task_is_not_reported(self) -> None:
+        """A parked task is set aside for a detour, and the detour's own
+        branch is where HEAD belongs while it runs."""
+        branch = self._begun()
+        self.assertRuns("park-task")
+        tree = self.assertRuns("show", "tree")
+        self.assertNotIn("note:", tree)
+        self.assertNotIn(branch, tree)
+
+    def test_a_task_file_that_cannot_be_read_is_not_this_report_s_business(self) -> None:
+        self._begun()
+        self.w.learner.task_file.write_text("no frontmatter here\n", encoding="utf-8")
+        tree = self.assertRuns("show", "tree")
+        self.assertNotIn("note:", tree, "show task is where an unreadable task file is reported")
+
+    def test_the_note_names_no_toolkit_command(self) -> None:
+        """The tutor reads this and then speaks; a ready-made sentence
+        with a script's name in it is the one it might repeat, and the
+        skills already know which command to run."""
+        branch = self._begun()
+        self.w.write("src/carried.sh", "x")
+        self.w.git("switch", "main")
+        tree = self.assertRuns("show", "tree")
+        self.assertNotIn("rolling-", tree.replace(branch, ""), "no toolkit command names in the note")
+
+    # ---- the change report
+
+    def test_the_report_says_its_diff_is_not_the_exercise_s(self) -> None:
+        branch = self._begun()
+        self.w.write("src/mine.sh", "#!/bin/sh\necho mine\n")
+        self.w.git("switch", "main")
+        report = self.assertRuns("report")
+        self.assertIn("Not the exercise's change", report)
+        self.assertIn(branch, report, "which branch the task is on")
+        self.assertIn("no feedback can rest on it", report)
+        self.assertIn("src/greet.sh", report, "the author's fix is in that diff, which is the whole problem")
+        self.assertLess(report.index("Not the exercise's change"), report.index("## Changed files"),
+                        "said before the diff, not after it")
+
+    def test_on_the_branch_the_report_says_no_such_thing(self) -> None:
+        self._begun()
+        self.w.write("src/mine.sh", "#!/bin/sh\necho mine\n")
+        report = self.assertRuns("report")
+        self.assertNotIn("Not the exercise's change", report)
+        self.assertIn("## Changed files", report)
+
+    def test_a_detached_head_counts_as_off_the_branch(self) -> None:
+        """end-task refuses a detached HEAD too, even at the branch's own
+        tip, so both halves have to report it."""
+        branch = self._begun()
+        self.w.git("checkout", "--detach", branch)
+        tree = self.assertRuns("show", "tree")
+        self.assertIn("a detached HEAD", tree)
+        self.assertIn("Not the exercise's change", self.assertRuns("report"))
+
+
 class SessionTest(WorldTest):
     def test_claim_without_and_with_a_task(self):
         w = self.w

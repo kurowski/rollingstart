@@ -3,6 +3,11 @@ base commit, unstaged and untracked included, nothing excluded. Nothing
 has to be committed or staged for the tutor to see the work, and the
 tree holds only the author's map and the learner's work, so a change to
 either is a change.
+
+All of that holds while the task's branch is the one checked out. Off
+it, the same subtraction answers a different question -- that branch
+against the task's starting state, the author's fix included when the
+task was cut from one -- so the capture says whose change it is not.
 """
 
 from __future__ import annotations
@@ -25,6 +30,7 @@ class Diff:
     base_subject: str
     head_short: str
     head_moved: bool                       # HEAD is no longer the base commit
+    off_branch: str = ""                   # the task's branch, when it is not the one checked out
     stat: List[str] = field(default_factory=list)
     untracked: List[str] = field(default_factory=list)
     patch: str = ""                        # tracked changes against the base
@@ -35,7 +41,21 @@ class Diff:
         head = f"## HEAD: {self.head_short}"
         if self.head_moved:
             head += "  (HEAD has moved since the task began; the diff is still against base)"
-        out = [f"## Base: {self.base} ({self.base_subject})", head, "", "## Changed files"]
+        out = [f"## Base: {self.base} ({self.base_subject})", head, ""]
+        if self.off_branch:
+            # Against the base from another branch, the diff is that branch
+            # against the task's starting state -- which, for a task cut
+            # from a fix, is the author's fix itself, with a verifier that
+            # passes on it. Silence here reads as the learner's work having
+            # been seen and approved, so it is said before the diff.
+            out += ["## Not the exercise's change",
+                    f"The repository is not on {self.off_branch}, the task's branch. What follows is the",
+                    "tree as it stands here against the task's base, so it carries whatever this branch",
+                    "already had -- the lesson's own fix among it, if that is where the task was cut",
+                    "from. The checks below ran against that same tree. None of this is the learner's",
+                    "work on the exercise, and no feedback can rest on it.",
+                    ""]
+        out += ["## Changed files"]
         out += ["  " + l for l in self.stat]
         out += ["## New files (untracked)"] + ["  " + f for f in self.untracked]
         out += ["", "## Diff"] + self.patch.split("\n")
@@ -60,6 +80,7 @@ def capture(repo: Repo, task: Task) -> Diff:
         base_subject=repo.subject(base),
         head_short=repo.short("HEAD"),
         head_moved=repo.rev_parse("HEAD") != repo.rev_parse(base),
+        off_branch=task.branch if task.branch and repo.branch() != task.branch else "",
         stat=[l for l in repo.diff_stat(base).split("\n") if l],
         untracked=untracked,
         patch=repo.diff(base),
