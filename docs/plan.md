@@ -1187,16 +1187,3 @@ before the next checkpoint; the run is written up in its PR):
   cannot positively recognise as safe — buys back a case nobody meets
   at the price of a prompt on everything, and a prompt that fires
   constantly is one the learner waves through.
-- **The parsing earns its keep on the declaration, not the match.**
-  Measured against a six-line regex over the raw line, on the corpus
-  built while fixing the thirteen: twelve fail-opens against
-  thirteen, the parser winning two shapes and losing one. On the
-  author's declaration it is not close — `cd "$(git rev-parse
-  --show-toplevel)" && pnpm db:reset --force` has to yield the head
-  `pnpm db:reset` and not `git rev-parse`, which would ask on every
-  `git rev-parse` in the session and never on the reset. Prior art
-  for the rest of it (`bashlex`, a port of bash's own grammar) is
-  third-party and out under the standard-library floor; `shlex` is a
-  tokenizer and does the quoting only. Worth saying at the spec stage
-  of anything like this: reading a command line is not a problem this
-  repository can own, and the answer is to need less from it.

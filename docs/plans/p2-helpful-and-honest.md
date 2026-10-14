@@ -587,8 +587,22 @@ destructive operation costs them a small amount of invested time.
 `docs/map.md` now asks authors to mark only operations whose blast
 radius they could describe in a sentence, and says one that could take
 something irreplaceable does not belong in a map. The maintainer's
-call, 2026-10-14; the reasoning and the measurement behind it are in
-`docs/plan.md` § 10.
+call, 2026-10-14; the reasoning is in `docs/plan.md` § 10.
+The parsing earns its keep on the declaration and not on the match.
+Measured against a six-line regex over the raw line, on the corpus
+built while fixing the thirteen: twelve fail-opens against thirteen,
+the parser winning two shapes and losing one. On an author's
+declaration it is not close — `cd "$(git rev-parse --show-toplevel)"
+&& pnpm db:reset --force` has to yield the head `pnpm db:reset` and
+not `git rev-parse`, which would ask on every `git rev-parse` in the
+session and never on the reset. So one body of code does two jobs with
+very different requirements, and the half that needs it least is the
+half that justified it. Prior art for the reading (`bashlex`, a port
+of bash's own grammar) is third-party and out under the
+standard-library floor; `shlex` is a tokenizer and does the quoting
+only. Worth saying at the spec stage of anything like this: reading a
+command line is not a problem this repository can own, and the answer
+is to need less from it.
 What a good declaration looks like took two tries to write down. A
 script path has a head of one distinctive word with no gap for a flag,
 and the first draft of the guidance recommended it first and claimed
