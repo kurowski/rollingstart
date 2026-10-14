@@ -403,6 +403,20 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(runner.case_faults("c", {"prompt": "x", "graders": [{"name": "a", "type": "no_stop_block"}], "permission_mode": "acceptEdits"}), [])
         self.assertIn("not one to measure in", runner.case_faults("c", {"prompt": "x", "graders": [{"name": "a", "type": "no_stop_block"}], "permission_mode": "bypassPermissions"})[0])
 
+    def test_the_permission_modes_are_the_ones_claude_takes(self) -> None:
+        """`claude --permission-mode` takes acceptEdits, auto,
+        bypassPermissions, manual, dontAsk, plan (2.1.299). A case naming
+        a mode the CLI does not know has to fail here, where the run has
+        not started and nothing has been paid for, rather than in the
+        child's argument parsing."""
+        def faults(mode: str) -> list:
+            return runner.case_faults("c", {"prompt": "x", "graders": [{"name": "a", "type": "no_stop_block"}],
+                                            "permission_mode": mode})
+        for mode in ("", "acceptEdits", "auto", "manual", "dontAsk", "plan"):
+            self.assertEqual(faults(mode), [], mode)
+        for mode in ("default", "bypassPermissions", "acceptedits", "Auto"):
+            self.assertIn("not one to measure in", faults(mode)[0], mode)
+
     def test_first_turn_names_the_session_and_a_follow_up_resumes_it(self) -> None:
         first = session.turn_command("hi", Path("/p"), "m", SID, resume=False, max_turns=5)
         again = session.turn_command("more", Path("/p"), "m", SID, resume=True, max_turns=5)

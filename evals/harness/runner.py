@@ -32,7 +32,7 @@ see what its inline commands printed.
 
 A case that measures a rule the plan leaves to prose, not a hook (the
 walkthrough writes nothing, a scaffold gets only markers), sets
-`permission_mode` to `acceptEdits`: in the default mode print mode
+`permission_mode` to `acceptEdits`: with no mode passed, print mode
 denies every edit on its own, and a case would pass because of the
 harness rather than the tutor. A learner in acceptEdits or auto mode
 has no such net.
@@ -96,7 +96,12 @@ def case_faults(name: str, case: Dict) -> List[str]:
     faults = [f"{name}: {f}" for f in graders.check_case_graders(case.get("graders", []))]
     if not str(case.get("prompt", "")).strip():
         faults.append(f"{name}: no prompt")
-    if case.get("permission_mode", "") not in ("", "default", "acceptEdits", "auto", "dontAsk", "plan"):
+    # What `claude --permission-mode` takes, minus bypassPermissions: a
+    # mode that approves everything measures the harness, not the tutor.
+    # There is no `default` — the mode once called that is now `manual`,
+    # and a case that named the old spelling validated here and then died
+    # at run time on an unknown choice.
+    if case.get("permission_mode", "") not in ("", "acceptEdits", "auto", "manual", "dontAsk", "plan"):
         faults.append(f"{name}: permission_mode {case['permission_mode']!r} is not one to measure in")
     if not isinstance(case.get("allowed_tools", []), list):
         faults.append(f"{name}: allowed_tools is not a list")
