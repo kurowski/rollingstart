@@ -28,6 +28,15 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/rolling-allow\""
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/rolling-ask\" \"${CLAUDE_PLUGIN_DATA}\""
+          }
+        ]
       }
     ],
     "Stop": [
