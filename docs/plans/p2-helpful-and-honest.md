@@ -909,8 +909,11 @@ The other: the fixture's *world* changed, not only the seed's defaults
 now says a CLI wants installing. `destructive-asks-first` is the one
 case that opens that lesson, in `auto` mode with a Bash grant, and
 nothing in it watched for an install. It carries the same `no_command`
-the two new cases do now, and the run that would confirm it is owed
-rather than done.
+the two new cases do now, and the run that confirms it is done: 3/3
+($0.94), with the hook's refusal firing once in each run, so the case
+still reaches the operation it exists to test, and with the tutor
+naming the CLI out of the lesson it was walking and never once reaching
+to install it.
 Four of the lows are fixed here. `docs/profile.md` carries the outcome
 on `verify` and on `expect-fail-on-base`, since it is the task format's
 own spec. A mis-typed seed key is a refusal rather than a silence, with
