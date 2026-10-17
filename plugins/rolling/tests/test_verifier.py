@@ -572,19 +572,30 @@ class CouldNotRunTest(WorldTest):
         self.assertTrue(text.endswith("do not serve this task)"))
         self.assertClean()
 
-    def test_a_file_the_command_was_told_to_run_is_the_same_127(self):
-        """The codes do not separate a missing program from a file the
-        command was handed: a verify line naming a path that is not in the
-        tree is 127 as well. So what was missing is in the output, and
-        `done` reads it against the change to see whose it is."""
+    def test_a_file_the_command_was_told_to_run_is_the_shells_to_say(self):
+        """A verify line naming a path that is not in the tree, which is
+        what a learner who deletes a test leaves behind. Whether the codes
+        catch it is `/bin/sh`'s to decide: bash and zsh answer 127, the
+        same as a missing program, and dash folds it into an ordinary
+        non-zero. So this pins the pair that holds on both — the shell's
+        own code, passed through, and the missing path in the output,
+        where the `task` skill and `done` read it. Neither reading lets
+        the line pass."""
         w = self.w
         w.held_task(self.branch, self.base, verify=["test tests/greet.test.sh"], held=[], held_verify=[],
                     expect_fail_on_base=["verify test tests/greet.test.sh"])
+        shell = subprocess.run(["sh", "-c", 'sh run-test.sh "$@"', "probe", "tests/greet.test.sh"],
+                               cwd=str(w.top), capture_output=True, text=True, check=False)
         rep = self.verify()
-        self.assertEqual(rep.lines[0].outcome, Outcome.COULD_NOT_RUN)
-        self.assertEqual(rep.lines[0].rc, 127)
-        self.assertIn("tests/greet.test.sh", rep.lines[0].output, "the output names what was missing, the command does not")
-        self.assertIn("what was missing is in the output", "\n".join(rep.render()))
+        line = rep.lines[0]
+        self.assertEqual(line.rc, shell.returncode, "the shell's code reaches the report unchanged")
+        self.assertIn("tests/greet.test.sh", line.output, "the output names what was missing, the command does not")
+        if shell.returncode in (126, 127):
+            self.assertEqual(line.outcome, Outcome.COULD_NOT_RUN)
+            self.assertIn("what was missing is in the output", "\n".join(rep.render()))
+        else:
+            self.assertEqual(line.outcome, Outcome.FAIL, "an ordinary failing check, never waved through")
+        self.assertNotEqual(line.outcome, Outcome.PASS)
 
     def test_an_expected_failure_shows_the_output_the_skill_reads(self):
         """The task skill reads each EXPECTED-FAIL line's output to see the

@@ -799,22 +799,22 @@ failure usually caught it. The fault sits in `_task_command_faults`
 beside its mirror, which is what makes it one fault for both callers,
 the tutor's `task.md` and an author's task file; the tests cover both.
 The review's finding was in the prose, and it was the new rule in
-`done` reading the outcome as the environment's. 127 is not only "no
-such program": it is also the shell's answer for a *file the command
-was handed*, so a learner who deletes the test they could not pass, or
-breaks a script's shebang inside the task's scope, gets
+`done` reading the outcome as the environment's. Under bash and zsh,
+127 is not only "no such program": it is also the shell's answer for a
+*file the command was handed*, so a learner who deletes the test they
+could not pass, or breaks a script's shebang in the task's scope, gets
 `COULD-NOT-RUN` on the one check that mattered — and the rule told the
-tutor to say it was nothing they did, with the deletion in the diff six
-lines above. Before the slice that line read `FAIL(127)` and fell under
-"a failing check is never waved through", so the change made the report
-less honest in the state it was meant to clarify. The rule now turns on
-what the tutor can already see: what is missing is in the line's own
-output, and if the change touched it, it is theirs and gets ordinary
-feedback. The render hint lost its claim too — "the command is missing
-here" named a command key that exists, and it now points at the output
-— § Reading the change gained the case, and the evidence `Outcome:`
-list gained its shape, since the three it had forced a tutor to record
-a check that could not run as met or as failed.
+tutor to say it was nothing they did, with the deletion in the diff
+six lines above. Before the slice that line read `FAIL(127)` and fell
+under "a failing check is never waved through", so the change made the
+report less honest in the state it was meant to clarify. The rule now
+turns on what the tutor can already see: what is missing is in the
+line's own output, and if the change touched it, it is theirs and gets
+ordinary feedback. The render hint lost its claim too — "the command is
+missing here" named a command key that exists, and it now points at
+the output — § Reading the change gained the case, and the evidence
+`Outcome:` list gained its shape, since the three it had forced a tutor
+to record a check that could not run as met or as failed.
 Four more findings, all documentation. The new validator rule was
 missing from the three files that are its spec (`docs/profile.md`
 twice, `docs/map.md`'s checklist, the `task.md` shape in the `task`
@@ -933,6 +933,20 @@ reads 126, reproduced in the review's scratch copy. This slice improves
 that state — before it, the line was `EXPECTED-FAIL(126)` and the proof
 said ok, the #31 class exactly — but attributes it to the environment,
 and the fix belongs with `begin-task`, where the mode can be read.
+CI found the one claim that was the shell's and not the rule's. The
+test pinning that a file handed to a command is 127 as well passed on
+Fedora and on a Mac, whose `/bin/sh` is bash both times, and failed on
+both Ubuntu jobs, whose `/bin/sh` is dash: dash answers **2** with
+"sh: 0: cannot open tests/greet.test.sh: No such file" (measured
+2026-10-17 in `debian:stable-slim` under podman, the same `run-test.sh`
+the test world uses), so the line reads as an ordinary failing check
+there. That is honest too — it is never waved through, and the missing
+path is still in the output, where the `task` skill and `done` read it
+— and it is the same swallowing `pnpm` does, which is the reason clause
+2 carries this slice rather than the codes. The test now pins what
+holds on both shells: the shell's own code reaching the report
+unchanged, the missing path in the output, and the outcome that
+follows from the code, never a pass.
 PR #55.
 
 ---
