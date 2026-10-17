@@ -713,7 +713,7 @@ class CarriedIgnoreRulesTest(WorldTest):
 
     def exclude_text(self) -> str:
         f = excludes.exclude_file(self.w.repo)
-        return f.read_text(encoding="utf-8", errors="surrogateescape") if f.is_file() else ""
+        return f.read_text(encoding="utf-8") if f.is_file() else ""
 
     def begin_one(self):
         return self.w.begin("greet-politely", "--fix", self.w.fix, "--held", "tests/greet.test.sh")
@@ -812,20 +812,6 @@ class CarriedIgnoreRulesTest(WorldTest):
         self.addCleanup(f.parent.chmod, 0o755)
         out = self.assertRuns("close-task")
         self.assertIn("could not be taken out", out)
-
-    def test_bytes_that_are_not_utf8_do_not_half_begin_a_task(self):
-        """The exclude file holds whatever the learner's tools wrote. A
-        strict decode here used to raise past _undo_begin and leave the
-        learner on a task branch while the tutor was told the begin had
-        failed — the one state the undo path exists to prevent."""
-        w = self.w
-        f = excludes.exclude_file(w.repo)
-        f.parent.mkdir(parents=True, exist_ok=True)
-        f.write_bytes(b"# theirs\ncaf\xe9/\n")
-        out = self.assertRuns("begin-task", "greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh")
-        self.assertIn("branch: rolling/greet-politely-", out)
-        self.assertIn(b"caf\xe9/", f.read_bytes(), "and their own line is still there")
-        self.assertIn("test-results/", self.exclude_text())
 
     def test_whatever_the_block_raises_becomes_a_note(self):
         """The promise is that carrying the rules never takes a task

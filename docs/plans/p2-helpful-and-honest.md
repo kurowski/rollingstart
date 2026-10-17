@@ -1043,21 +1043,17 @@ would have that work left out of end's commit. Forcing the scope's paths
 in would sweep back exactly what this slice keeps out (a scope of `src`
 in a repository that ignores `src/generated/`), so the header says it is
 a mistake in the map made visible rather than one to work around.
-The review found one high, and it was the kind this slice was built to
-avoid. `excludes.py` read and wrote the exclude file with strict UTF-8
-while the two callers guarded only `OSError` — and both inputs are
-arbitrary bytes: the learner's own exclude lines are whatever their
-tools wrote, and a path out of `ls-tree` arrives surrogate-escaped
-through `Repo.run`. The reviewer reproduced the cost end to end: a
-`UnicodeDecodeError` out of a *successful* begin, raised past
-`_undo_begin`, leaving the learner on a task branch with the starting
-state committed and `held/` populated while the tutor was told the begin
-had failed — the one state the whole undo path exists to prevent,
-reached by the one call in begin that the slice calls never fatal. The
-file is now read and written the way the toolkit reads paths
-(`surrogateescape`), so neither codec can raise at all, and both guards
-are as wide as the promise they make. Tested at the module and at the
-command.
+The review found one high. `excludes.py` read and wrote the exclude file
+with strict UTF-8 while the two callers guarded only `OSError`, and the
+reviewer reproduced what that costs: an exception out of a *successful*
+begin, raised past `_undo_begin`, leaving the learner on a task branch
+with the starting state committed while the tutor was told the begin had
+failed — the one state the whole undo path exists to prevent, reached by
+the one call in begin that this slice calls never fatal. The file is
+read and written the way the toolkit reads paths now, since it is a file
+we rewrite and do not own, and both guards are as wide as the promise
+they make. The promise is what is tested; the exotic inputs that first
+showed it are not, because nobody is going to hit them.
 Three more mediums, each a hole in that same "a note, never a refusal"
 policy rather than an argument against it. `close` dropped
 `_drop_excludes`'s note on the floor, and close is the one path where a

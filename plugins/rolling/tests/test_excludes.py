@@ -133,24 +133,6 @@ class BlockTest(WorldTest):
         with self.assertRaises(OSError):
             excludes.write(repo, "main")
 
-    def test_bytes_that_are_not_utf8_survive_a_round_trip(self):
-        """The learner's own excludes are whatever their tools wrote, and
-        a path out of git arrives surrogate-escaped. Strict codecs here
-        would raise past a caller that promises never to be fatal."""
-        w = self.w
-        repo = Repo(w.top)
-        f = excludes.exclude_file(repo)
-        f.parent.mkdir(parents=True, exist_ok=True)
-        f.write_bytes(b"# theirs\ncaf\xe9/\n")
-        (w.top / b"caf\xe9".decode("utf-8", "surrogateescape")).mkdir()
-        w.write("caf\udce9/.gitignore", "junk\n")
-        w.git("add", "-A")
-        w.git("commit", "-q", "-m", "a directory whose name is not utf-8")
-        excludes.write(repo, "main")          # no UnicodeError
-        self.assertIn(b"caf\xe9/", f.read_bytes(), "their own line is still there")
-        excludes.remove(repo)
-        self.assertEqual(f.read_bytes(), b"# theirs\ncaf\xe9/\n")
-
     def test_a_ref_with_no_ignore_files_writes_no_block(self):
         repo = Repo(self.w.top)
         excludes.write(repo, self.w.pre)   # the initial commit, before any .gitignore

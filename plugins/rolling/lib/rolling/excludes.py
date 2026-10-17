@@ -108,9 +108,8 @@ def _read(path: Path) -> str:
     cannot be read, it is a directory — is the caller's to report: a
     read that failed is not an empty file, and treating it as one would
     make remove a silent no-op and let write replace the learner's own
-    lines. Decoded as the toolkit decodes paths, so a file holding bytes
-    that are not UTF-8 reads and writes back unchanged instead of
-    raising past a caller that only guards OSError."""
+    lines. Decoded as the toolkit decodes paths, since this is a file we
+    rewrite and do not own."""
     try:
         return path.read_text(encoding="utf-8", errors="surrogateescape")
     except FileNotFoundError:
