@@ -91,6 +91,12 @@ class SeedTest(World):
         with self.assertRaises(seed.SeedError):
             seed.apply({"lesson": "invoice-totals", "scaffold": ["tests/x.py"]}, self.fx, BIN, self.root / "data2", SID)
 
+    def test_the_ledger_command_is_not_on_this_machine(self) -> None:
+        # A case needs a declared command the machine cannot run at
+        # all. If some machine does carry `ledgerctl`, that case
+        # measures nothing there and the command wants another name.
+        self.assertIsNone(shutil.which("ledgerctl"))
+
     def test_a_case_names_its_own_verify_lines(self) -> None:
         seed.apply({"task": "invoice-totals", "verify": ["test", "lint"]}, self.fx, BIN, self.data, SID)
         task = toolkit(self.fx, self.data, "show", "task")

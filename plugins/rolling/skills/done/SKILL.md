@@ -100,10 +100,14 @@ task was open; that is expected.
   shebang, a path moved, and the diff above says — is theirs, and gets
   ordinary feedback like any other check: what is missing, where, and
   that the check cannot run until it is back. Anything else is the
-  environment: say which command could not run, rest no feedback on
-  that line either way, and offer the map's setup lesson if it has one
-  (`rolling-show lessons` is the index). Never bring the environment up
-  yourself.
+  environment: say which command could not run and that no feedback
+  rests on that line either way, then run `rolling-show lessons` and
+  offer the setup lesson it names, by its title, as where that is
+  picked up. Offer it even if the profile says they have done it — the
+  program is missing all the same — and if the index names none, stop
+  after the command that could not run. Nothing else about the
+  environment: never bring it up yourself, and never install, start,
+  or configure anything.
 - Every point of feedback carries a location and a rule: `path:line`,
   what the rule is, and its provenance, either **this repository's
   convention** (say where the repository follows it) or **the

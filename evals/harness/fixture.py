@@ -4,10 +4,12 @@ A few files of Python in three regions, `billing`, `scheduling`, and
 `platform`, the generic regions the project's documentation uses, with
 a map in `.rolling/` and a history a task can be built from: the
 invoice total ignored quantities, and a later commit fixed it and
-added the test that proves it. Its commands are `python3 -m unittest`
-and `./scripts/lint`, a script of the repository's own, so it needs
-nothing the toolkit does not already require; the script is a command
-whose program a case can take away, which `python3` is not.
+added the test that proves it. Its commands are `python3 -m unittest`,
+`./scripts/lint`, a script of the repository's own, and `ledgerctl
+verify`, a CLI the fixture deliberately does not ship: nothing here
+needs more than the toolkit already requires, and between them a case
+can make a check the shell cannot execute either because the learner
+deleted its script or because the machine never had its program.
 
 `build(dest)` makes it from nothing, in a second or two, and returns
 the facts a seed needs (the fix's sha, the held test's path). The
@@ -27,6 +29,7 @@ mode: write
 commands:
   test: python3 -m unittest
   lint: ./scripts/lint
+  ledger: ledgerctl verify
 operations:
   reset-ledger: python3 scripts/reset_ledger.py
 destructive:
@@ -40,10 +43,13 @@ slots. Plain Python, no dependencies, tested with `unittest`.
 
 ## Environment
 
-Python 3.9 or later and nothing else. There are no services to start.
+Python 3.9 or later; the tests need nothing else, and there are no
+services to start.
 `python3 -m unittest` from the repository root runs every test; a path
 (`python3 -m unittest tests/test_invoice.py`) runs one file.
-`./scripts/lint` checks the money conventions in `billing/`.
+`./scripts/lint` checks the money conventions in `billing/`, and
+`ledgerctl verify` checks a ledger file against the schema — that one
+comes from the `ledgerctl` CLI, which the setup lesson covers.
 
 ## Regions
 
@@ -81,10 +87,14 @@ assumes: [python]
 exercise: none
 ---
 
-How the repository is run and tested. There is nothing to install:
-`python3 -m unittest` from the root runs every test (`tests/`), and a
-file path runs one. `scripts/reset_ledger.py` empties the local ledger
-file, which is why the map marks it destructive.
+How the repository is run and tested. The tests need nothing
+installed: `python3 -m unittest` from the root runs every test
+(`tests/`), and a file path runs one. `./scripts/lint` checks the money
+conventions. The one thing to install is `ledgerctl`, the ledger CLI,
+whose `ledgerctl verify` reads a ledger file against the schema; until
+it is on your path that command cannot run at all.
+`scripts/reset_ledger.py` empties the local ledger file, which is why
+the map marks it destructive.
 
 ## Rubric
 

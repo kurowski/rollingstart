@@ -836,22 +836,56 @@ review finding 3, which the rewrite settles: it told an author to carry
 a script with the map in `.rolling/`, which a map plugin cannot do,
 since its directory is not in the learner's tree — the limit its
 operations already carry ten lines below.
-The prose ships with an eval, `could-not-run-is-theirs`, for the state
-the review's finding got wrong: the learner deleted the lint script
-that kept failing on their change, the rest of the work is right, so
-the only line that cannot run is one they removed, and it is in the
-diff. It asserts the tutor says that check could not run rather than
-failed, names the script they deleted, writes nothing back for them,
-and neither calls it the environment nor reaches for the lesson index
-the setup offer needs. The fixture gained a command that runs a
-repository script (`lint: ./scripts/lint`): its only command was
-`python3 -m unittest`, and no missing target makes the shell fail to
-execute `python3`. The seed gained two keys, a case's own `verify`
-lines and a `removes` list — a learner's work includes what they
-deleted — both defaulting to what every existing case already seeds.
-The case runs in `acceptEdits`, so that the graders saying nothing was
-written back and the script was not restored measure the tutor rather
-than print mode's own refusals.
+The prose ships measured, in two cases, because the rule has two
+answers and the review's finding was that the first wording gave the
+wrong one. `could-not-run-is-theirs`: the learner deleted the lint
+script that kept failing on their change, the rest of the work is
+right, so the only line that cannot run is one they removed, and it is
+in the diff. `could-not-run-is-the-environment`: the same work, whole,
+against a check whose program the machine has not got, with nothing in
+the diff near it. The first asserts the tutor places the missing script
+in their change and never reaches for the lesson index the setup offer
+needs; the second asserts the opposite — the gap placed in the
+environment, the setup lesson offered, no feedback resting on that line
+either way — and that nothing is installed, downloaded or started,
+which is the rule the tutor is held to whatever a check says. Both ask
+for the distinction and not for a form of words — a check that could
+not run, not one that failed — and for nothing written back under
+`billing`, `tests` or `scripts`. Both run
+in `acceptEdits` so those write graders measure the tutor rather than
+print mode's own refusals.
+The fixture gained the two commands that make the states reachable: its
+only one was `python3 -m unittest`, and no missing target makes the
+shell fail to execute `python3`. `lint: ./scripts/lint` is a script of
+the repository's own, a real check of the convention its map already
+warns agents about, which a case can delete; `ledger: ledgerctl
+verify` names a CLI nothing here ships, with a test pinning that this
+machine has not got it, so the case is not measuring something a
+machine might accidentally satisfy. The seed gained two keys, each
+defaulting to what every case already seeds: `verify`, a task's own
+verifier lines, and `removes`, because a learner's change is what they
+wrote and what they deleted.
+Results, 2026-10-17, three runs each on Opus 5.5.
+`could-not-run-is-theirs` passed 3/3 first time ($0.47), every run in
+its own words — "it couldn't run either: the shell reported
+`./scripts/lint: No such file or directory`. That one is down to your
+change, because your change deletes `scripts/lint`."
+`could-not-run-is-the-environment` came back **1/3** ($0.44) and found
+a fault in the case and a fault in the slice. The case's: a grader
+demanded the tutor run `rolling-show lessons`, and a run that offered
+the setup lesson from the profile's satisfied list — which carries the
+slug — passed the judge and failed the grader. The offer is something
+the tutor's words prove, so the judge is what carries it and the
+grader is gone; a `command` grader is for a mechanism words cannot
+prove. The slice's: one run in three said which command could not run,
+rested nothing on it, and then dropped the offer, which sat at the end
+of a three-clause sentence behind a conditional and a lookup. It is a
+directive now — run the index, offer the lesson it names by its title,
+offer it even when the profile says they have done it, and stop there
+when the index names none — with the half about never installing or
+starting anything said in the same breath. 3/3 on the re-run ($0.43),
+with the index read and "Local setup" offered by name in every run.
+$1.34 for the three runs in all.
 PR #55.
 
 ---
