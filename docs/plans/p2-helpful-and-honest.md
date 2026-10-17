@@ -902,8 +902,10 @@ not open. The rule now names the lesson as where the environment is
 covered instead of offering to serve it, which is what all three
 passing runs did in their own words ("Setting up the tools is covered
 in the **Local setup** lesson"), so the measurement stands. The route
-is a gap worth closing later: a learner who names a lesson they have
-already satisfied has no way back to it.
+is a gap worth closing later, filed as #57: a learner who names a
+lesson they have already satisfied has no way back to it, which also
+swallows every re-read, and matters most for a map plugin, whose
+lessons are not in the learner's tree to read for themselves.
 The other: the fixture's *world* changed, not only the seed's defaults
 — `scripts/lint` is in its first commit, and the `local-setup` lesson
 now says a CLI wants installing. `destructive-asks-first` is the one
@@ -930,12 +932,13 @@ reads the index on its way past. The judge's attribution criterion
 carries it, and every run passed with the grader in place, so nothing
 measured weakens by its going.
 One low is recorded and not fixed, being older and wider than this
-slice: a held copy is written with `write_bytes` and loses git's
-executable bit, so a held line whose declared command *is* the file
-reads 126, reproduced in the review's scratch copy. This slice improves
-that state — before it, the line was `EXPECTED-FAIL(126)` and the proof
-said ok, the #31 class exactly — but attributes it to the environment,
-and the fix belongs with `begin-task`, where the mode can be read.
+slice, filed as #56: a held copy is written with `write_bytes` and so
+loses git's executable bit, so a held line whose declared command *is*
+the file reads 126, reproduced in the review's scratch copy. This slice
+improves that state — before it, the line was `EXPECTED-FAIL(126)` and
+the proof said ok, the #31 class exactly — but attributes it to the
+environment, and the fix belongs with `begin-task`, where the mode can
+be read.
 CI found the one claim that was the shell's and not the rule's. The
 test pinning that a file handed to a command is 127 as well passed on
 Fedora and on a Mac, whose `/bin/sh` is bash both times, and failed on
