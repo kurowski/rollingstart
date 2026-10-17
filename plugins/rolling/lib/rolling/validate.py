@@ -30,7 +30,8 @@ class Fault:
 
 MAP_FIELDS = ("name", "mode", "commands", "operations", "destructive")
 LESSON_FIELDS = ("title", "region", "depth", "mode", "requires", "assumes", "test", "exercise")
-AUTHOR_TASK_FIELDS = ("mode", "scope", "scaffold", "setup", "verify", "held", "held-verify", "expect-fail-on-base", "fix")
+AUTHOR_TASK_FIELDS = ("mode", "scope", "scaffold", "setup", "reference-setup", "verify", "held", "held-verify",
+                      "expect-fail-on-base", "fix")
 TASK_FIELDS = ("lesson", "branch", "base", "return-to", "started", "tutor-session", "task") + AUTHOR_TASK_FIELDS
 DETOUR_FIELDS = ("gap", "returns-to", "steps")
 # A step is a lesson, minus the two fields that only make sense inside a
@@ -305,6 +306,17 @@ def _task_command_faults(where: str, t: Task, m: Optional[Map]) -> List[Fault]:
     for op in t.setup:
         if m is not None and op not in m.operations:
             faults.append(Fault(where, f"setup names '{op}', which is not an operation in the map"))
+    if len(t.reference_setup) > 1:
+        faults.append(Fault(where, f"reference-setup has {len(t.reference_setup)} lines; it names one operation"))
+    for op in t.reference_setup:
+        if m is None:
+            continue
+        if op not in m.operations:
+            faults.append(Fault(where, f"reference-setup names '{op}', which is not an operation in the map"))
+        elif op in m.destructive:
+            # The proof runs it with nobody to ask, and the hook that asks
+            # watches the tutor's commands rather than the verifier's.
+            faults.append(Fault(where, f"reference-setup names '{op}', which the map lists as destructive; the proof runs unattended, and a destructive operation waits for the learner's yes"))
     if t.fix and not rules.is_sha(t.fix):
         faults.append(Fault(where, f"fix '{t.fix}' is not 7 to 40 hex characters"))
     return faults

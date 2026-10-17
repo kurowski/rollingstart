@@ -177,6 +177,13 @@ class ScratchWorld:
         text = self.read(".rolling/map.md").replace("  args: sh args.sh\n", f"  args: sh args.sh\n  {key}: {cmd}\n", 1)
         self.write(".rolling/map.md", text)
 
+    def add_operation(self, key: str, cmd: str, destructive: bool = False) -> None:
+        text = self.read(".rolling/map.md").replace(
+            "  seed: sh -c 'echo seeded'\n", f"  seed: sh -c 'echo seeded'\n  {key}: {cmd}\n", 1)
+        if destructive:
+            text = text.replace("destructive:\n  - reset\n", f"destructive:\n  - reset\n  - {key}\n", 1)
+        self.write(".rolling/map.md", text)
+
     def restore_map(self) -> None:
         self.git("checkout", "--", ".rolling/map.md")
 

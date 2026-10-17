@@ -257,7 +257,8 @@ class Verifier:
             with interruptible():
                 with reference.applied(repo, self.learner, patch) as ran:
                     try:
-                        self._run_lines()
+                        if self._reference_setup_ran():
+                            self._run_lines()
                     except Interrupted:
                         self._interrupted()
         except (reference.NoReference, reference.CannotApply, GitError, OSError) as e:
@@ -268,6 +269,52 @@ class Verifier:
         rep.notes += ran.notes
         rep.reference_out = ran.clean_exit
         return rep
+
+    def _reference_setup_ran(self) -> bool:
+        """The one operation a task may name for the reference's tree
+        (#32): a reference that adds a dependency needs it installed, the
+        way the learner would as they went. It runs here, after the
+        reference is applied and before the lines, and nowhere else — the
+        learner's own half is theirs to set up, and the `setup:` lines
+        were written for the starting state. False when the lines must
+        not run, with the reason recorded as the proof not having run at
+        all, which is what it is."""
+        rep, keys = self.report, self.task.reference_setup
+        if not keys:
+            return True
+        if len(keys) > 1:
+            rep.not_run = f"the task names {len(keys)} reference-setup: lines; it names one operation"
+            return False
+        key = keys[0]
+        command = self.map.operations.get(key, "")
+        if not command:
+            rep.not_run = f"reference-setup names '{key}', which is not an operation in the map"
+            return False
+        if key in self.map.destructive:
+            # The hook that asks watches the tutor's own commands, not the
+            # verifier's subprocess, so there is nobody to ask here.
+            rep.not_run = (f"reference-setup names '{key}', which the map lists as destructive; the proof runs "
+                           "unattended, and a destructive operation waits for the learner's yes")
+            return False
+        rc, out = run_declared(self.top, command, [])
+        tail = out.rstrip("\n").split("\n")[-40:] if out.strip() else []
+        if rc != 0:
+            rep.not_run = f"reference-setup '{key}' ({command}) exited {rc}, so the reference's checks never ran"
+            rep.notes += ["REFERENCE SETUP failed:"] + ["    | " + l for l in tail]
+            return False
+        # The operation an install really is rewrites a lockfile, and a
+        # dependency-adding fix changes that same lockfile, so the
+        # reference can stop coming back out. git can say so now, while
+        # the operation that did it is still the thing to name; without
+        # this the proof fails later with a bare "patch failed" and the
+        # next command blames an interruption that never happened.
+        if not Repo(self.top).ok("apply", "--check", "-R", "--", str(self.learner.applied_patch)):
+            rep.not_run = (f"reference-setup '{key}' ({command}) changed something the reference patch also changes, "
+                           "so the reference can no longer be taken back out; declare an operation that leaves the "
+                           "reference's own files alone (a frozen install, which is what a proof wants anyway)")
+            return False
+        rep.notes.append(f"REFERENCE SETUP {key} ({command}) ok, before the lines above")
+        return True
 
     def _run_lines(self) -> None:
         rep = self.report
