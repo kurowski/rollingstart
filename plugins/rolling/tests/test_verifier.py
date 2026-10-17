@@ -384,7 +384,7 @@ class VerifierTest(WorldTest):
         rep = self.verify()
         self.assertEqual(rep.count(Kind.HELD, Outcome.FAIL), 1)
         self.assertIn("expected 'Hello pat', got 'HELLO pat'", rep.lines[1].output)
-        self.assertEqual(rep.summary(), "VERIFIER: 1 passed, 0 failed, 0 unknown or rejected; held: 0 passed, 1 failed, reverted")
+        self.assertEqual(rep.summary(), "VERIFIER: 1 passed, 0 failed, 0 unknown, rejected, or could not run; held: 0 passed, 1 failed, reverted")
         # The learner's work, by a different route, with their own test at the held path.
         w.write("src/greet.sh", w.read("src/greet.sh").replace("HELLO", "Hello"))
         w.write("tests/greet.test.sh", "#!/bin/sh\necho 'my own test'\n")
@@ -412,7 +412,7 @@ class VerifierTest(WorldTest):
         rep = self.verify()
         self.assertEqual([r.outcome for r in rep.lines], [Outcome.PASS, Outcome.REJECTED, Outcome.REJECTED, Outcome.UNKNOWN, Outcome.FAIL])
         self.assertEqual(rep.lines[4].rc, 3)
-        self.assertEqual(rep.summary(), "VERIFIER: 1 passed, 1 failed, 3 unknown or rejected")
+        self.assertEqual(rep.summary(), "VERIFIER: 1 passed, 1 failed, 3 unknown, rejected, or could not run")
 
     def test_a_command_that_cannot_take_arguments_never_runs(self):
         w = self.w
@@ -499,6 +499,112 @@ class VerifierTest(WorldTest):
         rep = self.verify()
         self.assertIn("HELD MISSING tests/absent.test.sh   (no copy under held/)", rep.notes)
         self.assertFalse((w.top / "tests/absent.test.sh").exists())
+
+
+class CouldNotRunTest(WorldTest):
+    """A line the shell could not execute at all: 127 for no such
+    program, 126 for one it will not run. Neither is a failure, and
+    neither satisfies an expect-fail-on-base line (#31)."""
+
+    def setUp(self):
+        super().setUp()
+        self.branch, self.base = self.w.begin("greet-politely", "--fix", self.w.fix, "--held", "tests/greet.test.sh")
+        self.w.add_command("gone", "no-such-program")
+        self.w.add_command("unrunnable", "./src")   # a directory: exec fails for any user, root included
+        self.w.git("add", ".rolling/map.md")        # committed, so the tree is clean for the reference half
+        self.w.git("commit", "-m", "map: two commands that cannot run")
+
+    def verify(self, on_base=False, on_reference=False):
+        w = self.w
+        return Verifier(w.top, w.learner, Map.load(w.top / ".rolling"), Task.load(w.learner.task_file), on_base=on_base, on_reference=on_reference).run()
+
+    def test_both_of_the_shells_codes_are_could_not_run(self):
+        w = self.w
+        w.held_task(self.branch, self.base, verify=["check", "gone", "unrunnable"])
+        rep = self.verify()
+        self.assertEqual([r.outcome for r in rep.lines[:3]], [Outcome.PASS, Outcome.COULD_NOT_RUN, Outcome.COULD_NOT_RUN])
+        self.assertEqual([r.rc for r in rep.lines[1:3]], [127, 126])
+        self.assertFalse(any(r.ran for r in rep.lines[1:3]))
+        self.assertEqual(rep.summary(), "VERIFIER: 1 passed, 0 failed, 2 unknown, rejected, or could not run; held: 0 passed, 1 failed, reverted")
+        text = "\n".join(rep.render())
+        self.assertIn("COULD-NOT-RUN(127) gone   (no-such-program)", text)
+        self.assertIn("COULD-NOT-RUN(126) unrunnable   (./src)", text)
+        self.assertIn("no-such-program", text.split("COULD-NOT-RUN(127)")[1], "the shell's own message is shown")
+
+    def test_a_check_that_could_not_run_fails_the_proof_on_the_starting_state(self):
+        """The on-base half says the check fails before the work is done.
+        A check that could not run has not failed for that reason, so the
+        line it was named on is a proof gap rather than an expected
+        failure."""
+        w = self.w
+        w.held_task(self.branch, self.base, verify=["gone"], expect_fail_on_base=["verify gone"])
+        rep = self.verify(on_base=True)
+        self.assertEqual(rep.lines[0].outcome, Outcome.COULD_NOT_RUN)
+        self.assertFalse(rep.proof_ok)
+        self.assertEqual(rep.proof_gaps, ["verify gone"])
+        text = "\n".join(rep.render())
+        self.assertIn("PROOF GAP: expected to fail but never ran: verify gone", text)
+        self.assertIn("COULD-NOT-RUN", text.split("PROOF: not ok")[1], "the proof line names it among the reasons")
+        self.assertTrue(text.endswith("do not serve this task)"))
+        self.assertClean()
+
+    def test_a_held_line_that_could_not_run_fails_the_proof_and_still_reverts(self):
+        w = self.w
+        w.held_task(self.branch, self.base, held_verify=["gone"], expect_fail_on_base=["held-verify gone"])
+        rep = self.verify(on_base=True)
+        self.assertEqual(rep.lines[-1].outcome, Outcome.COULD_NOT_RUN)
+        self.assertFalse(rep.proof_ok)
+        self.assertEqual(rep.proof_gaps, ["held-verify gone"])
+        self.assertEqual(rep.revert.status, "reverted")
+        self.assertFalse((w.top / "tests/greet.test.sh").exists(), "the held test is reverted")
+        self.assertClean()
+
+    def test_it_fails_the_proof_against_the_reference_too(self):
+        """The forward half asks every line to pass, and a line that could
+        not run has not passed."""
+        w = self.w
+        w.held_task(self.branch, self.base, verify=["check", "gone"])
+        rep = self.verify(on_reference=True)
+        self.assertEqual(rep.lines[1].outcome, Outcome.COULD_NOT_RUN)
+        self.assertFalse(rep.proof_ok)
+        text = "\n".join(rep.render())
+        self.assertIn("COULD-NOT-RUN(127) gone", text)
+        self.assertTrue(text.endswith("do not serve this task)"))
+        self.assertClean()
+
+    def test_a_file_the_command_was_told_to_run_is_the_shells_to_say(self):
+        """A verify line naming a path that is not in the tree, which is
+        what a learner who deletes a test leaves behind. Whether the codes
+        catch it is `/bin/sh`'s to decide: bash and zsh answer 127, the
+        same as a missing program, and dash folds it into an ordinary
+        non-zero. So this pins the pair that holds on both — the shell's
+        own code, passed through, and the missing path in the output,
+        where the `task` skill and `done` read it. Neither reading lets
+        the line pass."""
+        w = self.w
+        w.held_task(self.branch, self.base, verify=["test tests/greet.test.sh"], held=[], held_verify=[],
+                    expect_fail_on_base=["verify test tests/greet.test.sh"])
+        shell = subprocess.run(["sh", "-c", 'sh run-test.sh "$@"', "probe", "tests/greet.test.sh"],
+                               cwd=str(w.top), capture_output=True, text=True, check=False)
+        rep = self.verify()
+        line = rep.lines[0]
+        self.assertEqual(line.rc, shell.returncode, "the shell's code reaches the report unchanged")
+        self.assertIn("tests/greet.test.sh", line.output, "the output names what was missing, the command does not")
+        if shell.returncode in (126, 127):
+            self.assertEqual(line.outcome, Outcome.COULD_NOT_RUN)
+            self.assertIn("what was missing is in the output", "\n".join(rep.render()))
+        else:
+            self.assertEqual(line.outcome, Outcome.FAIL, "an ordinary failing check, never waved through")
+        self.assertNotEqual(line.outcome, Outcome.PASS)
+
+    def test_an_expected_failure_shows_the_output_the_skill_reads(self):
+        """The task skill reads each EXPECTED-FAIL line's output to see the
+        test's own failure in it, so the line carries that output."""
+        w = self.w
+        w.held_task(self.branch, self.base)
+        text = "\n".join(self.verify(on_base=True).render())
+        self.assertIn("HELD EXPECTED-FAIL(1) test tests/greet.test.sh", text)
+        self.assertIn("expected 'Hello pat', got 'HELLO pat'", text.split("EXPECTED-FAIL(1)")[1])
 
 
 class HeldTestRecoveryTest(WorldTest):

@@ -52,6 +52,18 @@ class FixtureTest(World):
         res = subprocess.run([sys.executable, "-m", "unittest"], cwd=str(self.fx.top), capture_output=True, text=True, check=False)
         self.assertEqual(res.returncode, 0, res.stderr)
 
+    def test_the_lint_command_is_a_real_check(self) -> None:
+        def lint() -> subprocess.CompletedProcess:
+            return subprocess.run(["./scripts/lint"], cwd=str(self.fx.top), capture_output=True, text=True, check=False)
+
+        ok = lint()
+        self.assertEqual(ok.returncode, 0, ok.stdout + ok.stderr)
+        self.assertIn("money conventions ok", ok.stdout)
+        (self.fx.top / "billing" / "invoice.py").write_text("dollars = 250 / 100\n", encoding="utf-8")
+        bad = lint()
+        self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
+        self.assertIn("billing/invoice.py:1", bad.stdout)
+
 
 class SeedTest(World):
     def test_task_seed_proves_both_ways(self) -> None:
@@ -78,6 +90,38 @@ class SeedTest(World):
         self.assertIn("scaffold: tests/test_quantities.py", toolkit(self.fx, data, "show", "task"))
         with self.assertRaises(seed.SeedError):
             seed.apply({"lesson": "invoice-totals", "scaffold": ["tests/x.py"]}, self.fx, BIN, self.root / "data2", SID)
+
+    def test_the_ledger_command_is_not_on_this_machine(self) -> None:
+        # A case needs a declared command the machine cannot run at
+        # all. If some machine does carry `ledgerctl`, that case
+        # measures nothing there and the command wants another name.
+        self.assertIsNone(shutil.which("ledgerctl"))
+
+    def test_a_case_names_its_own_verify_lines(self) -> None:
+        seed.apply({"task": "invoice-totals", "verify": ["test", "lint"]}, self.fx, BIN, self.data, SID)
+        task = toolkit(self.fx, self.data, "show", "task")
+        self.assertIn("verify: test", task)
+        self.assertIn("verify: lint", task)
+        with self.assertRaises(seed.SeedError):
+            seed.apply({"lesson": "invoice-totals", "verify": ["test"]}, self.fx, BIN, self.root / "data2", SID)
+
+    def test_what_the_learner_deleted_is_part_of_their_change(self) -> None:
+        done = seed.apply({"task": "invoice-totals", "verify": ["test", "lint"], "removes": ["scripts/lint"]},
+                          self.fx, BIN, self.data, SID)
+        self.assertEqual(done[-1], "learner deleted scripts/lint")
+        report = toolkit(self.fx, self.data, "report")
+        self.assertIn("scripts/lint", report)
+        self.assertIn("COULD-NOT-RUN", report)
+
+    def test_a_delete_of_what_is_not_there_refuses(self) -> None:
+        with self.assertRaises(seed.SeedError) as cm:
+            seed.apply({"task": "invoice-totals", "removes": ["scripts/gone"]}, self.fx, BIN, self.data, SID)
+        self.assertIn("no such file in the fixture", str(cm.exception))
+
+    def test_a_mistyped_seed_key_refuses(self) -> None:
+        with self.assertRaises(seed.SeedError) as cm:
+            seed.apply({"task": "invoice-totals", "remove": ["scripts/lint"]}, self.fx, BIN, self.data, SID)
+        self.assertIn("remove", str(cm.exception))
 
     def test_lesson_and_task_are_exclusive(self) -> None:
         with self.assertRaises(seed.SeedError):

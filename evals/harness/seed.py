@@ -15,17 +15,24 @@ A seed is the case's `seed` object:
      "lesson": "invoice-totals",          # open it, with no task
      "task": "invoice-totals",            # or begin its task from the fixture's fix
      "scaffold": ["tests/test_quantities.py"],   # with the task: paths it lets the tutor mark
-     "edits": {"billing/invoice.py": "..."}}   # the learner's work so far, in the tree
+     "verify": ["test", "lint"],          # with the task: its verify lines, default `test`
+     "edits": {"billing/invoice.py": "..."},   # the learner's work so far, in the tree
+     "removes": ["scripts/lint"]}         # and what their work deleted
 
-Each key is optional; `lesson` and `task` are exclusive, since a task's
-lesson is the open one. The task is the fixture's one: the fix
-reverted, its test held back, verified by `test`.
+Each key is optional and a key not in that list is a refusal, since a
+mis-typed one would seed nothing in silence; `lesson` and `task` are
+exclusive, since a task's lesson is the open one. The task is the fixture's one: the fix
+reverted, its test held back, verified by `test` unless the case names
+other lines, which name the fixture map's commands (`rolling-write`
+refuses a line that does not).
 
 The tutor's session is claimed first, with the id the harness will
 give `claude -p --session-id`, so the case's session is the tutor's
 from its first turn, as it would be after the skill that opened the
-lesson: the write guard keys on it. `edits` are written last, as the
-learner's own uncommitted work, the way a learner's editor leaves it.
+lesson: the write guard keys on it. `edits` and `removes` are applied
+last, as the learner's own uncommitted work, the way a learner's editor
+leaves it: their change is what they wrote and what they deleted, and a
+check that cannot run because they deleted its script needs the second.
 """
 
 from __future__ import annotations
@@ -38,6 +45,7 @@ from typing import Dict, Iterable, List
 from .fixture import Fixture
 
 STARTED = "2026-09-24"
+KEYS = ("profile", "lesson", "task", "scaffold", "verify", "edits", "removes")
 
 
 class SeedError(Exception):
@@ -61,14 +69,16 @@ def profile_text(p: Dict) -> str:
             f"## Destination\n{dest}\n\n## Why\n{p.get('why', '').strip()}\n\n## Satisfied\n{done}\n")
 
 
-def task_text(lesson: str, begun: Dict[str, str], fx: Fixture, scaffold: Iterable[str] = ()) -> str:
+def task_text(lesson: str, begun: Dict[str, str], fx: Fixture, scaffold: Iterable[str] = (),
+              verify: Iterable[str] = ("test",)) -> str:
     held_line = f"test {fx.held}"
     marks = "".join(f"scaffold: {p}\n" for p in scaffold)
+    checks = "".join(f"verify: {line}\n" for line in verify)
     return (
         "---\n"
         f"lesson: {lesson}\nmode: write\nbranch: {begun['branch']}\nbase: {begun['base']}\n"
         f"return-to: {begun['return-to']}\nstarted: {STARTED}\nfix: {fx.fix}\n"
-        f"scope: billing\nscope: tests\n{marks}verify: test\n"
+        f"scope: billing\nscope: tests\n{marks}{checks}"
         f"held: {fx.held}\nheld-verify: {held_line}\nexpect-fail-on-base: held-verify {held_line}\n"
         "---\n\n"
         "## Brief\n\nAn invoice with a line whose quantity is more than one comes out too low. "
@@ -91,10 +101,16 @@ def _fields(out: str) -> Dict[str, str]:
 def apply(seed: Dict, fx: Fixture, bin_dir: Path, data: Path, session_id: str) -> List[str]:
     """Seed the learner for fx under data, as the tutor's session
     session_id. Returns what was done, in words."""
+    unknown = sorted(k for k in seed if k not in KEYS)
+    if unknown:
+        raise SeedError(f"a seed has no {', or '.join(unknown)} key: a mis-typed key "
+                        f"seeds nothing, and the case would measure a world it did not mean")
     if "lesson" in seed and "task" in seed:
         raise SeedError("a seed opens a lesson or begins a task, not both")
     if "scaffold" in seed and "task" not in seed:
         raise SeedError("a scaffold belongs to a task")
+    if "verify" in seed and "task" not in seed:
+        raise SeedError("verify lines belong to a task")
     _run(bin_dir, data, fx, "claim-session", session_id)
     done = []
     if "profile" in seed:
@@ -106,7 +122,8 @@ def apply(seed: Dict, fx: Fixture, bin_dir: Path, data: Path, session_id: str) -
     if "task" in seed:
         lesson = seed["task"]
         begun = _fields(_run(bin_dir, data, fx, "begin-task", lesson, "--fix", fx.fix, "--held", fx.held))
-        _run(bin_dir, data, fx, "write", "task", stdin=task_text(lesson, begun, fx, seed.get("scaffold", [])))
+        _run(bin_dir, data, fx, "write", "task",
+             stdin=task_text(lesson, begun, fx, seed.get("scaffold", []), seed.get("verify", ["test"])))
         _run(bin_dir, data, fx, "write", "reference", stdin=REFERENCE)
         done.append(f"task for {lesson} begun on {begun['branch']}")
     for rel, text in seed.get("edits", {}).items():
@@ -114,4 +131,10 @@ def apply(seed: Dict, fx: Fixture, bin_dir: Path, data: Path, session_id: str) -
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
         done.append(f"learner edited {rel}")
+    for rel in seed.get("removes", []):
+        path = fx.top / rel
+        if not path.is_file():
+            raise SeedError(f"the learner cannot delete {rel}: no such file in the fixture")
+        path.unlink()
+        done.append(f"learner deleted {rel}")
     return done

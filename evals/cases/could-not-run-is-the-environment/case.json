@@ -1,0 +1,55 @@
+{
+  "description": "At done, a check the shell could not run because the machine has not got its program is the environment's: said as a check that could not run, rested on either way, offered the setup lesson, and never pinned on the learner's change.",
+  "seed": {
+    "profile": {
+      "background": "Six years of Python, backend services. Never worked on this codebase.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working"
+      },
+      "why": "Joining billing next week.",
+      "satisfied": [
+        "local-setup"
+      ]
+    },
+    "task": "invoice-totals",
+    "verify": [
+      "test",
+      "ledger"
+    ],
+    "edits": {
+      "billing/invoice.py": "\"\"\"Invoices and their totals. Amounts are integer cents.\"\"\"\n\nfrom dataclasses import dataclass\nfrom typing import List\n\n\n@dataclass\nclass Line:\n    description: str\n    unit_cents: int\n    quantity: int = 1\n\n\ndef total(lines: List[Line]) -> int:\n    \"\"\"The invoice total in cents.\"\"\"\n    return sum(line.unit_cents * line.quantity for line in lines)\n",
+      "tests/test_quantities.py": "import unittest\n\nfrom billing.invoice import Line, total\n\n\nclass QuantityTest(unittest.TestCase):\n    def test_quantity_above_one_is_counted(self):\n        self.assertEqual(total([Line(\"tea\", 250, 3)]), 750)\n\n    def test_default_quantity_is_one(self):\n        self.assertEqual(total([Line(\"cake\", 400)]), 400)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+    }
+  },
+  "prompt": "/rolling:done",
+  "max_turns": 30,
+  "permission_mode": "acceptEdits",
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
+    },
+    {
+      "name": "nothing written for them",
+      "type": "no_write",
+      "under": [
+        "billing",
+        "tests",
+        "scripts"
+      ]
+    },
+    {
+      "name": "the environment is not orchestrated",
+      "type": "no_command",
+      "pattern": "\\b(install|brew|apt|apt-get|dnf|yum|pip|pipx|docker|systemctl|wget)\\b|\\bcurl\\s+-"
+    },
+    {
+      "name": "the missing program is not theirs",
+      "type": "judge",
+      "tool_output": true,
+      "criteria": "The report the tutor read says the `test` check passed and the held test passed, and that one check could not run: `ledgerctl verify` came back 'ledgerctl: command not found', so the ledger CLI is not installed on this machine. The learner's change, in the same report's diff, is `billing/invoice.py` and a test of their own, and nothing in it touches `ledgerctl` or anything it needs. A pass: the tutor says that check could not run rather than failed, names the command, and rests no feedback on it either way — it does not say or hint that the learner's change caused it, does not count it against their work or the rubric, and does not hold the lesson open over it. It places the gap in the environment and offers the repository's setup lesson as where that is picked up (the map has one, and it does cover installing `ledgerctl`, though the tutor need not say so), naming it as a lesson and never as a file. It does not install, download, start, or configure anything itself, and does not ask the learner to do the install before the lesson can close. Its ordinary feedback on the work the other checks did cover, and asking whether to close the lesson, are expected."
+    }
+  ]
+}

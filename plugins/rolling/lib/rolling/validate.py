@@ -297,6 +297,11 @@ def _task_command_faults(where: str, t: Task, m: Optional[Map]) -> List[Fault]:
         # which then never runs (nothing is held) and the proof reports no
         # expected failure. The line for a test in the tree is verify.
         faults.append(Fault(where, "held-verify lines need a held: path; a test that is in the tree (shown) goes on a verify: line"))
+    if t.held and not t.held_verify:
+        # The mirror: the verifier applies the held test only to run the
+        # lines that name it, so with no line there is nothing to apply it
+        # for, and holding the test back from the learner is all it does.
+        faults.append(Fault(where, "held: paths need a held-verify: line to run them; a held test nothing runs is never applied and never checked"))
     for op in t.setup:
         if m is not None and op not in m.operations:
             faults.append(Fault(where, f"setup names '{op}', which is not an operation in the map"))

@@ -236,11 +236,17 @@ Fields, all in the frontmatter subset `map.md` defines:
 - **`verify`** (one or more). A command key from the map's `commands`
   followed by arguments as plain words: no shell metacharacters, no
   globs, no path with a space in it. `rolling-verify` runs each in
-  order and reports each.
-- **`held`** (optional, one or more). Repository-relative paths of the
-  test files held back from the learner, stored under `held/` with
-  the same relative path. Present when the lesson's `test` is `held`
-  and the task was built from a fix with a test.
+  order and reports each: passed, failed, or — when the shell could not
+  execute the command at all — `COULD-NOT-RUN`, which is not a
+  failure and which no proof accepts in either direction.
+- **`held`** (optional, one or more; only with `held-verify`).
+  Repository-relative paths of the test files held back from the
+  learner, stored under `held/` with the same relative path. Present
+  when the lesson's `test` is `held` and the task was built from a fix
+  with a test. The validator refuses `held` paths with no
+  `held-verify` line: the verifier applies the held files only to run
+  the lines that name them, so with no line nothing applies them and
+  the test is held back without ever being checked.
 - **`held-verify`** (optional, one or more; only with `held`). The
   verifier lines that need the held files in place: same shape as
   `verify`. A test that is in the tree (shown) goes on a `verify` line;
@@ -253,7 +259,10 @@ Fields, all in the frontmatter subset `map.md` defines:
   state, for the both-ways proof: `verify <line>` or `held-verify
   <line>`, the line verbatim. The validator lets a task omit it, but
   `rolling-verify --on-base` then reports a proof gap and `PROOF: not
-  ok`: checks that pass before the work is done prove nothing.
+  ok`: checks that pass before the work is done prove nothing. A line
+  that could not run is the same gap — "expected to fail but never
+  ran" — since a command the shell never executed has not shown
+  anything about the exercise.
 
 Then the body: **`## Brief`** for a `write` task or **`## Situation`**
 for a `direct` one (what is wrong or wanted, where to look, what done
@@ -354,8 +363,8 @@ comment at poll.prisma:76; ran the same failing test three times.
 
 ## 2026-09-15
 
-**Feedback.** VERIFIER: 2 passed, 0 failed, 0 unknown or rejected;
-held: 1 passed.
+**Feedback.** VERIFIER: 2 passed, 0 failed, 0 unknown, rejected, or
+could not run; held: 1 passed.
 - apps/web/src/trpc/routers/polls/participants.ts:291 — the token is
   minted in the app, never defaulted by the database; this repo's
   convention, see the comment at poll.prisma:76. Met.
@@ -612,7 +621,7 @@ the field.
   in the map and the rest carries no shell metacharacter or glob;
   every `setup` line names an operation key; every
   `expect-fail-on-base` line repeats a `verify` or `held-verify` line
-  verbatim; a `held-verify` line has a `held` path to go with it.
+  verbatim; `held` and `held-verify` appear together or not at all.
 - Every `held` path is repository-relative, contains no `..` segment,
   and has a file under `held/`; every `scaffold` path is inside some
   `scope`.
