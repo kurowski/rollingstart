@@ -8,6 +8,38 @@ Every rule about what may be done to the tree is here as a check that
 raises Refused with the message the tutor sees, and every check runs
 before anything is written, so a refusal never leaves the repository
 half-way.
+
+**The exclude block.** A task's starting state is older than the branch
+the learner came from, and ignore rules are added late: a repository
+that started ignoring `test-results/` last month has a starting state
+that does not, so the generated directory a learner's own test run left
+turns from invisible into untracked the moment a task begins. It is
+then dirt to the clean-tree check, which refuses the proof, and
+`end-task`'s `git add -A` would commit it onto the task branch.
+
+So begin writes the ignore patterns of the branch `return-to` names
+into `.git/info/exclude`, between two marker lines, and the tree is
+judged the way the learner's own branch judges it for the task's
+lifetime. The patterns come from the `.gitignore` files of that branch,
+read out of git rather than off disk, and a nested one is rewritten to
+mean what it means where it lives (`node_modules` in
+`apps/web/.gitignore` becomes `/apps/web/**/node_modules`), since
+`info/exclude` is read from the top.
+
+`.git/info/exclude` is not in the working tree, so nothing the tutor
+writes lands where the repository's own checks or a coding agent can
+see it. The rules cut both ways, though: a task whose `scope` sits
+inside something the learner's branch ignores would have its work left
+out of end's commit, so a scope inside ignored ground is a mistake in
+the map that this makes visible rather than one this hides.
+
+The block's lifecycle: begin writes it, replacing any block a crashed
+run left rather than appending a second; end and park remove
+it, because the learner is back on their own branch where their own
+`.gitignore` applies; resume writes it again for whatever branch the
+resumed task returns to, which a park across a branch change may have
+moved; and close removes a block whose end never ran, so the rules
+never outlive the task that wanted them.
 """
 
 from __future__ import annotations
@@ -19,7 +51,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from . import frontmatter as fm, paths, rules, session
+from . import excludes, frontmatter as fm, paths, rules, session
 from .model import Learner, Task
 from .repo import GitError, Repo, literal
 
@@ -105,7 +137,39 @@ class Tasks:
             # learner's.
             raise Refused(self._undo_begin(branch, origin_branch, origin, str(e), discard=True, before=[]))
         self._mark_lesson(lesson)
-        return Begun(branch, base, return_to, held)
+        return Begun(branch, base, return_to, held, self._carry_excludes(return_to))
+
+    def _carry_excludes(self, return_to: str) -> str:
+        """The exclude block for the branch RETURN_TO names, written once
+        the branch and its starting state exist, so a begin that failed
+        part-way never leaves one. Never fatal: a task without it works,
+        showing the dirt the learner's own branch would have hidden, and
+        saying so is better than refusing a task that is otherwise
+        begun. The catch is as wide as that promise: this runs after the
+        branch and its starting state exist, so anything getting out of
+        here lands past _undo_begin and leaves exactly the half-begun
+        task the undo path exists to prevent."""
+        words = return_to.split()
+        if not words:
+            return ""
+        try:
+            excludes.write(self.repo, words[0])
+        except (OSError, UnicodeError) as e:
+            return (f"note: the ignore rules of {words[0]} could not be carried into the repository's exclude file "
+                    f"({e}); anything that branch ignores and this starting state does not will look like a change "
+                    "of the learner's")
+        return ""
+
+    def _drop_excludes(self) -> List[str]:
+        """The block out again, when the learner is back on their own
+        branch and their own .gitignore applies. Never fatal either: what
+        is left is extra ignore rules, which the next begin replaces."""
+        try:
+            excludes.remove(self.repo)
+        except (OSError, UnicodeError) as e:
+            return [f"note: the carried ignore rules could not be taken out of the repository's exclude file ({e}); "
+                    "the block between the two 'rolling-start:' lines can go by hand"]
+        return []
 
     def _mark_lesson(self, lesson: str) -> None:
         """The open-lesson marker, so the lesson a task belongs to is
@@ -160,7 +224,8 @@ class Tasks:
             # prepared stay in the tree, untracked, as they were.
             raise Refused(self._undo_begin(branch, origin_branch, origin, str(e), discard=False, before=status))
         self._mark_lesson(lesson)
-        return Begun(branch, base, return_to, [], note)
+        carried = self._carry_excludes(return_to)
+        return Begun(branch, base, return_to, [], "; ".join(n for n in (note, carried) if n))
 
     def _undo_begin(self, branch: str, origin_branch: Optional[str], origin: str, why: str, discard: bool, before: List[str]) -> str:
         """Put the repository back as it was before a begin whose git
@@ -334,7 +399,11 @@ class Tasks:
         else:
             repo.switch_detach(ref)
             out.append(f"back at {ref}, detached; {task.branch} kept")
-        return out
+        # After the commit above, which the block kept from sweeping in
+        # what the learner's branch ignores, and after the switch: they
+        # are on their own branch now, where their own .gitignore says
+        # what counts.
+        return out + self._drop_excludes()
 
     # ---- close
 
@@ -492,7 +561,11 @@ class Tasks:
                 "way is gone"
             )
         self._clear_parked()
-        return out
+        # The block for the branch this task returns to *now*: a park and
+        # a resume from somewhere else rewrote return-to, and the rules
+        # carried have to be that branch's.
+        note = self._carry_excludes(return_to)
+        return out + ([note] if note else [])
 
     def _restamp(self, task: Path, return_to: str, session_id: str) -> List[str]:
         """The resumed task's two lines that belong to this run: where it
@@ -532,8 +605,14 @@ class Tasks:
     def close(self) -> List[str]:
         """Remove task.md, reference.md, reference.patch, held/, and the
         open-lesson marker, and nothing else. Closing a lesson that never
-        got an exercise is the same call with less to remove."""
+        got an exercise is the same call with less to remove.
+
+        The exclude block goes too, when one is still there: end removes
+        it, but end refuses off the task's branch and close then runs
+        alone, and ignore rules that outlive their task would hide the
+        learner's own files on their own branch."""
         out: List[str] = []
+        out += self._drop_excludes()
         for f in (self.learner.task_file, self.learner.reference, self.learner.patch):
             if f.is_file():
                 f.unlink()

@@ -462,7 +462,12 @@ def cmd_begin_task(args: List[str]) -> int:
     """rolling-begin-task <lesson> --fix <sha> [--held <path>]... [--shown <path>]...
        rolling-begin-task <lesson> --here <path>...
     Everything after --here is a path, so a path may begin with a dash;
-    a --held or --shown path that does is written --held=<path>."""
+    a --held or --shown path that does is written --held=<path>.
+
+    Also writes the exclude block: the ignore rules of the branch the
+    task returns to, in .git/info/exclude for the task's lifetime, so
+    the tree is judged the way the learner's branch judges it. See
+    tasks.py's header; rolling-end-task takes it out again."""
     parser = _parser("rolling-begin-task")
     parser.add_argument("lesson")
     parser.add_argument("--fix", metavar="SHA", help="the fix to revert: branch from its parent")
@@ -531,6 +536,10 @@ def cmd_begin_lesson(args: List[str]) -> int:
 
 
 def cmd_end_task(args: List[str]) -> int:
+    """rolling-end-task: commit what the learner left on the task
+    branch, keep the branch, put them back where they were, and take
+    the exclude block out of .git/info/exclude (tasks.py's header says
+    what it is for)."""
     w = _need(locate())
     if not repair_first(w):
         raise Refused("a previous run could not be finished (see above); leaving nothing")
