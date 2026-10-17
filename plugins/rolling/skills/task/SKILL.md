@@ -177,6 +177,20 @@ a single command whose last line says `PROOF: ok` or `PROOF: not ok`:
    needs at least one such line, the held test's or the shown one's;
    the proof is not ok without it, since checks that pass before the
    work is done prove nothing.
+
+   **Read every `EXPECTED-FAIL` line's output before you accept it.**
+   `PROOF: ok` says the line failed, not that it failed for the right
+   reason, and the right reason is the test: an assertion, a named
+   case, the compile error of a held test. What must not be there is
+   the check never having run — a script the starting state does not
+   have yet, a renamed package script, a path that moved. The verifier
+   catches what the shell can see and reports it as `COULD-NOT-RUN`,
+   which fails the proof by itself; a runner that reports a missing
+   target in its own words exits like a failing test, and only the
+   output tells them apart. If that is what you are reading, the task
+   is not served: the verifier line names a command the starting state
+   does not have, so fix the line or pick another source, and note it
+   as an **Observation**.
 2. `rolling-verify --on-reference`: with the reference in the tree
    (the fix's own change, or your patch), every line passes, the held
    test included. The command puts the reference in and takes it out
@@ -219,7 +233,7 @@ scaffold: <a path inside the scope where you may leave TODO(human) markers; opti
 setup: <operation key from the map; optional, one per line>
 verify: <command key from the map> [arguments]
 held: <as printed, one per line; the test held back>
-held-verify: <command key> <the held test's path; only with a held: line above, since a shown test is in the tree and its line is a verify: line>
+held-verify: <command key> <the held test's path; the pair goes together — a held: line needs one of these to run it, and a shown test is in the tree so its line is a verify: line>
 expect-fail-on-base: verify <a verify line's text, verbatim>
 expect-fail-on-base: held-verify <a held-verify line's text, verbatim>
 ---

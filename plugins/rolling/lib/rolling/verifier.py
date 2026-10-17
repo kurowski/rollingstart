@@ -9,6 +9,23 @@ arguments, never re-parsed: subprocess gets a list. A command that
 cannot take arguments, or a line whose arguments are not words, is
 rejected, not run.
 
+A line the shell could not execute at all is COULD-NOT-RUN rather
+than a failure: 127 (no such program) and 126 (found, not executable)
+are the shell's own two codes for it, and a runner that wraps a
+missing script passes them through. It fails a proof in both
+directions, since a check that could not run has neither failed for
+the right reason on the starting state nor passed against the
+reference, and in the learner's own report it says the environment
+rather than their work.
+
+Those two codes are what a shell can tell us, which leaves two things
+it cannot: a declaration whose missing program is not the last thing
+it runs (`missing; true` exits 0), and a runner that reports a missing
+target in its own words (`python3 -m unittest no.such.test` exits 1,
+like a test that failed). Both fail the half of the proof that needs
+every line to pass; telling the second from a real failure needs the
+output read, which is the task skill's part of this.
+
 The both-ways proof reads the same report differently. --on-base: the
 lines named by expect-fail-on-base must fail, everything else must
 pass, every line must actually have run, and the revert must have
@@ -43,6 +60,7 @@ class Outcome(Enum):
     FAIL = "FAIL"
     UNKNOWN = "UNKNOWN"              # no such command in the map
     REJECTED = "REJECTED"            # the command or the arguments are unsafe
+    COULD_NOT_RUN = "COULD-NOT-RUN"  # the shell could not execute it: 127 no program, 126 not executable
     EXPECTED_FAIL = "EXPECTED-FAIL"  # on base: failed, as it should
     UNEXPECTED_PASS = "UNEXPECTED-PASS"
 
@@ -59,7 +77,7 @@ class LineResult:
 
     @property
     def ran(self) -> bool:
-        return self.outcome not in (Outcome.UNKNOWN, Outcome.REJECTED)
+        return self.outcome not in (Outcome.UNKNOWN, Outcome.REJECTED, Outcome.COULD_NOT_RUN)
 
     @property
     def expect_key(self) -> str:
@@ -106,7 +124,7 @@ class Report:
     def summary(self) -> str:
         s = (f"VERIFIER: {self.count(Kind.VERIFY, Outcome.PASS)} passed, "
              f"{self.count(Kind.VERIFY, Outcome.FAIL)} failed, "
-             f"{sum(1 for r in self.lines if not r.ran)} unknown or rejected")
+             f"{sum(1 for r in self.lines if not r.ran)} unknown, rejected, or could not run")
         if self.on_base:
             s += f", expected failures: {sum(1 for r in self.lines if r.outcome is Outcome.EXPECTED_FAIL)}"
         if self.had_held:
@@ -137,12 +155,12 @@ class Report:
         if self.on_base:
             out.append("PROOF: ok (on the starting state, every expected failure failed, everything else passed, every line ran, and the held test was reverted)"
                        if self.proof_ok else
-                       "PROOF: not ok (see UNEXPECTED-PASS, FAIL, UNKNOWN, REJECTED, HELD not run, REVERT FAILED, or PROOF GAP above; do not serve this task)")
+                       "PROOF: not ok (see UNEXPECTED-PASS, FAIL, COULD-NOT-RUN, UNKNOWN, REJECTED, HELD not run, REVERT FAILED, or PROOF GAP above; do not serve this task)")
         if self.on_reference:
             held = " and the held test" if self.had_held else ""
             out.append(f"PROOF: ok (with the reference applied, every line passed, and the reference{held} came back out leaving the tree clean)"
                        if self.proof_ok else
-                       "PROOF: not ok (see FAIL, UNKNOWN, REJECTED, HELD not run, REVERT FAILED, or REFERENCE above; do not serve this task)")
+                       "PROOF: not ok (see FAIL, COULD-NOT-RUN, UNKNOWN, REJECTED, HELD not run, REVERT FAILED, or REFERENCE above; do not serve this task)")
         return out
 
 
@@ -153,12 +171,17 @@ def _render_line(r: LineResult) -> List[str]:
         return [f"{tag}{o.value:<8} {r.line}   ({r.reason})"]
     if o is Outcome.PASS:
         return [f"{tag}PASS     {r.line}   ({r.command})"]
-    if o is Outcome.EXPECTED_FAIL:
-        return [f"{tag}EXPECTED-FAIL({r.rc}) {r.line}   ({r.command})"]
     if o is Outcome.UNEXPECTED_PASS:
         return [f"{tag}UNEXPECTED-PASS {r.line}   ({r.command})  <- must fail on the starting state"]
+    # FAIL, EXPECTED-FAIL and COULD-NOT-RUN all show their output: the
+    # proof's reader tells an expected failure from a check that could not
+    # run by what the output says, and a runner reports a missing target in
+    # its own words rather than in an exit code.
+    head = f"{tag}{o.value}({r.rc}) {r.line}   ({r.command})"
+    if o is Outcome.COULD_NOT_RUN:
+        head += "  <- the shell could not execute this; what was missing is in the output"
     tail = r.output.rstrip("\n").split("\n")[-40:] if r.output.strip() else []
-    return [f"{tag}FAIL({r.rc}) {r.line}   ({r.command})"] + (["    | " + l for l in tail] or ["    | (no output)"])
+    return [head] + (["    | " + l for l in tail] or ["    | (no output)"])
 
 
 class Interrupted(Exception):
@@ -305,6 +328,10 @@ class Verifier:
         if not rules.args_are_words(args):
             return LineResult(kind, line, Outcome.REJECTED, reason="arguments may not contain shell metacharacters, quotes, globs, or control characters")
         rc, out = run_declared(self.top, command, rules.words(args))
+        if rc in (127, 126):
+            # Before the expect-fail mapping below: a check that could not
+            # run is not the failure a proof's first half is looking for.
+            return LineResult(kind, line, Outcome.COULD_NOT_RUN, command=command, rc=rc, output=out)
         result = LineResult(kind, line, Outcome.PASS if rc == 0 else Outcome.FAIL, command=command, rc=rc, output=out)
         if self.on_base and result.expect_key in self.task.expect_fail_on_base:
             result.outcome = Outcome.EXPECTED_FAIL if rc != 0 else Outcome.UNEXPECTED_PASS

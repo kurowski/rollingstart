@@ -92,6 +92,18 @@ task was open; that is expected.
   say the shortest path to why, and record it. If the report says the
   verifier was interrupted or did not run, run `rolling-verify` now,
   as your first action, before any opinion.
+- A line the report marks `COULD-NOT-RUN` did not fail: the shell
+  could not run it at all, and what was missing is in that line's own
+  output. Read the output against the change before you say anything
+  about it, because whose it is depends on what is missing. Something
+  the change touched — a test file deleted, a script that lost its
+  shebang, a path moved, and the diff above says — is theirs, and gets
+  ordinary feedback like any other check: what is missing, where, and
+  that the check cannot run until it is back. Anything else is the
+  environment: say which command could not run, rest no feedback on
+  that line either way, and offer the map's setup lesson if it has one
+  (`rolling-show lessons` is the index). Never bring the environment up
+  yourself.
 - Every point of feedback carries a location and a rule: `path:line`,
   what the rule is, and its provenance, either **this repository's
   convention** (say where the repository follows it) or **the
@@ -161,6 +173,9 @@ shape, not the learner's fault; say so. Then:
   say which, located, and what a maintainer would say about them.
 - If a check failed: what failed, the shortest path to why, and where
   to look.
+- If a check could not run: say that, and not that it failed. Whose it
+  is follows the rule above — what the change touched is theirs, the
+  rest is the environment.
 
 In every case, ask whether they want to close the lesson or keep
 going. Keeping going is theirs to choose; so is closing it over your
@@ -241,7 +256,7 @@ nothing here can finish it. Do not move anything by hand.
 **Feedback.** <the VERIFIER summary line>
 - <path>:<line> — <the point>; <this repository's convention, see …> | <the language's norm>. <Met | Missing>.
 - …
-Outcome: closed by the learner; the tutor's view: met. | closed by the learner; the tutor's view: met on the change, not seen: <what>. | closed by the learner over a failing check: <which>. | open: the learner is keeping going on <what they said>.
+Outcome: closed by the learner; the tutor's view: met. | closed by the learner; the tutor's view: met on the change, not seen: <what>. | closed by the learner over a failing check: <which>. | closed by the learner over a check that could not run: <which, and what was missing>. | open: the learner is keeping going on <what they said>.
 ```
 
 ## Session

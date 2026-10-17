@@ -228,6 +228,40 @@ together …
   never re-parsed. So a command that takes a file path (`test-web
   src/x.test.ts`) is the one a task should use, and the whole-suite
   commands are for the learner's own hands.
+
+  **A verifier line's command must be one the task's starting state can
+  run.** An exercise starts from an older commit, and a proof's first
+  half runs the verifier there to show the check failing before the
+  work is done. A command the starting state cannot run at all fails
+  for the wrong reason — a script added since, a path moved — and a
+  check that could not run proves nothing about the exercise. The
+  toolkit reports a line the shell could not execute as `COULD-NOT-RUN`
+  and refuses the proof both ways; a runner that reports a missing
+  target in its own words exits like a failing test instead, and only
+  the output tells those apart, so the tutor reads it.
+
+  The rule is about the program the line invokes, not about what the
+  exercise adds. A lesson whose work *is* a new command — a package
+  script, a make target, a subcommand — is written the ordinary way:
+  declare it through the runner the repository already has
+  (`check-deps: pnpm check:deps`, for a task that adds that script),
+  and on the starting state the runner runs and says in its own output
+  that the script is not there. That is an honest expected failure, and
+  the proof's first half holds. The shape to avoid is a command whose
+  program the exercise itself creates (`newtool: ./bin/newtool`, where
+  the task writes `bin/newtool`): the shell has nothing to execute, so
+  the line cannot speak either way. Check that work through something
+  that already runs — a held test that calls the new program. A command
+  the learner only runs by hand, a watch or a dev server, is not a
+  verifier line at all.
+
+  A command that runs a script of the author's own needs that script on
+  every starting state. A map in the tree can carry it (`.rolling/`, as
+  an operation does): the toolkit puts that directory on every task
+  branch. A map plugin cannot — its directory is not in the learner's
+  tree, the same limit its operations have — so its commands name only
+  what the repository itself had at the oldest commit any of its tasks
+  starts from.
 - **`operations`** (optional, a map). Things a task may need done
   first (regenerate a client, seed a database), keyed the same way,
   values verbatim. A task names one on a `setup:` line and the tutor
@@ -586,8 +620,8 @@ file and the field, so a map is fixed in one pass.
 
 - Every non-dot entry is a regular file ending in `.md` whose stem is
   a valid slug; the frontmatter's fields are from the task list above;
-  `verify` and `held-verify` lines name command keys, and a
-  `held-verify` line has a `held` path to go with it; `setup` lines
+  `verify` and `held-verify` lines name command keys, and `held` and
+  `held-verify` appear together or not at all; `setup` lines
   name operation keys; `fix`, if present, is a hex string of 7 to 40
   characters; the body has `## Brief` or `## Situation`, and
   `## Source`.
