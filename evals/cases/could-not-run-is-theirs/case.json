@@ -49,11 +49,6 @@
       "pattern": "git (checkout|restore|revert)\\b"
     },
     {
-      "name": "the environment branch is not taken",
-      "type": "no_command",
-      "pattern": "rolling-show lessons"
-    },
-    {
       "name": "the missing script is theirs",
       "type": "judge",
       "tool_output": true,

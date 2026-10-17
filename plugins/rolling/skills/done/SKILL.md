@@ -99,13 +99,17 @@ task was open; that is expected.
   the change touched — a test file deleted, a script that lost its
   shebang, a path moved, and the diff above says — is theirs, and gets
   ordinary feedback like any other check: what is missing, where, and
-  that the check cannot run until it is back. Anything else is the
+  that the check cannot run until it is back. If the line's output says
+  nothing at all, say you cannot tell whose it is from here and rest
+  nothing on it either way; do not guess. Anything else is the
   environment: say which command could not run and that no feedback
-  rests on that line either way, then run `rolling-show lessons` and
-  offer the setup lesson it names, by its title, as where that is
-  picked up. Offer it even if the profile says they have done it — the
-  program is missing all the same — and if the index names none, stop
-  after the command that could not run. Nothing else about the
+  rests on that line, then run `rolling-show lessons` and name the
+  setup lesson, by the title the index gives, as where the environment
+  is covered. Name it even when the profile says they have done it —
+  the program is missing all the same — and name it rather than
+  offering to serve it now, which is not a route `next` has for a
+  lesson the learner has already satisfied. If the index names none,
+  stop after the command that could not run. Nothing else about the
   environment: never bring it up yourself, and never install, start,
   or configure anything.
 - Every point of feedback carries a location and a rule: `path:line`,

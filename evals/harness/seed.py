@@ -19,8 +19,9 @@ A seed is the case's `seed` object:
      "edits": {"billing/invoice.py": "..."},   # the learner's work so far, in the tree
      "removes": ["scripts/lint"]}         # and what their work deleted
 
-Each key is optional; `lesson` and `task` are exclusive, since a task's
-lesson is the open one. The task is the fixture's one: the fix
+Each key is optional and a key not in that list is a refusal, since a
+mis-typed one would seed nothing in silence; `lesson` and `task` are
+exclusive, since a task's lesson is the open one. The task is the fixture's one: the fix
 reverted, its test held back, verified by `test` unless the case names
 other lines, which name the fixture map's commands (`rolling-write`
 refuses a line that does not).
@@ -44,6 +45,7 @@ from typing import Dict, Iterable, List
 from .fixture import Fixture
 
 STARTED = "2026-09-24"
+KEYS = ("profile", "lesson", "task", "scaffold", "verify", "edits", "removes")
 
 
 class SeedError(Exception):
@@ -99,6 +101,10 @@ def _fields(out: str) -> Dict[str, str]:
 def apply(seed: Dict, fx: Fixture, bin_dir: Path, data: Path, session_id: str) -> List[str]:
     """Seed the learner for fx under data, as the tutor's session
     session_id. Returns what was done, in words."""
+    unknown = sorted(k for k in seed if k not in KEYS)
+    if unknown:
+        raise SeedError(f"a seed has no {', or '.join(unknown)} key: a mis-typed key "
+                        f"seeds nothing, and the case would measure a world it did not mean")
     if "lesson" in seed and "task" in seed:
         raise SeedError("a seed opens a lesson or begins a task, not both")
     if "scaffold" in seed and "task" not in seed:

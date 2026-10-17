@@ -236,7 +236,9 @@ Fields, all in the frontmatter subset `map.md` defines:
 - **`verify`** (one or more). A command key from the map's `commands`
   followed by arguments as plain words: no shell metacharacters, no
   globs, no path with a space in it. `rolling-verify` runs each in
-  order and reports each.
+  order and reports each: passed, failed, or — when the shell could not
+  execute the command at all — `COULD-NOT-RUN`, which is not a
+  failure and which no proof accepts in either direction.
 - **`held`** (optional, one or more; only with `held-verify`).
   Repository-relative paths of the test files held back from the
   learner, stored under `held/` with the same relative path. Present
@@ -257,7 +259,10 @@ Fields, all in the frontmatter subset `map.md` defines:
   state, for the both-ways proof: `verify <line>` or `held-verify
   <line>`, the line verbatim. The validator lets a task omit it, but
   `rolling-verify --on-base` then reports a proof gap and `PROOF: not
-  ok`: checks that pass before the work is done prove nothing.
+  ok`: checks that pass before the work is done prove nothing. A line
+  that could not run is the same gap — "expected to fail but never
+  ran" — since a command the shell never executed has not shown
+  anything about the exercise.
 
 Then the body: **`## Brief`** for a `write` task or **`## Situation`**
 for a `direct` one (what is wrong or wanted, where to look, what done

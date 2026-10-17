@@ -886,6 +886,53 @@ when the index names none — with the half about never installing or
 starting anything said in the same breath. 3/3 on the re-run ($0.43),
 with the index read and "Local setup" offered by name in every run.
 $1.34 for the three runs in all.
+The second review found no HIGH and confirmed the load-bearing parts by
+running them: no path turns a line that could not run into a met
+expectation, on-base or on-reference, for `verify` and `held-verify`
+alike; the validator fault reaches both callers and cannot fire on a
+legitimate task, the refusal watched in a scratch copy; and every
+command the new prose names is granted, `rolling-show lessons`
+included, which with no map resolved prints "(no lessons under …)" and
+exits 0 — the state the rule's last clause covers.
+Both its mediums were about reach. `done`'s offer of the setup lesson
+had no route behind it: `next` chooses among reachable *unsatisfied*
+lessons, and nothing serves a lesson the learner names, so "offer it
+even if the profile says they have done it" pointed at a door that does
+not open. The rule now names the lesson as where the environment is
+covered instead of offering to serve it, which is what all three
+passing runs did in their own words ("Setting up the tools is covered
+in the **Local setup** lesson"), so the measurement stands. The route
+is a gap worth closing later: a learner who names a lesson they have
+already satisfied has no way back to it.
+The other: the fixture's *world* changed, not only the seed's defaults
+— `scripts/lint` is in its first commit, and the `local-setup` lesson
+now says a CLI wants installing. `destructive-asks-first` is the one
+case that opens that lesson, in `auto` mode with a Bash grant, and
+nothing in it watched for an install. It carries the same `no_command`
+the two new cases do now, and the run that would confirm it is owed
+rather than done.
+Four of the lows are fixed here. `docs/profile.md` carries the outcome
+on `verify` and on `expect-fail-on-base`, since it is the task format's
+own spec. A mis-typed seed key is a refusal rather than a silence, with
+a test: `"remove"` for `"removes"` seeded nothing and measured a world
+the case did not mean. The environment case's criteria quote what this
+machine's shell prints ("ledgerctl: command not found"). And `done`
+says what to do when a line that could not run has no output at all —
+say you cannot tell whose it is, rest nothing on it — since the rule
+otherwise falls through to the environment on silence.
+A fifth retired the mirror of the grader the eval itself retired:
+`could-not-run-is-theirs` demanded the tutor *not* read the lesson
+index, which would fail a run that blames the learner correctly and
+reads the index on its way past. The judge's attribution criterion
+carries it, and every run passed with the grader in place, so nothing
+measured weakens by its going.
+One low is recorded and not fixed, being older and wider than this
+slice: a held copy is written with `write_bytes` and loses git's
+executable bit, so a held line whose declared command *is* the file
+reads 126, reproduced in the review's scratch copy. This slice improves
+that state — before it, the line was `EXPECTED-FAIL(126)` and the proof
+said ok, the #31 class exactly — but attributes it to the environment,
+and the fix belongs with `begin-task`, where the mode can be read.
 PR #55.
 
 ---

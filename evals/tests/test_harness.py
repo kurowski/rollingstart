@@ -118,6 +118,11 @@ class SeedTest(World):
             seed.apply({"task": "invoice-totals", "removes": ["scripts/gone"]}, self.fx, BIN, self.data, SID)
         self.assertIn("no such file in the fixture", str(cm.exception))
 
+    def test_a_mistyped_seed_key_refuses(self) -> None:
+        with self.assertRaises(seed.SeedError) as cm:
+            seed.apply({"task": "invoice-totals", "remove": ["scripts/lint"]}, self.fx, BIN, self.data, SID)
+        self.assertIn("remove", str(cm.exception))
+
     def test_lesson_and_task_are_exclusive(self) -> None:
         with self.assertRaises(seed.SeedError):
             seed.apply({"lesson": "slot-overlap", "task": "invoice-totals"}, self.fx, BIN, self.data, SID)
