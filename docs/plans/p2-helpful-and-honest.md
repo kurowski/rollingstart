@@ -957,7 +957,7 @@ PR #55.
 
 ---
 
-### 2.10 — Proofs across dependencies and ignore rules [PENDING]
+### 2.10 — Proofs across dependencies and ignore rules [COMPLETE]
 
 The two proof gaps whose fix widens what a task may declare. Branch
 `p2.10/proof-reach`; depends on 2.9. Spec first in `docs/map.md`
@@ -973,6 +973,136 @@ resume onto a branch with different ignore rules leave the block
 matching the branch `return-to` names; tests for each against the
 scratch world, including a begin that fails part-way.
 Closes #32, #33.
+Both gaps are shut, and they turned out to need each other. `rolling`
+0.4.6 → 0.4.7.
+Spec first, as the entry said, with one reading of it worth recording:
+`rolling-begin-task` and `rolling-end-task` are eight-line wrappers that
+say "see lib/rolling/cli.py", so the header the exclude block belongs in
+is `tasks.py`'s, where the lifecycle it rides on is described, with a
+pointer from each command's own docstring. `docs/profile.md` carries
+`reference-setup` as a task field and `docs/map.md` carries the author's
+half of both, including what the proof does with an operation.
+**The ignore rules (#33).** Begin writes the ignore patterns of the
+branch `return-to` names into `.git/info/exclude`, between two marker
+lines, so the tree is judged the way the learner's own branch judges it
+for the task's lifetime. A pattern means what it means where its
+`.gitignore` lives and `info/exclude` is read from the top, so a nested
+one is rewritten on the way in: `node_modules` in `apps/web/.gitignore`
+becomes `/apps/web/**/node_modules`, and the anchored `/test-results`
+there becomes `/apps/web/test-results`. That is not a hypothetical shape
+— the pinned Rallly has five ignore files, four of them nested
+(`apps/web/.gitignore` at `f61c0970`), and `/test-results` and
+`/playwright-report` under `apps/web` are the very directories #33 was
+filed about. The patterns are read out of git at the ref, because the
+branch the task returns to is not the branch checked out while the task
+is open.
+The block's lifecycle is the slice's real work: begin writes it after
+the branch and its starting state exist, so a begin that fails part-way
+leaves none; end and park remove it, the learner being back on their own
+branch, and the commit end makes happens while the block is still in
+place, which is what keeps the generated directory out of it; resume
+writes it again for whatever branch the resumed task returns to, since a
+park and a resume from elsewhere rewrite `return-to`; and close removes
+a block whose end never ran, which is the 2.8 state where the repository
+is off the task's branch and close goes alone. None of it is fatal: a
+block that cannot be written or removed is a note, because a task that
+works with visible dirt is better than a task refused.
+**The dependency (#32).** A task may name one operation on a
+`reference-setup:` line, and `rolling-verify --on-reference` runs it
+after the reference is applied and before the lines — the install, the
+regenerated client, what the learner would have done as they went. It
+runs in that half and nowhere else: the learner's own `done` is theirs
+to set up, and re-running `setup:` would run steps written for the
+starting state (row 80). A destructive one is refused twice, in the
+validator and again in the verifier, because the proof runs unattended
+and the hook that asks watches the tutor's own commands rather than the
+verifier's subprocess. An operation that is missing, destructive,
+doubled, or that exits non-zero sets the proof's "did not run", with its
+output, rather than letting the lines speak.
+What the two halves share is the tree they leave. An operation that
+installs leaves files, and the reference's reverse then finds a tree
+that is not clean, so the proof fails — unless those files are ignored
+on the branch the task returns to, which is exactly what begin now
+carries. One test holds both halves in one place: the same task is
+proved twice, once reporting `dep.txt` left behind and once clean, with
+nothing changed but the learner's branch gaining the ignore rule.
+Thirty-seven tests and seventeen back-outs, each failing what covers it.
+The translation is pure, so it is tested on its own; the lifecycle runs
+against the scratch world's real repository; and the two halves meet in
+one test that proves the same task twice, dirty and then clean. One
+back-out passing was worth more than the sixteen that failed: widening
+the guard around the block to `(OSError, UnicodeError)` changed nothing,
+because making the codecs total had left no way to raise a UnicodeError
+at all. The guard stays, since what it encodes is the promise and not a
+path, and it is tested against that promise instead — whatever the block
+raises becomes a note — which is exactly what the review's high finding
+cost while it was missing.
+One edge the block creates rather than closes, recorded and not guarded:
+a task whose `scope` sits inside ground the learner's branch ignores
+would have that work left out of end's commit. Forcing the scope's paths
+in would sweep back exactly what this slice keeps out (a scope of `src`
+in a repository that ignores `src/generated/`), so the header says it is
+a mistake in the map made visible rather than one to work around.
+The review found one high. `excludes.py` read and wrote the exclude file
+with strict UTF-8 while the two callers guarded only `OSError`, and the
+reviewer reproduced what that costs: an exception out of a *successful*
+begin, raised past `_undo_begin`, leaving the learner on a task branch
+with the starting state committed while the tutor was told the begin had
+failed — the one state the whole undo path exists to prevent, reached by
+the one call in begin that this slice calls never fatal. The file is
+read and written the way the toolkit reads paths now, since it is a file
+we rewrite and do not own, and both guards are as wide as the promise
+they make. The promise is what is tested; the exotic inputs that first
+showed it are not, because nobody is going to hit them.
+Three more mediums, each a hole in that same "a note, never a refusal"
+policy rather than an argument against it. `close` dropped
+`_drop_excludes`'s note on the floor, and close is the one path where a
+block can outlive its task — off the task's branch `end` refuses and
+close goes alone, which is 2.8's state — so it was the only call site
+that could leave another branch's ignore rules behind and say nothing.
+`_read` turned "could not read" into "the file is empty", which made
+`remove` report no block while one was still there and let `write`
+replace the learner's own lines wholesale; only `FileNotFoundError` is
+an empty file now. And `begin_here` — the seam-task way in — had its
+block write uncovered: the reviewer removed the call and all 372 tests
+passed. It has a test through `--here` now.
+The fourth medium is the one that matters to an author. The operation
+#32 is really about is an install, an install rewrites a lockfile, and a
+fix that adds a dependency changed that same lockfile — so the reference
+stops coming back out of the tree, and what the author saw was a bare
+"patch failed" and then every later command blaming an interruption that
+never happened. The verifier now asks git whether the reverse still
+applies before it runs the lines, and says which operation changed what
+the reference changes, pointing at the frozen form of the command;
+`docs/map.md`, `docs/profile.md` and the `task` skill say the same in
+their own words.
+Nine lows, all fixed. Two were the dangerous direction — a block broader
+than the learner's branch hides real dirt: a directory name carrying a
+glob character went into the pattern unescaped (`app[1]` would have
+hidden `app1/node_modules`), and the ignore files were sorted by name,
+which inverts git's "the deeper file wins" wherever a directory sorts
+before its own parent's file (`apps/-x/.gitignore` saying `!dist`). Both
+are one-liners with a test. The rest: the dead `had_block`, the in-place
+rewrite replaced by the tmp-and-rename the toolkit uses for the
+learner's files, git's column-zero rule for a comment, a ref out of a
+task.md that begins with a dash refused and a `--` terminator added, the
+"ok" note saying it ran before the lines it enabled, two prose wraps,
+and the untested claim that a ref with no ignore files clears a block
+that was there.
+Worth keeping from the review's own work: it checked `translate` against
+real `git check-ignore` — the same pattern in `apps/web/.gitignore`
+against its translation alone in `info/exclude` — over eighteen pattern
+forms, ten degenerate lines and six cross-file precedence cases, then
+over a hundred and sixty candidate paths against the pinned Rallly's
+five real ignore files, and found no divergence in either direction. It
+also agreed with both calls this entry flagged: the scope inside ignored
+ground, and the note-rather- than-refusal policy.
+One small irony from the round: making the write atomic broke two of
+this slice's own new tests, because `os.replace` does not need the
+target file to be writable, so chmodding the exclude file no longer
+makes a write fail. They break the directory now, which is what the
+rename actually needs.
+PR #58.
 
 ---
 

@@ -821,5 +821,128 @@ class ReportTest(unittest.TestCase):
         self.assertIn("a note from the run", text)
 
 
+class ReferenceSetupTest(WorldTest):
+    """#32: a fix that adds a dependency cannot be proved, because the
+    reference goes into the tree and nothing installs anything in
+    between. A task may name one operation for that half, and only that
+    half."""
+
+    def setUp(self):
+        super().setUp()
+        w = self.w
+        self.branch, self.base = w.begin("greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh")
+        # An operation that stands in for `install the new dependency`,
+        # and a check that fails without it, as a build does.
+        w.add_operation("fetch-dep", "sh -c 'echo dep > dep.txt'")
+        w.add_operation("wipe", "sh -c 'rm -f dep.txt'", destructive=True)
+        w.add_command("needs-dep", "sh -c 'test -f dep.txt'")
+        w.git("add", ".rolling/map.md")
+        w.git("commit", "-q", "-m", "map: the dependency the reference needs")
+
+    def verify(self, on_base=False, on_reference=False):
+        w = self.w
+        return Verifier(w.top, w.learner, Map.load(w.top / ".rolling"), Task.load(w.learner.task_file),
+                        on_base=on_base, on_reference=on_reference).run()
+
+    def test_the_lines_see_what_the_operation_did(self):
+        w = self.w
+        w.held_task(self.branch, self.base, verify=["needs-dep"], reference_setup="fetch-dep")
+        rep = self.verify(on_reference=True)
+        self.assertEqual(rep.lines[0].outcome, Outcome.PASS)
+        text = "\n".join(rep.render())
+        self.assertIn("REFERENCE SETUP fetch-dep", text)
+
+    def test_without_it_the_same_check_fails_which_is_the_bug(self):
+        w = self.w
+        w.held_task(self.branch, self.base, verify=["needs-dep"])
+        rep = self.verify(on_reference=True)
+        self.assertEqual(rep.lines[0].outcome, Outcome.FAIL)
+        self.assertFalse(rep.proof_ok)
+
+    def test_what_it_leaves_behind_is_dirt_unless_the_learners_branch_ignores_it(self):
+        """The two halves of this slice meet here. An operation that
+        installs leaves files, the reference's reverse then finds a tree
+        that is not clean, and the proof fails — unless those files are
+        ignored on the branch the task returns to, which is what begin
+        carries into the exclude file."""
+        w = self.w
+        w.held_task(self.branch, self.base, verify=["needs-dep"], reference_setup="fetch-dep")
+        rep = self.verify(on_reference=True)
+        self.assertFalse(rep.proof_ok, "dep.txt is untracked afterwards")
+        self.assertIn("dep.txt", "\n".join(rep.render()))
+        # Now the learner's own branch ignores it, as a repository ignores
+        # what its package manager writes, and begin carries that rule.
+        w.git("switch", "-q", "main")
+        w.write(".gitignore", "dep.txt\n")
+        w.git("add", "-A")
+        w.git("commit", "-q", "-m", "ignore the fetched dependency")
+        self.assertRuns("close-task")
+        branch, base = w.begin("greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh")
+        w.add_operation("fetch-dep", "sh -c 'echo dep > dep.txt'")
+        w.add_command("needs-dep", "sh -c 'test -f dep.txt'")
+        w.git("add", ".rolling/map.md")
+        w.git("commit", "-q", "-m", "map: the dependency the reference needs")
+        w.held_task(branch, base, verify=["needs-dep"], reference_setup="fetch-dep")
+        rep = self.verify(on_reference=True)
+        self.assertEqual(rep.lines[0].outcome, Outcome.PASS)
+        self.assertTrue(rep.proof_ok, "\n".join(rep.render()))
+
+    def test_an_operation_that_rewrites_the_references_own_files_is_named(self):
+        """The shape #32 really comes in: an install rewrites the
+        lockfile, and the fix that added the dependency changed that same
+        lockfile, so the reference stops coming back out. Said while the
+        operation that did it is still the thing to name, rather than
+        later as a bare "patch failed"."""
+        w = self.w
+        w.add_operation("meddles", "sh -c 'echo meddled >> src/greet.sh'")
+        w.git("add", ".rolling/map.md")
+        w.git("commit", "-q", "-m", "map: an operation that touches the fix's own file")
+        w.held_task(self.branch, self.base, verify=["check"], reference_setup="meddles")
+        rep = self.verify(on_reference=True)
+        self.assertEqual(rep.lines, [], "the lines never ran")
+        self.assertIn("changed something the reference patch also changes", rep.not_run)
+        self.assertIn("frozen", rep.not_run)
+        self.assertFalse(rep.proof_ok)
+
+    def test_a_destructive_operation_is_refused_rather_than_run(self):
+        w = self.w
+        w.held_task(self.branch, self.base, verify=["check"], reference_setup="wipe")
+        rep = self.verify(on_reference=True)
+        self.assertEqual(rep.lines, [], "nothing ran")
+        self.assertIn("destructive", rep.not_run)
+        self.assertFalse(rep.proof_ok)
+        self.assertIn("PROOF: not ok", "\n".join(rep.render()))
+
+    def test_an_operation_the_map_does_not_have_stops_the_proof(self):
+        w = self.w
+        w.held_task(self.branch, self.base, verify=["check"], reference_setup="no-such-operation")
+        rep = self.verify(on_reference=True)
+        self.assertIn("not an operation in the map", rep.not_run)
+        self.assertFalse(rep.proof_ok)
+
+    def test_an_operation_that_fails_stops_the_proof_and_shows_its_output(self):
+        w = self.w
+        w.add_operation("broken", "sh -c 'echo cannot reach the registry; exit 7'")
+        w.git("add", ".rolling/map.md")
+        w.git("commit", "-q", "-m", "map: an operation that fails")
+        w.held_task(self.branch, self.base, verify=["check"], reference_setup="broken")
+        rep = self.verify(on_reference=True)
+        self.assertIn("exited 7", rep.not_run)
+        text = "\n".join(rep.render())
+        self.assertIn("cannot reach the registry", text)
+        self.assertIn("PROOF: not ok", text)
+
+    def test_it_does_not_run_in_the_learners_own_half_or_on_the_base(self):
+        """The learner's half is theirs to set up, and the starting
+        state's setup: lines already ran when the task began."""
+        w = self.w
+        w.held_task(self.branch, self.base, verify=["needs-dep"], reference_setup="fetch-dep")
+        self.assertEqual(self.verify().lines[0].outcome, Outcome.FAIL)
+        self.assertFalse((w.top / "dep.txt").exists(), "nothing was fetched")
+        rep = self.verify(on_base=True)
+        self.assertFalse((w.top / "dep.txt").exists())
+        self.assertEqual(rep.lines[0].outcome, Outcome.FAIL)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -233,6 +233,20 @@ Fields, all in the frontmatter subset `map.md` defines:
   the learner says yes to that run. Nothing runs them again at `done`;
   if the learner's own work will need one (they touch the schema), the
   brief says so.
+- **`reference-setup`** (optional, one). One operation key from the
+  map, run by `rolling-verify --on-reference` after the reference is
+  applied and before the lines, for a fix the checks cannot pass
+  without a step in between: a reference that adds a dependency needs
+  it installed, the way the learner would as they went. It is not the
+  `setup` lines again — those were written for the starting state —
+  and it never runs in the learner's own half, where their work is
+  theirs to set up. It must leave alone the files the reference itself
+  changes — the proof reverses the reference afterwards, and an install
+  that rewrites a lockfile the fix also changed stops it coming out —
+  so the frozen form of a command is the one to declare. A destructive
+  operation is refused here, in the validator and again in the
+  verifier: the proof runs unattended, and the learner's yes is what a
+  destructive operation waits for.
 - **`verify`** (one or more). A command key from the map's `commands`
   followed by arguments as plain words: no shell metacharacters, no
   globs, no path with a space in it. `rolling-verify` runs each in
@@ -619,7 +633,8 @@ the field.
   `lessons/<lesson>/<task>.md` exists in the map.
 - Every `verify` and `held-verify` line's first word is a command key
   in the map and the rest carries no shell metacharacter or glob;
-  every `setup` line names an operation key; every
+  every `setup` line names an operation key; `reference-setup`, if
+  present, is one operation key and not a destructive one; every
   `expect-fail-on-base` line repeats a `verify` or `held-verify` line
   verbatim; `held` and `held-verify` appear together or not at all.
 - Every `held` path is repository-relative, contains no `..` segment,

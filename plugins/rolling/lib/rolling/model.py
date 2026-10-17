@@ -136,6 +136,7 @@ class Task:
     scope: List[str] = field(default_factory=list)
     scaffold: List[str] = field(default_factory=list)
     setup: List[str] = field(default_factory=list)
+    reference_setup: List[str] = field(default_factory=list)
     verify: List[str] = field(default_factory=list)
     held: List[str] = field(default_factory=list)
     held_verify: List[str] = field(default_factory=list)
@@ -157,7 +158,8 @@ class Task:
             path=path, lesson=f.scalar("lesson"), mode=f.scalar("mode"), branch=f.scalar("branch"),
             base=f.scalar("base"), return_to=f.scalar("return-to"), started=f.scalar("started"),
             tutor_session=f.scalar("tutor-session"), task=f.scalar("task"), fix=f.scalar("fix"),
-            scope=f.all("scope"), scaffold=f.all("scaffold"), setup=f.all("setup"), verify=f.all("verify"),
+            scope=f.all("scope"), scaffold=f.all("scaffold"), setup=f.all("setup"),
+            reference_setup=f.all("reference-setup"), verify=f.all("verify"),
             held=f.all("held"), held_verify=f.all("held-verify"), expect_fail_on_base=f.all("expect-fail-on-base"),
             keys=list(f.keys),
         )

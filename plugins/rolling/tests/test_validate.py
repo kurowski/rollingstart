@@ -125,6 +125,11 @@ class MapValidationTest(WorldTest):
         self.assertIn("held: paths need a held-verify: line to run them; a held test nothing runs is never applied and never checked",
                       whats(validate.validate_map(self.m)), "the author's task file gets the fault too (#14)")
         (tdir / "held-only.md").unlink()
+        destructive_setup = "---\nmode: write\nscope: src/greet.sh\nverify: check\nreference-setup: reset\n---\n\n## Brief\n\nBe polite.\n\n## Source\n\nThe fix.\n"
+        (tdir / "wipes.md").write_text(destructive_setup)
+        self.assertIn("reference-setup names 'reset', which the map lists as destructive; the proof runs unattended, and a destructive operation waits for the learner's yes",
+                      whats(validate.validate_map(self.m)), "the author's task file gets this fault too (#32)")
+        (tdir / "wipes.md").unlink()
         (tdir / "bad.md").write_text("---\nverify: nope\nfix: xyz\nbogus: 1\n---\n## Source\n")
         faults = whats(validate.validate_map(self.m))
         self.assertIn("verify names 'nope', which is not a command in the map", faults)
@@ -321,6 +326,19 @@ class TaskValidationTest(WorldTest):
         faults = self.faults(**self.full(held_verify=[], expect_fail_on_base=["verify check"]))
         self.assertIn("held: paths need a held-verify: line to run them; a held test nothing runs is never applied and never checked", faults)
         self.assertEqual(self.faults(**self.full()), [], "both together are clean")
+
+    def test_reference_setup_names_one_operation_that_is_not_destructive(self):
+        """The proof runs it with nobody to ask, and the hook that asks
+        watches the tutor's commands rather than the verifier's (#32)."""
+        def check(value):
+            return self.faults(**self.full(reference_setup=value, held=[], held_verify=[],
+                                           expect_fail_on_base=["verify check"]))
+
+        self.assertEqual(check("seed"), [], "an operation of the map's is fine")
+        self.assertIn("reference-setup names 'nope', which is not an operation in the map", check("nope"))
+        self.assertIn("reference-setup names 'reset', which the map lists as destructive; the proof runs unattended, and a destructive operation waits for the learner's yes",
+                      check("reset"))
+        self.assertIn("reference-setup has 2 lines; it names one operation", check(["seed", "seed"]))
 
     def test_command_rules_apply_to_the_task(self):
         self.w.add_command("evil", "echo ran;")

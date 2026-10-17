@@ -10,6 +10,8 @@ import unittest
 
 from support import WorldTest, is_root
 
+from rolling import excludes  # noqa: E402
+
 
 class BeginFromFixTest(WorldTest):
     def test_held_test_stays_out_of_the_tree(self):
@@ -687,3 +689,184 @@ class ParkAndResumeTest(WorldTest):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CarriedIgnoreRulesTest(WorldTest):
+    """#33: a repository that started ignoring its test output last month
+    has starting states that do not, so the directory a learner's own run
+    left turns from invisible into untracked the moment a task begins —
+    dirt to the clean-tree check, and swept into end's commit. Begin
+    carries the ignore rules of the branch the task returns to."""
+
+    def setUp(self):
+        super().setUp()
+        w = self.w
+        w.write(".gitignore", "test-results/\n")
+        w.write("nested/.gitignore", "junk\n")
+        w.git("add", "-A")
+        w.git("commit", "-q", "-m", "ignore what a test run leaves")
+        # What a learner's own test run leaves behind, invisible on their
+        # branch and not ignored by the starting state at all.
+        w.write("test-results/last.txt", "99 passed\n")
+        w.write("nested/junk", "scratch\n")
+        self.assertClean()
+
+    def exclude_text(self) -> str:
+        f = excludes.exclude_file(self.w.repo)
+        return f.read_text(encoding="utf-8") if f.is_file() else ""
+
+    def begin_one(self):
+        return self.w.begin("greet-politely", "--fix", self.w.fix, "--held", "tests/greet.test.sh")
+
+    def test_what_the_learners_branch_ignores_is_not_dirt_on_the_task_branch(self):
+        w = self.w
+        branch, _ = self.begin_one()
+        self.assertOnBranch(branch)
+        self.assertEqual(w.git("ls-files", "--", ".gitignore"), "", "the starting state has no ignore file of its own")
+        self.assertTrue((w.top / "test-results" / "last.txt").is_file(), "their generated files are still there")
+        self.assertClean()
+        self.assertIn("test-results/", self.exclude_text())
+        self.assertIn("/nested/**/junk", self.exclude_text(), "a nested pattern means what it means where it lives")
+
+    def test_end_does_not_commit_what_their_branch_ignores(self):
+        w = self.w
+        branch, base = self.begin_one()
+        w.held_task(branch, base)
+        w.write("src/greet.sh", w.read("src/greet.sh") + "# the learner was here\n")
+        self.assertRuns("end-task")
+        committed = w.git("show", "--name-only", "--format=", branch).split()
+        self.assertIn("src/greet.sh", committed)
+        self.assertNotIn("test-results/last.txt", committed)
+        self.assertNotIn("nested/junk", committed)
+        self.assertTrue((w.top / "test-results" / "last.txt").is_file(), "and they still have them")
+
+    def test_end_takes_the_block_out_again(self):
+        w = self.w
+        f = excludes.exclude_file(w.repo)
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("# the learner's own\nmy-scratch/\n", encoding="utf-8")
+        branch, base = self.begin_one()
+        w.held_task(branch, base)
+        self.assertRuns("end-task")
+        self.assertEqual(self.exclude_text(), "# the learner's own\nmy-scratch/\n", "theirs is left exactly as it was")
+
+    def test_a_second_begin_replaces_the_block_rather_than_stacking_one(self):
+        w = self.w
+        branch, base = self.begin_one()
+        w.held_task(branch, base)
+        self.assertRuns("end-task")
+        self.assertRuns("close-task")
+        self.begin_one()
+        self.assertEqual(self.exclude_text().count(excludes.START), 1)
+
+    def test_close_takes_out_a_block_end_never_removed(self):
+        """Off the task's branch end refuses and close goes alone (2.8),
+        so close is the other place the rules must not outlive the task."""
+        w = self.w
+        branch, base = self.begin_one()
+        w.held_task(branch, base)
+        w.git("switch", "-q", "main")
+        self.assertIn(excludes.START, self.exclude_text())
+        self.assertRuns("close-task")
+        self.assertNotIn(excludes.START, self.exclude_text())
+
+    def test_a_seam_task_carries_them_too(self):
+        """--here is the other way in, and it returns to the same branch
+        the learner came from."""
+        w = self.w
+        w.write("tests/seam.test.sh", "echo seam\n")
+        branch, base = w.begin("greet-politely", "--here", "tests/seam.test.sh")
+        self.assertOnBranch(branch)
+        self.assertIn("test-results/", self.exclude_text())
+        self.assertTrue((w.top / "test-results" / "last.txt").is_file())
+        self.assertClean()
+
+    def test_begin_says_so_when_it_cannot_carry_them(self):
+        """Never fatal: the task is begun either way, and the note is how
+        the tutor learns the dirt it will see is not the learner's."""
+        if is_root():
+            self.skipTest("root writes anything")
+        w = self.w
+        f = excludes.exclude_file(w.repo)
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("# theirs\n", encoding="utf-8")
+        # The directory, not the file: the block is written through a
+        # temporary file and a rename, so the file's own mode is beside
+        # the point and only the directory can stop it.
+        f.parent.chmod(0o500)
+        self.addCleanup(f.parent.chmod, 0o755)
+        out = self.assertRuns("begin-task", "greet-politely", "--fix", w.fix, "--held", "tests/greet.test.sh")
+        self.assertIn("could not be carried", out)
+        self.assertIn("branch: rolling/greet-politely-", out, "and the task is begun")
+
+    def test_close_says_so_when_it_cannot_take_them_out(self):
+        """Close is the path a block most plausibly outlives its task:
+        off the task's branch, end refuses and close goes alone (2.8)."""
+        if is_root():
+            self.skipTest("root writes anything")
+        w = self.w
+        branch, base = self.begin_one()
+        w.held_task(branch, base)
+        f = excludes.exclude_file(w.repo)
+        f.parent.chmod(0o500)
+        self.addCleanup(f.parent.chmod, 0o755)
+        out = self.assertRuns("close-task")
+        self.assertIn("could not be taken out", out)
+
+    def test_whatever_the_block_raises_becomes_a_note(self):
+        """The promise is that carrying the rules never takes a task
+        down, and the codecs now make UnicodeError unreachable, so the
+        guard is tested against that promise rather than against a path
+        that can still reach it. The cost of getting this wrong was the
+        high finding of the review: a successful begin reported as a
+        failure, past the undo."""
+        from rolling import excludes as ex
+        from rolling.tasks import Tasks
+
+        tasks = Tasks(self.w.repo, self.w.learner)
+
+        def boom(*args):
+            raise UnicodeEncodeError("utf-8", "\udce9", 0, 1, "on purpose")
+
+        for name, call in (("write", lambda: tasks._carry_excludes("main 0123456")),
+                           ("remove", lambda: tasks._drop_excludes())):
+            real = getattr(ex, name)
+            setattr(ex, name, boom)
+            try:
+                said = call()
+            finally:
+                setattr(ex, name, real)
+            self.assertIn("exclude file", " ".join([said] if isinstance(said, str) else said))
+
+    def test_a_begin_that_fails_part_way_leaves_no_block(self):
+        from rolling.repo import GitError, Repo
+        from rolling.tasks import Refused, Tasks
+
+        class Broken(Repo):
+            def commit(self, message, allow_empty=False, as_tool=False):
+                raise GitError("commit failed on purpose")
+
+        with self.assertRaises(Refused):
+            Tasks(Broken(self.w.top), self.w.learner).begin_from_fix("greet-politely", self.w.fix, [], [])
+        self.assertOnBranch("main")
+        self.assertNotIn(excludes.START, self.exclude_text())
+
+    def test_a_resume_carries_the_rules_of_the_branch_it_returns_to(self):
+        """A park and a resume from somewhere else rewrite return-to, so
+        the rules carried have to be that branch's and not the old one's."""
+        w = self.w
+        branch, base = self.begin_one()
+        w.held_task(branch, base)
+        self.assertRuns("park-task")
+        self.assertNotIn(excludes.START, self.exclude_text(), "parking puts them back on their own branch")
+        # A branch of their own with different rules, resumed from there.
+        w.git("switch", "-q", "-c", "elsewhere")
+        w.write(".gitignore", "elsewhere-only/\n")
+        w.git("add", "-A")
+        w.git("commit", "-q", "-m", "ignore something else here")
+        self.assertRuns("claim-session", "s2")
+        self.assertRuns("resume-task")
+        text = self.exclude_text()
+        self.assertIn("elsewhere-only/", text)
+        self.assertNotIn("test-results/", text)
+        self.assertIn("elsewhere", w.learner.task().return_to)
