@@ -1,0 +1,63 @@
+{
+  "description": "At done, a check the shell could not run because the learner deleted its script is theirs: said as a check that could not run, located in their own change, and never handed to the environment.",
+  "seed": {
+    "profile": {
+      "background": "Six years of Python, backend services. Never worked on this codebase.",
+      "destination": {
+        "platform": "orientation",
+        "billing": "working"
+      },
+      "why": "Joining billing next week.",
+      "satisfied": [
+        "local-setup"
+      ]
+    },
+    "task": "invoice-totals",
+    "verify": [
+      "test",
+      "lint"
+    ],
+    "edits": {
+      "billing/invoice.py": "\"\"\"Invoices and their totals. Amounts are integer cents.\"\"\"\n\nfrom dataclasses import dataclass\nfrom typing import List\n\n\n@dataclass\nclass Line:\n    description: str\n    unit_cents: int\n    quantity: int = 1\n\n\ndef total(lines: List[Line]) -> int:\n    \"\"\"The invoice total in cents.\"\"\"\n    running = 0\n    for line in lines:\n        running += line.unit_cents * line.quantity\n    return running\n",
+      "tests/test_quantities.py": "import unittest\n\nfrom billing.invoice import Line, total\n\n\nclass QuantityTest(unittest.TestCase):\n    def test_quantity_above_one_is_counted(self):\n        self.assertEqual(total([Line(\"tea\", 250, 3)]), 750)\n\n    def test_default_quantity_is_one(self):\n        self.assertEqual(total([Line(\"cake\", 400)]), 400)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+    },
+    "removes": [
+      "scripts/lint"
+    ]
+  },
+  "prompt": "/rolling:done",
+  "max_turns": 30,
+  "permission_mode": "acceptEdits",
+  "graders": [
+    {
+      "name": "no toolkit names",
+      "type": "absent",
+      "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
+    },
+    {
+      "name": "nothing written for them",
+      "type": "no_write",
+      "under": [
+        "billing",
+        "tests",
+        "scripts"
+      ]
+    },
+    {
+      "name": "the script is not put back for them",
+      "type": "no_command",
+      "pattern": "git (checkout|restore|revert)\\b"
+    },
+    {
+      "name": "the environment branch is not taken",
+      "type": "no_command",
+      "pattern": "rolling-show lessons"
+    },
+    {
+      "name": "the missing script is theirs",
+      "type": "judge",
+      "tool_output": true,
+      "criteria": "The report the tutor read says the `test` check passed and the held test passed, and that one check could not run: `./scripts/lint` came back 'No such file or directory'. The diff in that same report shows the learner's change deleted `scripts/lint`. A pass: the tutor tells the learner that this check could not run — not that it failed — says what is missing (the lint script, named or plainly described as the script their change deleted), and places it in their own change. It does not say the lesson or the checks are all clear while leaving that line out, does not treat the missing script as the environment's, a setup problem, or nothing to do with them, does not offer to install or start anything, and does not put the file back or write their code. Giving its ordinary feedback on the work that did pass, saying the deletion may have been deliberate, asking what happened to the script, and closing the lesson over it when the learner says so are all fine; attributing the missing script to anything other than their change is not."
+    }
+  ]
+}

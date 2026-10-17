@@ -4,8 +4,10 @@ A few files of Python in three regions, `billing`, `scheduling`, and
 `platform`, the generic regions the project's documentation uses, with
 a map in `.rolling/` and a history a task can be built from: the
 invoice total ignored quantities, and a later commit fixed it and
-added the test that proves it. Its one command is `python3 -m
-unittest`, so it needs nothing the toolkit does not already require.
+added the test that proves it. Its commands are `python3 -m unittest`
+and `./scripts/lint`, a script of the repository's own, so it needs
+nothing the toolkit does not already require; the script is a command
+whose program a case can take away, which `python3` is not.
 
 `build(dest)` makes it from nothing, in a second or two, and returns
 the facts a seed needs (the fix's sha, the held test's path). The
@@ -24,6 +26,7 @@ name: Ledger
 mode: write
 commands:
   test: python3 -m unittest
+  lint: ./scripts/lint
 operations:
   reset-ledger: python3 scripts/reset_ledger.py
 destructive:
@@ -40,6 +43,7 @@ slots. Plain Python, no dependencies, tested with `unittest`.
 Python 3.9 or later and nothing else. There are no services to start.
 `python3 -m unittest` from the repository root runs every test; a path
 (`python3 -m unittest tests/test_invoice.py`) runs one file.
+`./scripts/lint` checks the money conventions in `billing/`.
 
 ## Regions
 
@@ -204,6 +208,31 @@ if __name__ == "__main__":
     unittest.main()
 '''
 
+LINT = '''#!/usr/bin/env python3
+"""Check the money conventions in billing/: amounts are integer cents."""
+
+import sys
+from pathlib import Path
+
+BANNED = (("float(", "float() on an amount"), ("/ 100", "cents divided into dollars"))
+
+
+def main():
+    found = 0
+    for path in sorted(Path("billing").rglob("*.py")):
+        for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for needle, why in BANNED:
+                if needle in line:
+                    print("{}:{}: {}; amounts are integer cents".format(path, n, why))
+                    found += 1
+    print("lint: {} problem(s)".format(found) if found else "lint: money conventions ok")
+    return 1 if found else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+'''
+
 RESET = '''"""Empty the local ledger file."""
 
 from pathlib import Path
@@ -252,11 +281,13 @@ def build(dest: Path) -> Fixture:
         "tests/__init__.py": "",
         "tests/test_slots.py": SLOTS_TEST,
         "scripts/reset_ledger.py": RESET,
+        "scripts/lint": LINT,
         ".rolling/map.md": MAP,
         ".rolling/lessons/local-setup.md": LOCAL_SETUP,
         ".rolling/lessons/invoice-totals.md": INVOICE_TOTALS,
         ".rolling/lessons/slot-overlap.md": SLOT_OVERLAP,
     })
+    (top / "scripts" / "lint").chmod(0o755)
     _git(top, "add", "-A")
     _git(top, "commit", "-q", "-m", "ledger: invoices, slots, and the map")
     _write(top, {"billing/invoice.py": INVOICE_FIXED, HELD_TEST: INVOICE_TEST})
