@@ -135,6 +135,26 @@ brief tells them to run it themselves. An operation the lesson has the
 learner perform is never a `setup:` line: running it would do the
 lesson for them.
 
+A fix that adds a dependency needs one more line. The proof's second
+half puts the reference in the tree and runs the checks against it,
+and nothing installs anything in between, so a check that needs the
+new dependency fails for a reason that is nothing to do with the
+reference — which is why such fixes used to be no good as task sources
+at all. A `reference-setup:` line names one operation the verifier runs
+itself, after the reference is applied and before the lines: the
+install, the regenerated client, the thing the learner would have done
+as they went. It runs in that half and nowhere else, so the learner's
+own `done` is unaffected and the `setup:` lines, written for the
+starting state, are not run twice. Not a destructive operation: the
+proof runs unattended and the verifier refuses one there. Not one that
+rewrites a file the fix itself touched either — a plain install
+rewriting the lockfile the fix changed leaves the reference stuck in
+the tree — so name the frozen form if the map has one; the verifier
+checks and says so before it runs the lines. If what it
+writes is not ignored by the learner's own branch, the proof will
+report the tree as dirty afterwards and say what was left — that is
+the author's to fix in the map, not yours.
+
 Then write, with the pen:
 
 - The task, in the shape below: `rolling-write task <<'EOF' … EOF`.
@@ -231,6 +251,7 @@ fix: <the fix's sha, when built from one>
 scope: <path or glob the change is expected to touch; one per line>
 scaffold: <a path inside the scope where you may leave TODO(human) markers; optional>
 setup: <operation key from the map; optional, one per line>
+reference-setup: <operation key from the map; optional, one; the proof's reference half only>
 verify: <command key from the map> [arguments]
 held: <as printed, one per line; the test held back>
 held-verify: <command key> <the held test's path; the pair goes together — a held: line needs one of these to run it, and a shown test is in the tree so its line is a verify: line>

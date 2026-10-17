@@ -271,7 +271,16 @@ together …
   calls, so a map in the tree may carry the scripts its operations
   run (`reset-test-db: .rolling/reset-test-db`): the toolkit carries
   `.rolling/` onto every task branch, and the validator reads only
-  `map.md` and `lessons/`. A map plugin's directory is not in the
+  `map.md` and `lessons/`. One operation is also the proof's: a task's
+  `reference-setup:` names an operation the verifier runs itself, on
+  the reference's tree, with no learner watching. So it must be
+  idempotent enough to run on every proof; a `destructive` one is
+  refused there; and it must leave the reference's own files alone,
+  because the proof takes the reference back out again afterwards. An
+  install that rewrites a lockfile the fix also changed is the one to
+  watch: declare the frozen form (`install --frozen-lockfile`), which
+  is what a proof wants anyway. The verifier checks before it runs the
+  lines and says so in those words. A map plugin's directory is not in the
   learner's tree, so its operations cannot name a path into it.
 - **`destructive`** (optional, a list of operation keys). The ones
   that drop or overwrite something of the learner's. A command that
@@ -573,12 +582,13 @@ are none. The tutor still proves a hand-written task both ways before
 serving it.
 
 A task file carries the author's half of a task's fields, in the same
-frontmatter subset: `mode`, `scope`, `scaffold`, `setup`, `verify`,
-`held`, `held-verify`, `expect-fail-on-base`, and `fix` (the sha the
-task is built from), then a `## Brief` or `## Situation` body and a
-`## Source`. The fields are defined in [`profile.md`](profile.md) §
-`task.md`, since that is where the tutor's copy of them lives; the
-lesson is the parent directory, so there is no `lesson` field.
+frontmatter subset: `mode`, `scope`, `scaffold`, `setup`,
+`reference-setup`, `verify`, `held`, `held-verify`,
+`expect-fail-on-base`, and `fix` (the sha the task is built from), then
+a `## Brief` or `## Situation` body and a `## Source`. The fields are
+defined in [`profile.md`](profile.md) § `task.md`, since that is where
+the tutor's copy of them lives; the lesson is the parent directory, so
+there is no `lesson` field.
 
 ## What `rolling-check-map` checks
 
@@ -622,9 +632,10 @@ file and the field, so a map is fixed in one pass.
   a valid slug; the frontmatter's fields are from the task list above;
   `verify` and `held-verify` lines name command keys, and `held` and
   `held-verify` appear together or not at all; `setup` lines
-  name operation keys; `fix`, if present, is a hex string of 7 to 40
-  characters; the body has `## Brief` or `## Situation`, and
-  `## Source`.
+  name operation keys, and `reference-setup`, if present, is one
+  operation key that `destructive` does not list; `fix`, if present,
+  is a hex string of 7 to 40 characters; the body has `## Brief` or
+  `## Situation`, and `## Source`.
 
 Not checked, on purpose: whether a path in the prose exists, whether
 a sha is in history, whether the rubric is any good. Those are the
