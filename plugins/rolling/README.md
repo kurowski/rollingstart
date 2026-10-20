@@ -24,8 +24,8 @@ walkthrough hands off to the first and your yes to the second. Each
 skill declares the toolkit commands it needs and nothing wider: no map
 command, no package manager, no git that changes the tree; `task` has
 the Edit and Write tools for the test it prepares before a task exists,
-and `lesson` for the `TODO(human)` markers a task's scaffold paths
-allow. The checks a
+and `lesson` for the skeleton and `TODO(human)` markers a task's
+scaffold paths allow. The checks a
 lesson asks of you are the repository's own commands, exactly as the
 map declares them, and when the tutor runs one itself it asks. The
 toolkit's own commands never ask: a skill's grants hold only for the

@@ -25,7 +25,7 @@ before proposing anything structural. Decisions made after it go in its
 - [x] **Plan, draft 2.** PR #2.
 - [x] P1a — `write` mode, in-repo map — [`docs/plans/p1a-write-mode.md`](docs/plans/p1a-write-mode.md). PRs #3–#19.
 - [x] P1b — Distribution: map plugins and the resolver — [`docs/plans/p1b-distribution.md`](docs/plans/p1b-distribution.md). PRs #22–#36.
-- [ ] P2 — Helpful and honest, measured — [`docs/plans/p2-helpful-and-honest.md`](docs/plans/p2-helpful-and-honest.md)
+- [x] P2 — Helpful and honest, measured — [`docs/plans/p2-helpful-and-honest.md`](docs/plans/p2-helpful-and-honest.md). PRs #39–#61.
 - [ ] P3 — The author's plugin
 - [ ] P4 — Release 1.0
 - [ ] P5 — `direct` mode (2.0) — [`docs/plans/p5-direct-mode.md`](docs/plans/p5-direct-mode.md), written and its mechanisms confirmed
@@ -61,9 +61,12 @@ wait. Every push spends a CI run and a paid review, and cancelling one
 in flight is the maintainer's call.
 
 **The plugin knows nothing about any codebase; the map knows everything
-about one.** If a skill or script in `plugins/rolling/` names a package
-manager, a framework, a path in Rallly, or a domain, stop: that belongs
-in a map. The generic example regions in documentation are `billing`,
+about one.** If a skill or script in `plugins/rolling/` names something
+of a target's — a path in it, a domain, a framework or tool it is built
+on — stop: that belongs in a map. A command used as a generic example
+is not that: `ask.py` explains what it matches against `pnpm db:reset`,
+which is any repository's destructive operation rather than a fact
+about one. The generic example regions in documentation are `billing`,
 `scheduling`, and `platform`. The maintainer's employer's codebase never
 appears in this repository, in examples or otherwise.
 

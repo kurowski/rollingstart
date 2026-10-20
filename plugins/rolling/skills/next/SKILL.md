@@ -138,12 +138,21 @@ in now and I explain as we go." Both answers are good ones. Straight in
 is the default if they do not care.
 
 On their yes, the mechanics are the same three commands the `lesson`
-skill uses — `rolling-write detour <slug>` for the plan (its
-`returns-to` is the lesson you just opened), `rolling-write step <detour>
-<step>` for each step you are authoring, one command per step because
-the hook allows one plain invocation and a chained pair asks, then
-`rolling-begin-detour
-<slug>` — and then hand off below as usual: the step is the open lesson,
+skill uses, and the pen takes the shapes it takes:
+`rolling-write detour <slug>` for the plan, whose front matter is
+`gap:` (what is missing, in their words), `returns-to:` (the lesson
+you just opened) and `steps:` (the list), and no other field;
+`rolling-write step <detour> <step>` for each step you are authoring,
+whose front matter is `title:`, `region:` and `depth:` (the returning
+lesson's), and `assumes:` (what the step leans on in turn) — a step of
+yours carries no `exercise:` line, because a gap worth a detour is
+worth doing something about. Each takes a body as well as front
+matter: the plan's is a sentence or two on why these steps, as you
+proposed them; a step's is the walkthrough, then a `## Pointers`
+heading with a `- <path>` line for each file in this repository it is
+about, then a `## Rubric`. Then `rolling-begin-detour <slug>`. One
+command per step, because the hook allows one plain invocation and a
+chained pair asks. Then hand off below as usual: the step is the open lesson,
 and the lesson they were going to start is open again when the detour
 ends. Prefer a lesson of the author's from outside their destination
 where one fits the gap: they vouched for it, it is named rather than

@@ -4,8 +4,11 @@ learner asks nicely.
 A PreToolUse hook on Edit, Write, MultiEdit, and NotebookEdit. While a
 `write` task is open and the session is the tutor's, an edit inside the
 task's scope is denied, except at a scaffold path, where the tutor may
-leave TODO(human) markers the way the built-in Learning output style
-does. Everything else is allowed: another tool, another session, a
+write the file's skeleton and leave TODO(human) markers for its body,
+the way the built-in Learning output style does. What is written at a
+scaffold path is not read: the allow belongs to the path, so the line
+between a skeleton and the learner's own work is the skills' to hold.
+Everything else is allowed: another tool, another session, a
 `direct` task, no task, a path outside every scope, and anything the
 handler cannot make sense of. A hook that blocks the session on its
 own failure would be worse than no hook, so the answer to any doubt is
@@ -161,7 +164,7 @@ def judge(p: Placement) -> Optional[str]:
         f"{p.rel} is the learner's to write in this lesson (it is under {', '.join(matched)}). "
         "Point at the file and line, explain the convention and where the repo follows it, or "
         "ask a question. The only place you may write is a file the task lets you scaffold, "
-        "and only TODO(human) markers there."
+        "and there only its skeleton and TODO(human) markers for what belongs in its body."
     )
 
 

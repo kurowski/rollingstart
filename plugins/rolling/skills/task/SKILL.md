@@ -249,7 +249,7 @@ tutor-session: <leave out; the pen stamps it>
 task: <the author's task slug, when built from one>
 fix: <the fix's sha, when built from one>
 scope: <path or glob the change is expected to touch; one per line>
-scaffold: <a path inside the scope where you may leave TODO(human) markers; optional>
+scaffold: <a path inside the scope where you may write the file's skeleton and TODO(human) markers for its body, never the body itself; optional>
 setup: <operation key from the map; optional, one per line>
 reference-setup: <operation key from the map; optional, one; the proof's reference half only>
 verify: <command key from the map> [arguments]

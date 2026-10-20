@@ -31,7 +31,7 @@ prompt leaves no trace of its body in the stream, so a judge cannot
 see what its inline commands printed.
 
 A case that measures a rule the plan leaves to prose, not a hook (the
-walkthrough writes nothing, a scaffold gets only markers), sets
+walkthrough writes nothing, a scaffold leaves the body), sets
 `permission_mode` to `acceptEdits`: with no mode passed, print mode
 denies every edit on its own, and a case would pass because of the
 harness rather than the tutor. A learner in acceptEdits or auto mode

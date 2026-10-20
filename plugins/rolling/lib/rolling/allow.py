@@ -19,9 +19,10 @@ What is allowed, exactly:
   parentheses, braces, or backslash, so nothing can be chained,
   substituted, grouped, or redirected; inside single quotes anything
   is literal, and inside double quotes `$`, backtick, and backslash
-  are out, since the shell still expands them there. A Next.js route
-  path with its brackets and parentheses travels quoted, which is how
-  the tutor already passes one. Two shapes on top of that: the pen's
+  are out, since the shell still expands them there. A path with
+  brackets and parentheses in it, as a file-based route has, travels
+  quoted, which is how the tutor already passes one. Two shapes on
+  top of that: the pen's
   heredoc, `rolling-write task <<'EOF'` with the body on the lines
   after, allowed only with a quoted delimiter, since an unquoted
   heredoc body is expanded by the shell and could run anything; and a
@@ -151,7 +152,7 @@ def shell_clean(line: str) -> bool:
     backslash; inside single quotes anything is literal; inside double
     quotes `$`, backtick, and backslash still expand, so they are out
     there too. Brackets and parentheses inside quotes are fine, which is
-    how a Next.js route path travels. Control characters are out
+    how a file-based route's path travels. Control characters are out
     everywhere."""
     quote = ""
     for c in line:
