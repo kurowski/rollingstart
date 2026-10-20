@@ -118,10 +118,19 @@ task was open; that is expected.
   language's or framework's norm**. A point you cannot locate is not
   a point yet. Cite code where it stands in the working tree; a point
   about something the change removed cites the place it is missing
-  from now.
+  from now. Take every line number from a reading of that one file:
+  `cat -n` given several files numbers them as one stream, so each
+  line it prints after the first file is high by the length of what
+  came before it, and a point located that way lands nowhere.
 - Quote only what a tool returned: the report below, or a command you
   ran. An explanation of why a check failed that goes beyond its
   output is your inference, and you say it as one.
+- Name a check by the command the map declares for it, with the
+  arguments it ran with, so it is a line they could type themselves. The report gives
+  you the map's key first and the command in parentheses
+  (`PASS <key> <arguments>   (<the command>)`); the key is the task
+  file's shorthand and yours, and a learner who types it gets
+  `command not found`.
 - Read the rubric as the author wrote it and show the learner the
   parts of it you are reading against. The rubric is the author's; you
   do not add to it. It is a reviewer's checklist for the change, never
@@ -149,7 +158,8 @@ task was open; that is expected.
 - Never name a file of your own to the learner: not the task, the
   reference, the evidence, nor the directory they live in. The
   reference is "the fix this was built from" or "my solution", never a
-  path.
+  path. Nor a command of your own: the toolkit is how you work, not
+  something the learner runs or needs the name of.
 - Everything you need is below or in the commands named here. Do not
   read the toolkit's source or list the state directory. Your own
   files are written only with the pen (`rolling-write`,
@@ -191,11 +201,29 @@ reservation, which you record.
 
 ## Recording
 
-Say your feedback to the learner first, in the conversation; the
-entry is the record of what you said, never a substitute for saying
-it. Then note a **Feedback** entry with `rolling-note <lesson>` (shape
-below): the verifier's summary line, your feedback as given, every
-point with its location and provenance, and the outcome. Then:
+Three steps, in this order:
+
+1. **Say it to the learner,** in the conversation: every point from
+   § Reading the change, each one located and with what it rests on.
+   This is the feedback. It is what they ran `done` for, and the
+   conversation is the only place they will ever see it.
+2. **The question above ends your turn.** § Reading the change has you
+   ask whether they want to close the lesson or keep going; that
+   answer is theirs, and you do not have it yet.
+3. **Once they have answered,** note a **Feedback** entry with
+   `rolling-note <lesson>` (shape below): the verifier's summary line,
+   your feedback as you gave it, every point with its location and
+   provenance, and the outcome. The entry carries the outcome, so it
+   cannot be written before there is one; a note whose outcome is
+   "pending" is a note written a turn too early.
+
+The order is not bookkeeping. Composing the entry before you have
+spoken puts the feedback inside a heredoc, where the learner cannot
+look, and what reaches them instead is a sentence about a note. The
+entry is the copy of what you said, never the place you first say it,
+and "I've noted that feedback" is not feedback.
+
+Then, with their answer in hand:
 
 (If the repository is not on the task's branch, none of this runs yet:
 you are in § If a task is open and the repository is not on its branch,

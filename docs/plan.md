@@ -474,7 +474,7 @@ learner, in conversation, never by the tutor on its own.
 | The human's ledger (`direct`) | Before the learner's direction or review is read, the verifier's findings are taken off the table: a type error, a lint failure, a failing test are the checks' job, and the only thing on the learner's ledger about them is whether they asked for the checks before saying done. What the tutor reads and says something about is what a person directing an agent is responsible for: placement, convention, scope, whether a test was written and tests the right thing, a design that will not age, and the steering that got there; said once, as a colleague would, with the learner closing the lesson as in a `write` one. The held test's own result is read the same way: a fail against a valid alternative is the test's shape, not the learner's fault, and is said so. The spike's first `direct` run graded the learner on things the tests catch; that was wrong and this is the correction. |
 | A second opinion is available, never required | In the backlog since planning P2, open to debate (§ 10). An optional `second-opinion` subagent with fresh context and read-only tools, invoked by the learner when they want fresh eyes on a diff (or by the tutor when the two disagree). It advises; it does not satisfy or block anything. |
 | The learner drives | The tutor answers what is asked, the approach and the reference included, and notes what it gave so `done` reads the change with that in mind; a rubric is read against the change and never turned into questions, and a lesson's `## Talk through` items are offered once and dropped; the learner closes a lesson, and the tutor's reservations go to evidence rather than holding it open. Prose in P1; P2's eval measures whether the tutor said what it saw and then deferred. The one hard line is the write guard, which defines the mode rather than polices the learner: a learner who wants the change written for them is asking for a `direct` lesson, and the tutor offers one. |
-| Don't do the task for the learner (`write`) | A **PreToolUse** hook in the plugin's `hooks.json` denies Edit and Write inside the open task's `scope` while a `write` task is open and the session is the tutor's, except paths the task marks `scaffold`, where the tutor may leave `TODO(human)` markers the way the built-in Learning output style does. It lives in `hooks.json` and reads the open task, not in a skill's `hooks:` block: hooks a skill registers persist for the rest of the session, which is the wrong lifetime. The hook is the one rule that must hold even when the learner asks nicely. |
+| Don't do the task for the learner (`write`) | A **PreToolUse** hook in the plugin's `hooks.json` denies Edit and Write inside the open task's `scope` while a `write` task is open and the session is the tutor's, except paths the task marks `scaffold`, where the tutor may write the file's skeleton and leave `TODO(human)` markers for its body, the way the built-in Learning output style does; the hook does not read what is written there, so the line between a skeleton and the learner's own work is prose's to hold and an eval's to measure (§ 10, 2026-10-19). It lives in `hooks.json` and reads the open task, not in a skill's `hooks:` block: hooks a skill registers persist for the rest of the session, which is the wrong lifetime. The hook is the one rule that must hold even when the learner asks nicely. |
 | The coding session is a real session (`direct`) | The learner's coding agent is an ordinary Claude Code session in the same repo, not a subagent of the tutor and not primed by it. The plugin's hooks apply to every session where the plugin is enabled, so every hook handler begins by reading the open task, if any, and this session's id. The tutor's session id is the `tutor-session` field of the open task, written from `${CLAUDE_SESSION_ID}` by every learner-side skill each time one runs, so whichever session last ran a skill is the tutor and a restarted tutor reclaims the role. While a `direct` task is open, a session that is not the tutor's is logged, one file per session id under `sessions/`, and denied any read or write of the learner's state directory; the tutor's session is neither logged nor guarded. Nothing is injected into any session at start. Whatever the learner sets for their tutor session (an output style, say) can still reach the coding session through the directory's shared settings; the plugin has no launcher to pin it, so that is a named exposure (§ 8) checked by an eval, not a solved problem. |
 | The tutor watches, sparingly (`direct`) | The lesson skill starts a Monitor that follows the `sessions/` directory, filtered to prompts, replies, and file edits, for the life of the tutor's session; a new tutor session on an open `direct` task reads the logs so far and starts it again. Replies arrive once per turn, from the Stop hook's last message. The tutor speaks only on an event worth a word: the agent editing outside the task's scope and the learner not noticing, a result accepted without the repo's checks, the same ask rephrased a third time. One or two lines, as an offer, in its own window, written to evidence as its own intervention. Otherwise an empty turn. Triggers it cannot observe from the log are not triggers. Where Monitor is unavailable (Bedrock, Vertex, Foundry, or non-essential traffic disabled) the tutor says up front that it is not watching and reads the logs at `/done`. |
 | No fourth wall | The checks a learner runs during a lesson are the same tools a developer here uses in the normal course of work: the map's declared commands, given verbatim. The tutor names the lesson's mode up front and never cites a script, a task file, or a profile file; those are its own. Nothing the tutor puts in the repo shows up in the repo's own checks, which the storage layout now guarantees rather than a gitignore. |
@@ -628,24 +628,31 @@ from the map in its tree under `go test`; a Rallly clone with the
 plugin installed and the map committed in its tree is taught from the
 tree.
 
-**P2 — Helpful and honest, measured.** Reshaped while planning it
-(2026-09-24, § 10); the plan is
-[`docs/plans/p2-helpful-and-honest.md`](plans/p2-helpful-and-honest.md).
-The first eval suite, weighted toward helpfulness: did the tutor answer
-a direct question directly, adapt to the background, offer to skip what
-the learner knows, offer a quiz without forcing one, close a lesson when
+**P2 — Helpful and honest, measured. Done** (2026-09-23 to 10-20;
+PRs #39 to #61; the record and the retrospective are in
+[`docs/plans/p2-helpful-and-honest.md`](plans/p2-helpful-and-honest.md)).
+Reshaped while planning it (2026-09-24, § 10). The first eval suite,
+weighted toward helpfulness: 24 cases on a harness of our own around
+`claude -p`, since `claude plugin eval` refuses the plugin under test
+both git and its own data directory (2.2); each case is a seeded state
+and a line or two from the learner, graded by what is in the tutor's text, which
+commands ran, the tree and the learner's state afterwards, and an LLM
+judge for what only a reader can tell. Did the tutor answer a direct
+question directly, adapt to the background, offer to skip what the
+learner knows, offer a quiz without forcing one, close a lesson when
 told, say what it saw in the change, and keep its plumbing to itself;
-and toward honesty: did it cite code that is there, quote only output
-it received (#30), and never wave a failing check through. The citation
-check; detours with the depth cap; the ask-before-destructive hook (the
-second layer of § 5's row, a hook on Bash that asks for a command
-carrying the head of a destructive map operation, in every session and
-mode); closing a lesson returning the learner to their branch in the
-same step (#29); and proofs that fail for the right reason (#14, #31,
-#32, #33). `escalate` and `second-opinion` wait in the backlog, and
-`ask` is dropped. *Exit:* evals pass on two model versions; a seeded
-*gap in the learner's background* (a seeded profile, not a planted
-mistake) earns a correctly named detour grounded in Rallly's own code.
+and did it cite code that is there, quote only output it received
+(#30), and never wave a failing check through. The citation check, as
+a Stop hook on every reply; detours, up to three steps that are
+lessons like any other, parking the task and coming back to it; the
+ask-before-destructive hook, which holds against accident and is
+documented not to hold against evasion (2026-10-14, § 10); closing a
+lesson returning the learner to their branch in the same step (#29);
+and proofs that fail for the reason they claim (#14, #31, #32, #33).
+`escalate` and `second-opinion` wait in the backlog, and `ask` is
+dropped. *Exit:* evals pass on two model versions; a seeded *gap in
+the learner's background* (a seeded profile, not a planted mistake)
+earns a correctly named detour grounded in Rallly's own code.
 
 **P3 — The author's plugin.** `rolling-author`: `init` drafts the map
 from a bare repo (regions from the module structure and history,
@@ -1106,10 +1113,11 @@ before the next checkpoint; the run is written up in its PR):
   dropping `rolling`'s version so it follows `main`, which is simpler
   but lets code change under a lesson in progress, which P1b decided
   against for maps. So `rolling` takes a minor bump per change until
-  1.0, a map follows `docs/map.md`, the version lives in `plugin.json`
-  and not in `marketplace.json`, and CI's `versions` job refuses a pull
-  request that changes a plugin, outside its `tests/`, without a new
-  version, or leaves a plugin with none (PR #35).
+  1.0 (the size revised below, 2026-09-26), a map follows
+  `docs/map.md`, the version lives in `plugin.json` and not in
+  `marketplace.json`, and CI's `versions` job refuses a pull request
+  that changes a plugin, outside its `tests/`, without a new version,
+  or leaves a plugin with none (PR #35).
 
 **Planning P2** (2026-09-24):
 
@@ -1187,3 +1195,170 @@ before the next checkpoint; the run is written up in its PR):
   cannot positively recognise as safe — buys back a case nobody meets
   at the price of a prompt on everything, and a prompt that fires
   constantly is one the learner waves through.
+
+**Closing P2** (2026-10-19; each decision dated where it was made):
+
+- **The citation check is a Stop hook on every one of the tutor's
+  replies** (2026-09-26). The honest form of "feedback is grounded" is
+  that the learner never acts on a citation pointing nowhere, so
+  `rolling-check-reply` checks every `path:line` in the turn's text
+  against the working tree and blocks the stop with the flags as its
+  reason. Not on `done`'s written evidence, which `done` speaks before
+  it writes, so a check there arrives a learner's message late; and
+  not on a draft before speaking, which would cost the slowest turn a
+  second copy of every point. It can only tell that a line exists, not
+  that it says what was claimed, which is enough: it flags a mistake
+  of the tutor's and constrains nobody.
+- **Quoted output is honesty prose and an eval, not a hook**
+  (2026-09-26). A Stop hook could compare quoted blocks with the
+  transcript's tool results, but a code block in a reply is not
+  reliably a quote and a false flag in the learner's window is its own
+  dishonesty. The rule is worded as "trust, but verify": the learner's
+  report is what they saw, the tutor reproduces it with its own tools,
+  a difference is the clue, and a cause it cannot see is said as an
+  inference. #30's shape is a case instead.
+- **A detour is a side-quest of up to three steps, and a step is a
+  lesson** (2026-09-27 and 2026-10-12). Several steps replace nesting:
+  the lesson leaning on an ORM and the ORM on SQL is two steps of one
+  detour, which keeps one return point. A gap needing more than three
+  is bigger than a detour, and the tutor says so and names a teammate.
+  Taken mid-task, the task is parked and resumed when the detour ends,
+  because the gap usually shows mid-task and a side-quest that cannot
+  be done by doing is half of one. And the open step is the
+  open-lesson marker's own slug, so the walkthrough, the task builder,
+  the evidence and `done` serve a step without being taught that a
+  step exists; what that costs is a short list of refusals, each one
+  closing a way for two things to answer to one slug.
+- **Closing a lesson leaves the task, in the same step** (2026-10-14,
+  from #29). The learner answered "shall we go back to your branch?"
+  with `git switch main`: end never ran, their change came along
+  uncommitted, and the task stayed open behind them. Closing the
+  lesson is the decision to leave. The sharp half is the report: off
+  the task's branch, subtracting the task's base from the working tree
+  answers a different question, and for a task cut from a real fix the
+  answer is the author's fix, on which the verifier passes — so the
+  one state this rule exists for was the state where the tutor would
+  have praised the learner for code they did not write. The report now
+  says so and `done` gives no feedback there.
+- **A command that could not run is not an expected failure**
+  (2026-10-17, from #31). `rolling-verify` reports a line whose shell
+  exits 126 or 127 as `COULD-NOT-RUN`, which fails a proof both ways,
+  and the task skill reads each `EXPECTED-FAIL` line's output for the
+  test's own failure before accepting it. The toolkit cannot know
+  every runner's "no such script" message and must not read one, so
+  the part a script can know — the shell never found the program — is
+  the script's, and the rest belongs to the tutor, who reads the proof
+  already. A held test that does not compile is still a legitimate
+  expected failure.
+- **A reference that adds a dependency gets one declared operation**
+  (2026-10-17, from #32). A task may carry `reference-setup: <key>`;
+  `rolling-verify --on-reference` runs it after applying the reference
+  and before the lines, and refuses a destructive one. Operations are
+  the author's shell, reviewed in the repository already, so this
+  widens what `verify` runs by one declared step rather than by
+  anything free-form. Re-running `setup:` instead would run steps
+  written for the starting state.
+- **The learner's ignore rules come along to the task branch**
+  (2026-10-17, from #33). `rolling-begin-task` appends the return-to
+  branch's ignore patterns to `.git/info/exclude` between two marker
+  lines and `rolling-end-task` removes them, so the clean-tree check
+  and the commit of what the learner left both see the tree the way
+  the learner's own branch sees it. `.git/info/exclude` is not in the
+  tree, so nothing the tutor writes reaches the repository, and the
+  markers make a crash between begin and end repairable by the next
+  begin.
+- **A bump that only reaches installed copies is a patch**
+  (2026-09-26, with the minor moved to the checkpoint's exit on
+  2026-10-12; replaces the size in the 2026-09-24 entry above).
+  `rolling` takes a patch bump per change inside a checkpoint; the
+  minor waits for the checkpoint's exit, where it is asked about once
+  and is the maintainer's call; a major is not expected before P5 or
+  P6 is finished. The bump exists to break `/plugin update`'s version
+  comparison, which says nothing about the change, and a minor per
+  pull request would have counted merges rather than meant anything.
+  A slice ships a part, and there is no story to tell a learner until
+  the checkpoint has them all.
+- **The suite has to tell a broken run from the tutor misbehaving**
+  (2026-10-13, from #50). A judge's answer the harness cannot read
+  was becoming a failed criterion, in a suite whose whole job is
+  telling those two apart, and the raw record was not kept to
+  diagnose it afterwards. Every judge call's record is now written
+  beside the turn streams; a call that failed is reported as that; and
+  a verdict has to be a boolean to be a verdict, since `"pass":
+  "false"` through `bool()` is a silent green, the one failure this
+  suite cannot afford.
+- **Evals run by hand, not in CI** (2026-09-24). On a skill change
+  that could move behaviour, on a new model, and at each checkpoint's
+  exit, with the report linked from the pull request or the
+  retrospective. Each case is several `claude` runs on a real
+  credential; CI has neither the credential nor the budget, and a
+  flaky nightly teaches everyone to ignore it. The gate stays
+  deterministic.
+- **A scaffold is a skeleton; the test's body is the learner's**
+  (2026-10-19, from the first exit run, `20261019-080833`). Asked to
+  set up the test file the
+  task lets it scaffold, Opus left `TODO(human)` markers and nothing
+  else, and Sonnet wrote the imports, the `TestCase` class and the
+  `unittest.main()` footer and left the learner the assertion — 0/3,
+  on a mechanical check. The guard's allow at a scaffold path is
+  unconditional and never reads what is written, so the choice was to
+  make it read or to say that a skeleton is tutoring. A skeleton is
+  tutoring: the imports and the class are the repository's shape,
+  which the walkthrough shows anyway, while the data the test builds
+  and the assertion about it are the thinking the lesson exists for.
+  The case became `scaffold-leaves-the-body` and measures that the
+  body is not written, rather than that nothing is.
+- **What the learner's own working copy shows them is not the tutor's
+  plumbing** (2026-10-19, from the exit run). A run failed
+  `plumbing-stays-hidden` for saying which branch the exercise is on.
+  The branch is in their own `git status`; no fourth wall is about the
+  tutor's files, commands and data directory, which the learner has no
+  way to see and no reason to know. A criterion that forbids saying
+  what is already on their screen buys discretion with evasiveness.
+  The toolkit's command *names* are the tutor's, though, and `lesson`
+  now says so where it says how to show the reference, after a run
+  offered `rolling-show reference` out loud.
+- **The feedback entry is written after the learner answers, because
+  it records their answer** (2026-10-19, from the exit run). Three
+  failures across both models were one defect: `done` composed its
+  whole feedback inside the `rolling-note` heredoc and then told the
+  learner "Your change meets the rubric." The notes were right — one
+  named the `COULD-NOT-RUN` check, the missing command and the setup
+  lesson to pick it up in — and unreadable, because the pen writes
+  where the learner cannot look. The cause was not a preference for
+  the pen. Every run that got this right wrote the entry in its *last*
+  turn, after the learner said close or keep going, and the entry's
+  `Outcome:` line is why: a tutor asked to record before that answer
+  exists has to write "pending", and the runs that did so had composed
+  the feedback in the heredoc on the way. § Recording now has three
+  steps, with the question ending the turn and the entry written once
+  the answer is in. Not a Stop hook, and not for the reason first
+  given: the obvious predicate — a turn that writes a Feedback entry
+  must say a `path:line` out loud — was tried against all 37 recorded
+  Feedback turns and would have blocked 23 turns that were perfectly
+  good, because feedback quoting a rubric in prose cites nothing. A
+  judge-like rule a script cannot hold stays prose, as with quoted
+  output above. One consequence, accepted: a conversation the learner
+  abandons at the question now leaves no **Feedback** entry at all,
+  where before it left one saying "pending". The feedback was said in
+  the conversation, which is where it was always meant to live, and
+  the **Observation** entries from the lesson survive either way.
+- **The tutor's plumbing may leak; it must not be front and centre**
+  (2026-10-20, from the third exit run). The learner knows the tutor is
+  a coding agent with files and graders of its own; the fourth wall is
+  a matter of where attention goes, not a secret to be kept. A run
+  failed `plumbing-stays-hidden` for telling the learner "There's no
+  `tests/test_invoice.py` in your tree yet, so you'll create your own
+  test file" — the held test's path, in a sentence saying it is *not*
+  there, which is true and which the tutor's own `ls tests` had just
+  shown it. That is not what the rule is for. What the rule is for is
+  a tutor whose answers are about its own machinery instead of the
+  learner's work: naming its task file, its data directory, its
+  toolkit's commands, or sending the learner's test to a path that is
+  the tutor's. The case stays, and stays a guideline; P2 closed at 143
+  of 144 with this failure named rather than with the grader adjusted
+  to agree with the ruling, and whether an `absent` grader on one
+  filename is the right instrument for it is in #59 with the rest of
+  the branch's spec questions. The decision that a learner's own `git
+  status` is not plumbing (2026-10-19, above) is the same line drawn
+  from the other side.

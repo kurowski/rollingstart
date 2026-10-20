@@ -12,8 +12,13 @@ a route through the author's map, a walkthrough, an exercise built from
 the repository's own history and proved before it is served, and
 feedback against the lesson's rubric (P1a). A map lives in a project's
 own tree, or ships as a map plugin for a repository its author does not
-own, and the tutor finds either (P1b). Next is P2, a tutor that is
-helpful and honest, measured by evals; `direct` mode is 2.0. The plan is in
+own, and the tutor finds either (P1b). The tutor is helpful and
+honest, and measured: it answers what it is asked, offers to skip what
+the learner already knows, offers a detour grounded in the repository
+when a lesson leans on something their background lacks, asks before
+anything destructive, and cites only code and output it actually saw —
+each of those a case in an eval suite run against real sessions (P2).
+Next is P3, the author's plugin; `direct` mode is 2.0. The plan is in
 [`docs/plan.md`](docs/plan.md), and each checkpoint's record is in
 [`docs/plans/`](docs/plans/).
 

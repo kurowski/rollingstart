@@ -223,8 +223,9 @@ Fields, all in the frontmatter subset `map.md` defines:
   `./src/` as `src`. Paths from the model are untrusted input
   everywhere the toolkit reads them.
 - **`scaffold`** (optional, one or more). Paths inside the scope where
-  the tutor may write, leaving `TODO(human)` markers the way the
-  built-in Learning output style does. A scaffold names files exactly,
+  the tutor may write the file's skeleton and leave `TODO(human)`
+  markers for what belongs in its body, never the body itself, the way
+  the built-in Learning output style does. A scaffold names files exactly,
   as a path or a glob; a bare directory names nothing beneath it,
   since that would exempt the scope, so a directory of new files is
   spelled `dir/**`.

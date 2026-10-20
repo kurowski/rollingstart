@@ -1,5 +1,5 @@
 {
-  "description": "At done, the tutor's feedback cites the code by path and line, and every citation points at a real line on the first try, so the citation check never has to step in.",
+  "description": "At done, the tutor's feedback cites the code by path and line, and every citation points at a real line on the first try, so the citation check never has to step in. Then the learner answers, and the Feedback entry the tutor notes carries the same located points.",
   "seed": {
     "profile": {
       "background": "Six years of Python, backend services. Never worked on this codebase.",
@@ -19,6 +19,9 @@
     }
   },
   "prompt": "/rolling:done",
+  "then": [
+    "Makes sense. I'd like to keep going — I'll add another case to my test."
+  ],
   "max_turns": 30,
   "graders": [
     {
@@ -34,6 +37,12 @@
     {
       "name": "every citation lands",
       "type": "no_stop_block"
+    },
+    {
+      "name": "the entry carries the located feedback",
+      "type": "learner_file",
+      "file": "evidence/invoice-totals.md",
+      "pattern": "\\*\\*Feedback\\.\\*\\*[\\s\\S]*\\.py:\\d+"
     }
   ]
 }

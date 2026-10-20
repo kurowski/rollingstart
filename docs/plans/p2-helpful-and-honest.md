@@ -1106,17 +1106,49 @@ PR #58.
 
 ---
 
-### 2.11 — The exit run, and closure [PENDING]
+### 2.11 — The exit run, and closure [COMPLETE]
 
 Run the exit criterion honestly and close the checkpoint. Branch
 `p2.11/closure`; depends on everything above. Done when: the whole
-suite has passed on two model versions (the two the audience uses at
-the time, Opus 5.5 and Sonnet 5 today), with the reports linked here;
-on a Rallly clone at the pin, a seeded profile whose background lacks
-what a lesson `assumes` is offered a detour correctly named for the
-gap and citing Rallly's own files, read by hand; the retrospective is
-appended here; `CLAUDE.md` § Status, `docs/plan.md` § 7, and the
-README are updated; the decisions worth keeping are in § 10, dated.
+suite has passed on two model versions — current Opus and current
+Sonnet, whichever those are when the run happens — with the reports
+linked here; on a Rallly clone at the pin, a seeded profile whose
+background lacks what a lesson `assumes` is offered a detour correctly
+named for the gap and citing Rallly's own files, read by hand; the
+retrospective is appended here; `CLAUDE.md` § Status, `docs/plan.md`
+§ 7, and the README are updated; the decisions worth keeping are in
+§ 10, dated.
+The suite ran three times over the whole of it, on `claude-opus-5-5`
+and `claude-sonnet-5-5`: 144 sessions each, about seventy minutes
+serial. The first came back red — nine failures from five defects,
+Opus 70/72 and Sonnet 65/72 (`20261019-080833`) — and two of the five
+were faults in the criteria rather than the tutor, ruled so by the
+maintainer (§ 10, 2026-10-19). The second failed twice
+(`20261019-105919`): Opus cited two line ranges past the end of a
+twenty-line file, which was `cat -n` over several files numbering them
+as one stream, and Sonnet named the held test's path as where the
+learner's own test belongs. The third is **143 of 144**
+(`20261019-164012`, Opus 72/72, Sonnet 71/72, $25.80 of tutor
+sessions), and its one failure is the second of those two in a shape
+the fix reached and the grader cannot read: the tutor now says that
+path is *not* in the learner's tree, which is true and which its own
+`ls tests` had shown it, and an `absent` grader on one filename cannot
+tell that from sending them there. Ruled fine (§ 10, 2026-10-20), with
+the grader itself listed in #59, so the checkpoint closes with the
+failure named rather than with the grader changed to agree with it.
+`evals/results` is gitignored, so each report is the stamp above,
+under `evals/results/` on the machine that ran it.
+The criterion's other half ran by hand on `../rallly-spike` at the
+pin: a profile with ten years of Postgres and no Prisma and
+`polls: working` was offered a two-step detour named for the gap,
+citing Rallly's own files, every claim of which checks out at
+`f61c09708`. It found two things no eval case on the fixture could —
+`next` sends the tutor to write a detour and its steps while carrying
+neither shape, and `done` read back a map command *key* as though the
+learner could type it — and both are fixed here. That is the argument
+for keeping a by-hand run in the criterion rather than treating the
+suite as the whole of it; the retrospective below has the detail.
+`rolling` 0.4.7 → **0.5.0**, the minor the checkpoint's exit takes.
 
 ## Explicitly deferred
 
@@ -1128,7 +1160,19 @@ README are updated; the decisions worth keeping are in § 10, dated.
 - **`ask`**: dropped, not deferred.
 - **Guards for the session stamp, shell writes in scope, the
   walkthrough's write window, and scaffold content**: built only if
-  2.5's case for one fails.
+  2.5's case for one fails. Three were never needed. The
+  scaffold-content case did fail — 0/3 on Sonnet at the exit run,
+  against a rule Opus kept — and the answer was that the rule was
+  wrong, not that it wanted a guard: writing a test's skeleton is
+  tutoring, and only the body is the learner's (`docs/plan.md` § 10,
+  2026-10-19). So still no guard, and the case measures the body. Every
+  place that states the rule now says skeleton-and-markers rather than
+  markers only: the `lesson` and `task` skills, `guard.py`'s docstring
+  and its denial message, `docs/profile.md` (where the task file's
+  fields are specified), `docs/plan.md` § 5, the plugin's README, and
+  the harness's own note. This
+  also closes P1a's deferred "scaffold-content rule, prose-held, for
+  P2's eval".
 - **Evals in CI**: not planned. The suite is run by hand at the
   moments `docs/workflow.md` names.
 - **A hook that checks quoted output against tool results**: only if
@@ -1138,6 +1182,35 @@ README are updated; the decisions worth keeping are in § 10, dated.
   row: P3's `init` writes them; the install notes already ask.
 - **Everything in `direct` mode**: P5. P5's output-style check becomes
   an eval there, on this harness.
+- **The held copy keeping git's executable bit** (#56): a held file is
+  copied with `write_bytes`, so a held line whose declared command *is*
+  the file reads 126. 2.9 made that state honest — it was
+  `EXPECTED-FAIL(126)` with the proof saying ok, the #31 class exactly
+  — and the fix belongs with `begin-task`, where the mode can be read.
+- **A route to a lesson the learner names** (#57): `next` chooses among
+  reachable *unsatisfied* lessons, so a learner who names one they have
+  already done has no way back to it, which also swallows every
+  re-read. 2.9's environment rule names the setup lesson rather than
+  offering to serve it for exactly this reason. It matters most for a
+  map plugin, whose lessons are not in the learner's tree to read for
+  themselves.
+- **`could-not-run-is-theirs` still measures only one half of `done`'s
+  recording.** The **Feedback** entry is written in the turn *after*
+  the learner answers (§ 10, 2026-10-19), and that case ends the
+  conversation on the tutor's feedback, so it cannot see whether the
+  entry was ever written; `done-over-reservation` checks a line in the
+  entry but not that the feedback was said. `citations-land` was the
+  other such case and is no longer: at the maintainer's direction it
+  gained a second learner line ("I'd like to keep going") and one
+  `learner_file` grader, that the entry carries a located point. The
+  turn *in* which it was written is deliberately not graded: a regex
+  over the `Outcome:` line's wording was tried, and over-fitted the
+  rule rather than the harm — what the learner loses when `done` gets
+  this wrong is feedback that never reaches them, and `cites the
+  code`, reading the tutor's spoken text, already measures that. The
+  same second turn in `could-not-run-is-theirs` would measure the
+  entry on the `COULD-NOT-RUN` path, where it has to carry the missing
+  command and the setup lesson too. P3.
 
 ## Verification
 
@@ -1151,8 +1224,311 @@ README are updated; the decisions worth keeping are in § 10, dated.
   suite in the tree.
 - Every mechanism above has a recorded result, and none of them is
   "no" without a plan change that says how.
-- `grep` finds no package manager, framework, path, or domain of any
-  target's under `plugins/rolling/`, the fixture included; the
+- `grep` finds nothing of any target's under `plugins/rolling/`, the
+  fixture included: no path, no domain, no framework or tool a target
+  is built on. A generic shell example is not that, and stays —
+  `ask.py` explains its matching against `pnpm db:reset`, which is any
+  repository's destructive operation rather than a fact about one. The
   fixture's regions are `billing`, `scheduling`, and `platform`.
 - Issues #14, #29, #30, #31, #32 and #33 are closed by the PRs named
   above.
+
+## Retrospective
+
+**Planned against delivered.** Eleven sub-scopes, delivered as fifteen
+pull requests between 2026-09-23 and 10-20 — #39 to #45, #47, #49, #52
+to #55, #58, and this one, #61 — with two process pull requests beside
+them (#46, the working agreements this checkpoint added; #48, the
+version policy).
+The suite, the citation check, detours, the ask-before-destructive
+hook, the close that leaves the task, and the two proof gaps all landed
+as planned. Three things were not in the plan. 2.6 was one sub-scope
+and became three: park and resume had to exist before detours could
+use them (2.6a), and 2.6c came out of #50, filed while reading 2.6b's
+runs. The citation check was planned as "a check" and became a Stop
+hook on every one of the tutor's replies, not on the evidence `done`
+writes. And the eval suite was planned as a user of `claude plugin
+eval`; 2.2's probes killed that in a morning, and the suite is a
+harness of our own.
+
+**The exit run, as it went.** It came back red. The whole suite, three
+times, on `claude-opus-5-5` and `claude-sonnet-5-5`: 144 sessions,
+$24.06, about seventy minutes serial, Opus 70/72 and Sonnet 65/72
+(`evals/results/20261019-080833`). Nine failures were five defects, and
+only one of the five was a rule the plugin holds with code.
+
+Three failures, on both models, were one defect on the `done` path: the
+tutor composed its whole feedback inside the `rolling-note` heredoc and
+then told the learner "Your change meets the rubric." The notes were
+right — one of them named the `COULD-NOT-RUN` check, the program the
+shell could not find, and the setup lesson where that gap is picked up
+— and the learner could not see a word of it.
+
+Diagnosing it took two attempts and the first one was wrong, which is
+worth recording because the wrong diagnosis was the plausible one. It
+looked like a tutor that preferred its pen to its learner, so the fix
+was to put saying before recording; the defect came back. What the
+transcripts actually showed was that every run which got this right
+wrote the entry in its *last* turn, after the learner had said close or
+keep going — because the entry carries an `Outcome:` line, and the
+outcome is their answer. The skill was asking for the record a turn
+before the thing it records existed, and a tutor obeying that had to
+write "pending" and had composed the feedback into the heredoc to get
+there. The fix is a third step: the question ends the turn, and the
+entry is written once the answer is in. The same reading retired the
+19-of-42 figure the first pass produced for "said but never recorded":
+those are single-turn cases ending before the learner answers, so the
+record was never due. Two were criteria faults rather than tutor faults, ruled
+so by the maintainer: a scaffolded test's skeleton is tutoring (Sonnet
+0/3 against a rule Opus kept), and a branch name the learner can read
+in their own `git status` is not the tutor's plumbing. Two were real
+and small: a toolkit command named out loud, and a walkthrough that
+answered "quiz me" with "any questions so far?".
+
+Two of those — the skeleton and the branch — are in § 10 as decisions,
+because each is a line about what the tutor owes the learner rather
+than a bug. The other three were prose fixes in `lesson` and `done`,
+and no hook: all three held in the two full suites since, 288 sessions
+with no recurrence.
+
+The suite ran twice more. The first of those
+(`evals/results/20261019-105919`, $24.27) came back with two failures
+rather than nine: Opus citing two line ranges past the end of a
+twenty-line file, which was `cat -n` over several files numbering them
+as one stream and is now a line in `done`; and Sonnet naming the held
+test's path where the learner's own test should go. The second
+(`evals/results/20261019-164012`, $25.80) is 143 of 144, Opus 72/72 and
+Sonnet 71/72, and its one failure is that same Sonnet case.
+
+The by-hand run earned its place in the criterion, and not for the
+reason it was written for. It did what § 2.11 asked — a profile with
+ten years of Postgres and no Prisma, `polls: working`, and `next`
+naming the gap, offering a two-step detour called for it, and citing
+Rallly's own files, every claim of which checks out at `f61c09708` —
+and then it found two things the suite cannot. `next` sends the tutor
+to write a detour and its steps while carrying neither shape, so the
+pen refused both writes and the learner watched it guess twice; the
+templates live in `lesson`, whose body is not in context yet. And at
+`done` the tutor said "`test-web src/features/poll/invite/revoked-by.test.ts`
+went green", which is the map's command *key*, not a command the
+learner can type — the fixture's keys are `test` and `lint`, words
+that read like commands, so no eval case could have caught it on the
+fixture. A real map has `test-web`. That is the argument for keeping a
+by-hand run in the exit criterion rather than treating the suite as
+the whole of it.
+
+One thing to keep about method. The smoke pass before this run was
+24/24 on Opus at `--runs 1`, and this run has Opus failing two cases
+one time in three. A single pass proves the harness runs end to end;
+it cannot see a one-in-three defect, and the two models disagreeing
+was the whole reason for running both.
+
+**What the evals found that reading could not.** This is the
+checkpoint's return on itself, and it was not what was expected. The
+cases found fewer rule violations than design faults, and the design
+faults were in the prose:
+
+- **Five of 2.5's eight cases, and one of 2.4's, never measured the
+  tutor at all.** A free-text first line loads the lesson skill only
+  when it sounds like a question *about the lesson*; a request to
+  write, run, or fix something was answered by plain Claude Code, with
+  none of the tutor's rules in reach. A mid-lesson case now opens with
+  `/rolling:lesson`, as a learner's conversation would. This is the
+  single most useful thing the suite has said, because every one of
+  those cases was green on the property it did not test.
+- **Print mode's own permission mode would have passed four cases for
+  the harness's reasons.** With no mode passed, every edit is denied on
+  its own, so a case measuring a prose rule about writing passes
+  whatever the tutor does. Those cases run in `acceptEdits`.
+- **The tutor said things twice that its skills told it to say once**
+  (`done` restating a reservation in a summary line and again at
+  close, one run in three), **and said them in the wrong order** (the
+  feedback written to evidence and the learner told only "the feedback
+  is recorded"). That second one is the lesson of the checkpoint, and
+  it took three runs and two wrong diagnoses to learn. The fix at the
+  time was a sentence — "the entry is the record of what you said,
+  never a substitute for saying it" — and at the exit run the same
+  defect came back on both models. Reordering the instruction did not
+  hold it either. What held it was finding the step that could not be
+  obeyed: the entry carries the learner's decision, and the skill
+  asked for it before the learner had decided. A rule the tutor cannot
+  follow in the order given will be followed in some other order, and
+  no amount of restating it changes that.
+- **An offer that holds on the strong model does not hold on the weak
+  one.** Sonnet never named the detour's steps or said the task was
+  waiting, and in one run offered no detour at all, because the
+  trigger list and the hedge beneath it pulled against each other.
+  Prose that reads as balanced to a careful reader reads as optional
+  to a model with less room; the fix was to make the offer's three
+  parts a list. The same shape came back in 2.9's environment case,
+  where the offer of the setup lesson sat behind a conditional and one
+  run in three skipped it.
+- **The pen refused the tutor's own writing.** In every run that wrote
+  a detour step, the tutor dressed its pointers as prose — `` -
+  `billing/invoice.py` — the Line type `` — which is what a markdown
+  body invites, and the check read the whole line as a path. Running
+  the skill found in three runs what reading it had not.
+
+**What the reviews found that the evals could not.** The two instruments
+caught different classes, cleanly. The reviews found the things that
+need an adversarial reading of code rather than a session: thirteen
+fail-opens in the destructive hook's command reading over three rounds,
+and eleven more in one family in a sweep afterwards, which together
+changed the design and scoped the guarantee (§ 10, 2026-10-14); three
+rounds on park and resume, each finding something the round before had
+introduced, which is what made both orderings the slice's shape; the
+off-branch report in 2.8, where the one state the slice exists for was
+the state in which the tutor would have praised the learner for the
+author's code with a green check; and two paths in 2.6c by which a
+judge's answer became a false `FAIL`, one of them `"pass": "false"`
+through `bool()`, a silent green in the suite's own verdict.
+
+**The suite is code, and gets the same suspicion as code.** Six of the
+failures recorded above were the cases' own, not the tutor's: four
+grader faults in 2.5 (the tutor's evidence note matching the
+shell-write pattern, a marker wrapped over two lines, the harness's own
+temporary directory named like a toolkit command), a detour case that
+could pass with no detour in existence, a criterion that graded an
+ambiguity and failed two different correct behaviours in turn, and, in
+2.9, a `command` grader demanding the tutor read a lesson title from
+the index when reading it from the profile was just as right. A case
+that fails for its own reasons costs a paid run and some trust; a case
+that *passes* for its own reasons costs more, and five of those shipped
+green for a day. What the suite needed in the end was the same thing
+the toolkit needs: a run's record kept, so the question "did it really
+measure that?" can be answered from the transcript rather than argued.
+
+The exit run then taught the sharper version of this. Two of its five
+defects were criteria, not behaviour, and fixing one of them took three
+tries: loosening "only markers at a scaffold" produced a criterion that
+*required* the skeleton, which failed the model that had kept the
+original rule; narrowing "no plumbing" to exclude the branch name
+caught the slash commands the learner drives the lesson with, and then
+caught the tutor offering the reference solution it is designed to
+offer. Each try cost a paid run. What ended it was giving the two
+halves to the two things that can hold them: the `absent` regex already
+named the files and the toolkit commands exactly, so the judge was narrowed to the one readable claim the case is about
+and told that the rest is checked for it. A judge asked to police a
+list of negatives will keep finding new members of the list. The final
+wording was checked against the six recorded transcripts of the run
+that had just failed, which is the cheapest test the suite has. The
+same method then retired a hook before it was written: the obvious
+predicate for the `done` defect — a turn that writes a Feedback entry
+must say a `path:line` out loud — was run against all 37 recorded
+Feedback turns and would have blocked 23 that were perfectly good,
+because feedback that quotes a rubric in prose cites nothing. A
+checkpoint's worth of kept transcripts turns out to be an instrument
+for design questions, not just a diagnostic for failures.
+
+The third run's one failure is where that method ran out, and a
+sentence from the maintainer ended it instead. Sonnet told the learner
+"There's no `tests/test_invoice.py` in your tree yet, so you'll create
+your own test file" — the held test's path, uttered to say the file is
+*not* there, which is true and which its own `ls tests` had just shown
+it. The prose written after the second run had moved the tutor off
+sending the learner's test to the held path, which was the defect; what
+was left was an `absent` grader on one filename, which cannot tell "put
+your test here" from "that is not here". Ruled fine on 2026-10-20: "the
+fact that the tutor uses graders is not secret. we don't want the
+plumbing to be front and center, but it's ok if it leaks out." So the
+checkpoint closes at 143 of 144 with the failure named, rather than at
+144 with the grader quietly adjusted to agree with it, and the grader
+goes on the list in #59. Two of the first run's five defects were
+criteria rather than behaviour; the last one standing was a third.
+
+**The theme the maintainer named at the end.** Closing the checkpoint
+produced, inside an hour, a fourth-wall pattern widened to five more of
+the tutor's own paths, a scaffold rule loosened, three new graders
+where one would do, and a clause added to `docs/plan.md` § 10 — the
+decision record itself — none of it asked for by a human. Said on
+2026-10-19, reading that: Rolling Start "is supposed to be a
+lightweight skill to help the learner navigate some lessons put forth
+by the author, as guided by the tutor. this is roughly 10x as
+complicated as i would expect, and not because i'm a naive engineer,
+rather because coding agents can trick themselves into over-specifying
+a problem to be solved." Then the sharper version, after an Opus
+review's findings had been applied as though findings were directions:
+"an automated reviewer's finding is a question for the maintainer, not
+a direction to act upon. the human user owns the specs, we should not
+let a coding agent invent specs during review."
+
+The pressure is structural rather than anyone's lapse, which is why it
+needs a rule and not resolve. A review is two agents in a loop with
+nobody asking whether the rule deserves to exist: the reviewer proposes
+coverage, the author implements it, and the record then reads as though
+the maintainer had asked for it — and good reasoning is what makes an
+invented spec hard to spot a month later. The line that holds in both
+directions is origin. A divergence from a spec that already exists, or
+a defect a recorded run shows, is a fix: make it and report it. A
+finding that a rule should be broader or narrower, that a grader should
+match more, that a line belongs in the decision record, is spec: bring
+it with a recommendation and let the maintainer rule. #59 inventories
+every spec-affecting change this branch carried, sorted that way, and
+#60 is the simplification pass. Neither reopens P2; both come before
+P3 starts.
+
+**Cost.** About $32 of tutor sessions across the ten building
+sub-scopes, the largest single item being 2.6b's detour case at $11.85
+over two arms and two rounds, which is where the four-turn-case price
+was learned: about $1.05 a run against the $0.09 a one-turn case had
+suggested, because every turn re-sends the skill and a conversation
+that has grown. Closing the checkpoint cost $98.39 on top, three times
+what building it did: a smoke pass at $5.52 and a one-case shape check
+at $0.06, the red full run at $24.06, two confirming passes over the
+affected cases at $4.69 and $1.74, two runs stopped in flight at $2.64
+and $9.61, and two more full runs at $24.27 and $25.80. An exit
+criterion that says "the whole suite, on two models" is a $25 line
+item, and it was written without anyone pricing it.
+Estimating these stayed hard, and every error was mine and in the same
+direction, from extrapolating a short case: the destructive re-run
+quoted at $0.45 came in at $0.94, and the exit run quoted at about $55
+from the one four-turn case came in at $24.06. The thing that worked
+was not a better extrapolation but the smoke pass, which measured 24
+runs for $5.52 and turned the estimate into arithmetic.
+
+**Decisions made on the way** are in `docs/plan.md` § 10 under
+*Closing P2*, thirteen of them: the citation check as a Stop hook on every
+reply; quoted output as prose and a case, not a hook; a detour of up to
+three steps, each a lesson, parking the task; closing a lesson leaving
+the task in the same step; `COULD-NOT-RUN`; one declared operation for
+a reference that adds a dependency; the learner's ignore rules coming
+along to the task branch; the patch-per-change version policy; that
+the suite has to tell a broken run from the tutor misbehaving; evals by
+hand, not in CI; and, from the exit run itself, that a scaffold is a
+skeleton and the test's body is the learner's, that what the learner's
+own working copy shows them is not the tutor's plumbing, and that the
+feedback entry is a copy of what was said, held by prose and not a
+hook.
+
+**What the checkpoint cost in work it did not keep.** Two guards were
+designed and not built, which is the policy working: of the four cases
+standing in for the session stamp, shell writes in scope, the
+walkthrough's write window and scaffold content, three never failed, so
+none of them got code. The fourth did fail — scaffold content, at the
+exit run, on one model and not the other — and the policy still held,
+because the honest reading was that the rule it would have guarded was
+wrong rather than unenforced. The case changed and no code was
+written. A
+validator fault for a one-word operation head was declined for the
+same reason — an author's declaration is a hint, and a script that
+enforces a hint is code we do not want — and `docs/map.md` explains the
+shape instead. Against that: three non-UTF-8 filename tests were
+written in 2.10 in answer to a review finding, and dropped at the
+maintainer's word before they ever reached `main`. They guarded
+against nothing anyone will hit, and `REVIEW.md`'s rule — a finding
+names who is harmed and how, and simplicity outranks a guard against
+what nobody will hit — applies to the tests written in answer to a
+review exactly as it applies to the review.
+
+**What P3 inherits.** A suite of 24 cases that runs in about an hour
+and costs what a model's price list says, with a fixture that builds
+from nothing in seconds and seeding that goes through the toolkit's own
+commands, so a change to a format reaches the seeds without anyone
+editing them. Two deferred gaps with issues of their own: #56, the
+held copy losing git's executable bit, and #57, no route to a
+satisfied lesson the learner names. Two more filed at the close and to
+be worked before P3 begins: #59, the inventory of spec-affecting
+changes this branch carried, and #60, the simplification pass. And one piece of advice from 2.7
+worth repeating at the spec stage of anything in P3 that wants to read
+a command line: that is not a problem this repository can own, and the
+answer is to need less from it.
