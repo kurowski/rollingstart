@@ -1411,3 +1411,21 @@ before the next checkpoint; the run is written up in its PR):
   was built against belongs in a map. `REVIEW.md` stated the rule with
   no carve-out at all, which is why a review produced the finding; it
   carries one now.
+- **A divergence claim needs the rule's provenance** (2026-10-21, from
+  #59). The origin test #59 was sorted by — a divergence from an
+  existing spec is a fix, a finding that the spec should change is a
+  question — has a hole: "existing spec" here is largely prose an
+  agent wrote and nobody read on purpose. Both rules the walkthrough
+  overturned show it. "Never the path of a held test" was written by
+  an agent in `c5d5d1a` (2026-09-21) and cited a month later as the
+  authority for propagating itself into `lesson`. The seam-rule clause
+  quoted to justify taking "Next.js" out of `allow.py` was written in
+  `ff18bab`, the commit #59 exists to audit, so an agent's change was
+  checked against an agent's rule from the same commit and the result
+  reported as a spec check; the prohibition it rested on is older than
+  the agent work here (`c50a286`, carried across from Rolling Stop),
+  which is why the answer came out right anyway, but the method was
+  circular. So a fix claimed as a divergence names the rule *and*
+  where the rule came from, and a rule an agent wrote inside the
+  change under review is not an existing spec at all. The maintainer
+  owns the specs; a rule nobody has read on purpose is not yet owned.
