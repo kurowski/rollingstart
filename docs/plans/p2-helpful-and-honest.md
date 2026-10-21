@@ -1311,10 +1311,12 @@ pen refused both writes and the learner watched it guess twice; the
 templates live in `lesson`, whose body is not in context yet. And at
 `done` the tutor said "`test-web src/features/poll/invite/revoked-by.test.ts`
 went green", which is the map's command *key*, not a command the
-learner can type — the fixture's keys are `test` and `lint`, words
-that read like commands, so no eval case could have caught it on the
-fixture. A real map has `test-web`. That is the argument for keeping a
-by-hand run in the exit criterion rather than treating the suite as
+learner can type — and the suite missed it. One case does ask the
+tutor to name the command (`could-not-run-is-the-environment`), but of
+the check that could not run, where it passed every time; the keys the
+other cases exercise are `test` and `lint`, words that read like
+commands. A real map has `test-web`. That is the argument for keeping
+a by-hand run in the exit criterion rather than treating the suite as
 the whole of it.
 
 One thing to keep about method. The smoke pass before this run was

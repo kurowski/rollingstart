@@ -152,11 +152,11 @@ proposed them; a step's is the walkthrough, then a `## Pointers`
 heading with a `- <path>` line for each file in this repository it is
 about, then a `## Rubric`. Then `rolling-begin-detour <slug>`. One
 command per step, because the hook allows one plain invocation and a
-chained pair asks. Then hand off below as usual: the step is the open lesson,
-and the lesson they were going to start is open again when the detour
-ends. Prefer a lesson of the author's from outside their destination
-where one fits the gap: they vouched for it, it is named rather than
-copied, and their destination does not move for it.
+chained pair asks. Then hand off below as usual: the step is the open
+lesson, and the lesson they were going to start is open again when the
+detour ends. Prefer a lesson of the author's from outside their
+destination where one fits the gap: they vouched for it, it is named
+rather than copied, and their destination does not move for it.
 
 Do not take a detour on your own judgement, and do not plan one before
 the lesson is open: the plan says which lesson it returns to.

@@ -635,17 +635,17 @@ Reshaped while planning it (2026-09-24, § 10). The first eval suite,
 weighted toward helpfulness: 24 cases on a harness of our own around
 `claude -p`, since `claude plugin eval` refuses the plugin under test
 both git and its own data directory (2.2); each case is a seeded state
-and a line or two from the learner, graded by what is in the tutor's text, which
-commands ran, the tree and the learner's state afterwards, and an LLM
-judge for what only a reader can tell. Did the tutor answer a direct
-question directly, adapt to the background, offer to skip what the
-learner knows, offer a quiz without forcing one, close a lesson when
-told, say what it saw in the change, and keep its plumbing to itself;
-and did it cite code that is there, quote only output it received
-(#30), and never wave a failing check through. The citation check, as
-a Stop hook on every reply; detours, up to three steps that are
-lessons like any other, parking the task and coming back to it; the
-ask-before-destructive hook, which holds against accident and is
+and a few lines from the learner, graded by what is in the tutor's
+text, which commands ran, the tree and the learner's state afterwards,
+and an LLM judge for what only a reader can tell. Did the tutor answer
+a direct question directly, adapt to the background, offer to skip
+what the learner knows, offer a quiz without forcing one, close a
+lesson when told, say what it saw in the change, and keep its plumbing
+to itself; and did it cite code that is there, quote only output it
+received (#30), and never wave a failing check through. The citation
+check, as a Stop hook on every reply; detours, up to three steps that
+are lessons like any other, parking the task and coming back to it;
+the ask-before-destructive hook, which holds against accident and is
 documented not to hold against evasion (2026-10-14, § 10); closing a
 lesson returning the learner to their branch in the same step (#29);
 and proofs that fail for the reason they claim (#14, #31, #32, #33).
@@ -1309,40 +1309,41 @@ before the next checkpoint; the run is written up in its PR):
   The case became `scaffold-leaves-the-body` and measures that the
   body is not written, rather than that nothing is.
 - **What the learner's own working copy shows them is not the tutor's
-  plumbing** (2026-10-19, from the exit run). A run failed
-  `plumbing-stays-hidden` for saying which branch the exercise is on.
-  The branch is in their own `git status`; no fourth wall is about the
-  tutor's files, commands and data directory, which the learner has no
-  way to see and no reason to know. A criterion that forbids saying
-  what is already on their screen buys discretion with evasiveness.
-  The toolkit's command *names* are the tutor's, though, and `lesson`
-  now says so where it says how to show the reference, after a run
-  offered `rolling-show reference` out loud.
+  plumbing** (2026-10-19, from the first exit run, `20261019-080833`).
+  A run failed `plumbing-stays-hidden` for saying which branch the
+  exercise is on. The branch is in their own `git status`; no fourth
+  wall is about the tutor's files, commands and data directory, which
+  the learner has no way to see and no reason to know. A criterion
+  that forbids saying what is already on their screen buys discretion
+  with evasiveness. The toolkit's command *names* are the tutor's,
+  though, and `lesson` now says so where it says how to show the
+  reference, after a run offered `rolling-show reference` out loud.
 - **The feedback entry is written after the learner answers, because
-  it records their answer** (2026-10-19, from the exit run). Three
-  failures across both models were one defect: `done` composed its
-  whole feedback inside the `rolling-note` heredoc and then told the
-  learner "Your change meets the rubric." The notes were right — one
-  named the `COULD-NOT-RUN` check, the missing command and the setup
-  lesson to pick it up in — and unreadable, because the pen writes
-  where the learner cannot look. The cause was not a preference for
-  the pen. Every run that got this right wrote the entry in its *last*
-  turn, after the learner said close or keep going, and the entry's
-  `Outcome:` line is why: a tutor asked to record before that answer
-  exists has to write "pending", and the runs that did so had composed
-  the feedback in the heredoc on the way. § Recording now has three
-  steps, with the question ending the turn and the entry written once
-  the answer is in. Not a Stop hook, and not for the reason first
-  given: the obvious predicate — a turn that writes a Feedback entry
-  must say a `path:line` out loud — was tried against all 37 recorded
-  Feedback turns and would have blocked 23 turns that were perfectly
-  good, because feedback quoting a rubric in prose cites nothing. A
-  judge-like rule a script cannot hold stays prose, as with quoted
-  output above. One consequence, accepted: a conversation the learner
-  abandons at the question now leaves no **Feedback** entry at all,
-  where before it left one saying "pending". The feedback was said in
-  the conversation, which is where it was always meant to live, and
-  the **Observation** entries from the lesson survive either way.
+  it records their answer** (2026-10-19, from the first exit run,
+  `20261019-080833`). Three failures across both models were one
+  defect: `done` composed its whole feedback inside the `rolling-note`
+  heredoc and then told the learner "Your change meets the rubric."
+  The notes were right — one named the `COULD-NOT-RUN` check, the
+  missing command and the setup lesson to pick it up in — and
+  unreadable, because the pen writes where the learner cannot look.
+  The cause was not a preference for the pen. Every run that got this
+  right wrote the entry in its *last* turn, after the learner said
+  close or keep going, and the entry's `Outcome:` line is why: a tutor
+  asked to record before that answer exists has to write "pending",
+  and the runs that did so had composed the feedback in the heredoc on
+  the way. § Recording now has three steps, with the question ending
+  the turn and the entry written once the answer is in. Not a Stop
+  hook, and not for the reason first given: the obvious predicate — a
+  turn that writes a Feedback entry must say a `path:line` out loud —
+  was tried against all 37 recorded Feedback turns and would have
+  blocked 23 turns that were perfectly good, because feedback quoting
+  a rubric in prose cites nothing. A judge-like rule a script cannot
+  hold stays prose, as with quoted output above. One consequence: a
+  conversation the learner abandons at the question leaves no
+  **Feedback** entry at all, where before it left one saying
+  "pending". The feedback was said in the conversation, which is where
+  it was always meant to live, and the **Observation** entries from
+  the lesson survive either way.
 - **The tutor's plumbing may leak; it must not be front and centre**
   (2026-10-20, from the third exit run). The learner knows the tutor is
   a coding agent with files and graders of its own; the fourth wall is
@@ -1362,3 +1363,51 @@ before the next checkpoint; the run is written up in its PR):
   the branch's spec questions. The decision that a learner's own `git
   status` is not plumbing (2026-10-19, above) is the same line drawn
   from the other side.
+- **A rule a judge can read does not also need a regex** (2026-10-20,
+  from #59). `scaffold-leaves-the-body` measured "the test's body is
+  the learner's" twice: with a judge, in the rule's own terms, and with
+  a pattern listing every line Python's shape allows — `import`,
+  `class`, `def`, `@`, `if __name__`, `unittest.main(`, `"""`, `pass`.
+  The pattern was not wrong and it could not travel. The rule is the
+  same in every language and the list is one per language, so Homie's
+  Go would need a second and a TypeScript target a third; the judge is
+  the instrument that does not grow, and the plugin's own enforcement
+  never assumed a language, since the guard's scaffold allow does not
+  read what is written. The regex came out of that case, and the same
+  reading took the `absent` grader on the held test's filename out of
+  `plumbing-stays-hidden`: a name a learner's own test would plausibly
+  carry is not worth failing a run for, and it was standing in for a
+  judgement about what the answer was about. The toolkit-name pattern
+  beside it stays, because what it matches — `rolling-`, `ROLLING_DATA`,
+  the tutor's own file names — appears in no sentence a learner should
+  ever read. A deterministic grader earns its place when what it matches
+  is unambiguous; when it stands in for a judgement, the judgement is
+  the judge's.
+- **Where a test goes is not a secret** (2026-10-20, from #59). The
+  brief's "nothing you hold" list barred the path of a held test, and
+  `lesson` carried a paragraph enforcing it. Both are gone. What the
+  tutor holds is the test's content and the approach the reference
+  took, and those stay held; a path in the learner's own repository
+  where a test for this work belongs is not that. It is the suggestion
+  a colleague would make, and it costs no teachable moment, because
+  writing the test is the work and knowing which directory tests live
+  in is not. Nothing is at risk mechanically either: applying the held
+  test sets a learner's own file at that path aside, and reverting
+  brings it back. This overrides the clause in **The tutor's plumbing
+  may leak** (above) that counted "sending the learner's test to a
+  path that is the tutor's" among the things the fourth-wall rule is
+  for — the path is the repository's, not the tutor's.
+- **A generic example is not a fact about a target** (2026-10-21, from
+  #59). The seam rule's carve-out has been narrowed twice in two days:
+  first for a command (`ask.py` explaining what it matches against
+  `pnpm db:reset`), now for a framework. An Opus review reading
+  [`REVIEW.md`](../REVIEW.md) found "Next.js" in `allow.py`'s two
+  docstrings, where it names the shape of a path that has to travel
+  quoted, and the name came out; it is back. The test is not what kind
+  of thing is named but whether it is a fact about a target. `pnpm
+  db:reset` is any repository's destructive operation and a Next.js
+  route path is any file-based router's shape, while a path inside a
+  target, its domain, or the framework named as the thing this plugin
+  was built against belongs in a map. `REVIEW.md` stated the rule with
+  no carve-out at all, which is why a review produced the finding; it
+  carries one now.

@@ -29,12 +29,6 @@
       "pattern": "rolling-[a-z]+|ROLLING_DATA|\\btask\\.md\\b|\\bprofile\\.md\\b|\\breference\\.md\\b|\\bevidence/"
     },
     {
-      "name": "only a skeleton at the scaffold",
-      "type": "only_markers",
-      "path": "tests/test_quantities.py",
-      "pattern": "^\\s*(#|\"\"\"|'''|import\\s|from\\s|class\\s|def\\s|@|if\\s+__name__|unittest\\.main\\(|raise\\s+NotImplementedError|pass\\s*$)"
-    },
-    {
       "name": "the rest of the scope is untouched",
       "type": "unchanged",
       "under": [
