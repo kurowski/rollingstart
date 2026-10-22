@@ -77,7 +77,7 @@ is found before a learner finds it.
 | P2's scripted cases stay scripted | The persona driver is the author's instrument; the 24 cases keep fixed learner lines | A persona that improvises makes a run non-reproducible. For a report a human rules on that is fine; for grading the tutor it would destroy the thing that makes the suite a regression test. Two uses of one harness, with different determinism requirements, said out loud so neither is "upgraded" into the other. |
 | The shakedown's report has no verdict | Prose per lesson, ordered by what looks worst, with the transcript behind each claim. No pass, no fail, no score, no threshold | P2 learned that a judge asked to police a list of negatives keeps finding new members of it, and that the same transcripts read as evidence for a design question were the cheapest instrument the checkpoint had. The author owns the map; the report's job is to hand them what a learner hit, not to grade their judgment. The first threshold anyone adds turns this back into the quiz we are avoiding. |
 | The shakedown lives in `evals/`; `rolling-author` ships `init` and `mine` | No skill in the plugin fronting the harness | The harness is already portable: nothing in `evals/` hardcodes this repository, this machine, or a target, and it needs only `claude` on PATH, Python 3.9's standard library, and a token from `claude setup-token`. Its one coupling is `runner.py:77`, which finds the plugin by walking up from its own path, so it must sit beside `plugins/rolling`. A third-party author can clone a public repository and run it. A thin skill over a harness would be surface in the shipped plugin buying nothing. |
-| `init`'s test is a discarded map, regenerated | Throw away Rallly's map (or Homie's), draft it again with `init`, and diff the draft against the hand-written one | It gives the test a ground truth, which no fresh target can. Measuring against a map written by hand over P1a and P1b says exactly how much an author would have had to edit, and the comparison is reviewable by someone who already knows the answer. |
+| `init`'s test is a discarded map, regenerated — both of them | Throw away Homie's map and Rallly's in turn, draft each again with `init`, and diff the draft against the hand-written one. Homie's is the measurement; Rallly's is the coverage | A discarded map gives the test a ground truth no fresh target can, and says exactly how much an author would have had to edit. The two answer different questions. The maintainer owns Homie, so a draft's accuracy there is judged exactly; they do not own Rallly, and read it to write that map. And Homie declares four `go` commands with no operations and no destructive list, so it reaches neither the operations half of a draft nor the `permissions.ask` rules — only Rallly, with six operations and three destructive, tests those. |
 | The simplification pass opens the checkpoint | #60 is 3.2, before any new surface lands; #56 rides along as 3.3 | P2's retrospective put #59 and #60 before P3 starts, and #59 is closed. The four candidates on #60 are all in `plugins/rolling/`, which the new plugin shares by calling its `bin/`: simplifying before adding is cheaper than after, and a removal that lands after the thing built on it has to be unpicked twice. |
 
 A decision that would have to be re-derived if forgotten also goes to
@@ -93,7 +93,8 @@ here.
 |---|---|---|
 | A `claude -p` process with no tools at all answers in a learner's voice from a persona brief and a transcript, rather than refusing, asking to use a tool, or narrating that it is role-playing | 3.5 | *pending* |
 | `claude -p` takes two `--plugin-dir` flags, so a case can load `rolling` and a map plugin together | 3.4 | *pending* |
-| A real target clone can be stood up per run cheaply enough to be worth doing (a local clone at the pin, shared or hard-linked, against the few seconds the synthetic fixture takes) | 3.4 | *pending* |
+| A target clone can be stood up cheaply enough to be worth doing per run: Homie's Go tree against a warm module cache, against the few seconds the synthetic fixture takes. Rallly's checks want a 2.6 GB `node_modules` and a database, so its cases point at a prepared clone rather than a fresh one | 3.4 | *pending* |
+| A map plugin's SessionStart registration hook fires in a throwaway `CLAUDE_CONFIG_DIR` and writes its root where `rolling`'s resolver scans, so a plugin map resolves inside a harness run at all | 3.4 | *pending* |
 | A second plugin's skills (`rolling-author`'s) run in print mode under `--plugin-dir`, as `rolling`'s do (2.2, 2.3) | 3.6 | *pending* |
 
 ## Sub-scopes
@@ -152,11 +153,18 @@ clone at this pin, with this map" the other; the per-task facts a seed
 needs (the fix's sha, the held test's path) come from the map's own
 task files rather than from the builder; one existing case runs
 unchanged against the synthetic fixture, so P2's suite is untouched;
-one lesson of the Rallly map is served from a clone at `f61c09708`
-and its transcript read; and the runner's header comment carries the
-subject's contract. `could-not-run-is-theirs` gains the second learner
-line P2 deferred here, so the `COULD-NOT-RUN` path's **Feedback**
-entry is graded rather than ending the conversation before it is due.
+both homes a map can have are proved, since the subject is where
+they differ: one lesson of the Rallly map served from a clone at
+`f61c09708` whose origin is set to the URL the plugin declares —
+`mapsource.py` matches `metadata.rolling.repo` against the
+repository's origin normalised to host/owner/name, and a local clone
+matches nothing — and one lesson of Homie's in-tree map served from a
+clone of its `origin/main`, where `.rolling/` wins and nothing is
+resolved at all; each transcript read; and the runner's header comment
+carries the subject's contract. `could-not-run-is-theirs` gains the
+second learner line P2 deferred here, so the `COULD-NOT-RUN` path's
+**Feedback** entry is graded rather than ending the conversation
+before it is due.
 
 ---
 
@@ -177,8 +185,12 @@ arguments are in the kept evidence, and they carry neither
 `--plugin-dir` nor `ROLLING_DATA`. One lesson against one persona is
 measured for cost and quoted here before any full-map run is
 authorised: P2's exit criterion was a $25 line item written without
-anyone pricing it, and a shakedown of eleven lessons across three
-personas is the same shape of bill.
+anyone pricing it, and a shakedown of six lessons across three
+personas is the same shape of bill. The full-map runs are on Homie,
+whose four `go` commands need no services and no install, so a
+lesson's checks actually run; Rallly gets single-lesson spot checks
+instead, because its checks want the 2.6 GB install and a database
+and a distorted run teaches nothing about the map.
 
 ---
 
@@ -195,10 +207,14 @@ contributing guide, the environment's shape — and the draft passes
 `rolling-check-map`; `init` writes the `permissions.ask` rules for the
 map's destructive operations into the project's `.claude/settings.json`
 (P2's deferred list, the first layer of § 5's destructive row); the
-skill is invoked by the author and never model-invoked; and Rallly's
-map, discarded and redrafted, is diffed against the hand-written one
-with the diff read and written up here — what `init` got, what it
-missed, and what an author would still have to write.
+skill is invoked by the author and never model-invoked; and both maps
+are discarded, redrafted and diffed against the hand-written ones,
+with the diffs read and written up here — what `init` got, what it
+missed, and what an author would still have to write. Homie's diff is
+the measurement, because the maintainer owns that codebase and can
+judge a draft's accuracy exactly. Rallly's is the coverage Homie
+cannot give: Homie declares no operations and no destructive list, so
+the `permissions.ask` rules above are unreachable there.
 
 ---
 
@@ -268,11 +284,13 @@ The minor bump is asked about once, here.
 
 - The plan's exit criterion for P3: an author gets from clone to a
   reviewable draft map in an afternoon, and edits rather than writes.
-  Measured by 3.6's diff against the hand-written Rallly map, with the
-  editing that remained described rather than scored.
-- A shakedown of the Rallly map surfaces at least one thing the
-  maintainer then changed in it. The map has been served to real
-  learners since P1b, so an instrument that finds nothing in it has
+  Measured by 3.6's diff against the hand-written Homie map, with the
+  editing that remained described rather than scored, and Rallly's
+  diff read beside it for what Homie cannot reach.
+- A shakedown of Homie's map surfaces at least one thing the
+  maintainer then changed in it, with one lesson of Rallly's spot
+  checked beside it. Both maps have been served to real learners
+  since P1b, so an instrument that finds nothing in one of them has
   not earned its place, and the honest place to learn that is here.
 - The persona never had the answer: for every conversation in the exit
   run, the kept evidence shows the persona's process carried no
