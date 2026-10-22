@@ -84,9 +84,6 @@ should only generate and judge. Two things have moved since:
 - The tutor never orchestrates the environment.
 - On-ramp, not residence: no decay model, no drilling. Explanation only
   in service of a task.
-- Escalation to a human is a feature: the learner asking for one, a
-  piece of feedback the learner disputes, a gap many learners share,
-  the tutor stuck.
 
 **What is dropped, deliberately:**
 
@@ -129,7 +126,7 @@ or a skill says is a hint, and no script enforces a hint.
 | Role | Who | Claude Code mechanism |
 |---|---|---|
 | **Author** | A staff engineer who knows the codebase | Author-side skills (`/rolling-author:init`, `/rolling-author:mine`, `/rolling-author:verify`, `/rolling-author:proposals`, `/rolling-author:adopt`) that draft a **map** of the codebase from the repo and its history for the author to edit, and keep it honest afterwards. Output is committed files in the target repo, or a map plugin. The author describes; the author does not decide where any learner ends up. |
-| **Tutor** | Claude Code running the learner-side plugin | Learner-side skills: `/rolling:start` (intake), `/rolling:next` (chooses the lesson and hands off to) `/rolling:lesson` (the walkthrough, the offer of an exercise, and the coaching rules once one is open), `/rolling:task` (builds the exercise when the learner takes the offer), `/rolling:done`, `/rolling:cancel` (stops a lesson without finishing it), and later `/rolling:escalate`; a small set of hooks; and a profile on disk. One conversation: the coaching and the feedback are the same voice. In a `direct` lesson it also watches the learner's coding session as it happens, from a log the plugin's hooks write. |
+| **Tutor** | Claude Code running the learner-side plugin | Learner-side skills: `/rolling:start` (intake), `/rolling:next` (chooses the lesson and hands off to) `/rolling:lesson` (the walkthrough, the offer of an exercise, and the coaching rules once one is open), `/rolling:task` (builds the exercise when the learner takes the offer), `/rolling:done`, `/rolling:cancel` (stops a lesson without finishing it); a small set of hooks; and a profile on disk. One conversation: the coaching and the feedback are the same voice. In a `direct` lesson it also watches the learner's coding session as it happens, from a log the plugin's hooks write. |
 | **Learner** | The engineer being onboarded | Starts from the author's suggested course at intake and bends it: drops a region, adds one, changes a depth, says why. Works in Claude Code as usual; in a `direct` lesson that means a second, ordinary Claude Code session they direct themselves. The plugin changes how the tutor's session behaves *during a lesson*, logs the coding session in a `direct` one, and does nothing else. |
 
 The tutor is one voice. What keeps it honest is not a second examiner
@@ -155,7 +152,6 @@ rollingstart/                        # the new repo
         task/SKILL.md                # build and prove the exercise, when the learner takes the offer
         cancel/SKILL.md              # stop the open lesson without finishing it; nothing marked, nothing lost
         done/SKILL.md                # run verifiers, capture diff, feedback against the rubric, update profile
-        escalate/SKILL.md            # (backlog, wanted) write an escalation with the trace attached
       agents/
         second-opinion.md            # (backlog, debated) optional, learner-invoked: fresh eyes on a diff, never a gate
       hooks/hooks.json               # every handler opens by reading the open task, if any, and this
@@ -305,7 +301,6 @@ ${CLAUDE_PLUGIN_DATA}/repos/<encoded repo path>/   # the learner's, never in the
   tasks/                               # tasks the tutor generated and kept for reuse
   evidence/<lesson>.md                 # feedback, observations, the tutor's own interventions, appended
   detours/<slug>.md                    # lessons the tutor created for this learner
-  escalations/                         # what went to a human, with the trace
 ```
 
 **`map.md`** — the author's description of the landscape, and the
@@ -654,17 +649,26 @@ dropped. *Exit:* evals pass on two model versions; a seeded *gap in
 the learner's background* (a seeded profile, not a planted mistake)
 earns a correctly named detour grounded in Rallly's own code.
 
-**P3 — The author's plugin.** `rolling-author`: `init` drafts the map
-from a bare repo (regions from the module structure and history,
-candidate lessons at each depth, corpus pointers, operations from the
-package scripts and CONTRIBUTING, the environment's shape); `mine` turns
-bugfix commits and merged PRs into task candidates and grows the list of
-agent mistakes from the repo's own review history; `verify` proves
-tasks; `proposals` reviews detours that several learners needed;
-`init` also writes the `permissions.ask` rules for the map's
-destructive operations into the project's settings. *Exit:* an author
-gets from clone to a reviewable draft map in an afternoon, and edits
-rather than writes.
+**P3 — The author's plugin.** The plan is
+[`docs/plans/p3-the-authors-plugin.md`](plans/p3-the-authors-plugin.md),
+written 2026-10-22. `rolling-author`: `init` drafts the map from a bare
+repo (regions from the module structure and history, candidate lessons
+at each depth, corpus pointers, operations from the package scripts and
+CONTRIBUTING, the environment's shape) and writes the `permissions.ask`
+rules for the map's destructive operations into the project's settings;
+`mine` turns bugfix commits and merged PRs into task candidates and
+grows the list of agent mistakes from the repo's own review history.
+Beside them the **shakedown**, which is what `verify` became: a map's
+lessons run with a learner persona on P2's harness, the persona its own
+`claude -p` with no plugin and no sight of the reference, and what a
+learner hit reported back to the author without a verdict. A batch
+both-ways prover is dropped, since that proof already runs per task
+when a learner begins it, and `proposals` with it, since `escalate` is
+not a feature this tool should have. #60's simplification pass opens
+the checkpoint. *Exit:* an author gets from clone to a reviewable draft
+map in an afternoon, and edits rather than writes; and a shakedown of
+the Rallly map surfaces at least one thing the maintainer then changed
+in it.
 
 **P4 — Release 1.0.** A colleague onboarding onto something real, the
 authoring guide covering both places a map can come from, managed-settings install
@@ -1426,6 +1430,44 @@ before the next checkpoint; the run is written up in its PR):
   the agent work here (`c50a286`, carried across from Rolling Stop),
   which is why the answer came out right anyway, but the method was
   circular. So a fix claimed as a divergence names the rule *and*
-  where the rule came from, and a rule an agent wrote inside the
-  change under review is not an existing spec at all. The maintainer
-  owns the specs; a rule nobody has read on purpose is not yet owned.
+  where the rule came from. A rule an agent wrote inside the change
+  under review is not void for that; it is a new spec, to be
+  questioned before it is accepted into canon (the maintainer's
+  correction, 2026-10-21), so it goes to them as a proposal rather
+  than standing as the authority for a fix. The maintainer owns the
+  specs; a rule nobody has read on purpose is not yet owned.
+
+
+**Planning P3** (2026-10-22):
+
+- **`escalate` is retired, and `proposals` with it.** Escalation to a
+  human has been a feature of the design since draft 1 (§ 1) and a
+  skill in the backlog since P2 planned it (#37). The maintainer's
+  ruling, reading P3's scope: "`escalate` was an agent's fever dream,
+  not a realistic feature for this tool. the necessary mechanism for
+  storing and forwarding the information is WAY out of scope for what
+  rolling start does. if a learner wants to ask a human a question,
+  they already have a million easier ways to do it." So § 1's bullet,
+  § 2's `/rolling:escalate`, § 3's `escalate/SKILL.md` and
+  `escalations/`, and `docs/profile.md`'s `escalations/<stamp>.md` all
+  go. `proposals` goes with it: its inputs were escalations and the
+  detours several learners needed, and the second needs a learner
+  population that does not exist.
+- **`verify` becomes a shakedown: a map is read by running it, not
+  proved.** § 7 had `verify` prove tasks solvable both ways, which is
+  what `rolling-verify` already does per task when a learner begins
+  one; an author-side batch prover is a second driver over code that
+  already fires at the only moment the answer matters. What nothing
+  measures is whether a lesson teaches, so the author's instrument
+  runs the map's lessons with a learner persona and reports what a
+  learner hit, with no verdict in it. Three things make that honest.
+  It is batched and unattended, because the author has already done
+  the expensive work in writing the lessons and an agent's turns cost
+  less than their hours. The persona is its own `claude -p` with no
+  plugin, no map and no reference, so it cannot have seen the answer
+  by construction rather than by instruction. And P2's scripted cases
+  stay scripted, because a persona that improvises is not
+  reproducible, which a report a human rules on can afford and a
+  regression suite cannot. The name matters: `verify` carried the
+  deterministic reading that has caused this project's most repeated
+  re-litigation, and Rolling Start is a flexible tutor, not a quiz.
