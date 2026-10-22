@@ -263,12 +263,10 @@ expect-fail-on-base: held-verify <a held-verify line's text, verbatim>
 
 What is wrong or wanted, where to look (paths, not line by line), what
 done means, and which of the map's commands will be run when they say
-they are done. Nothing you hold: never the path of a held test (it is
-not in the tree, and writing one is the learner's work; say that a
-test is held, not where), and never the library, helper, or approach
-the reference took, unasked; if the learner asks during the lesson,
-that is theirs to ask. What done means is the change; a brief never
-sets questions for the learner to answer.
+they are done. Nothing you hold: never the library, helper, or
+approach the reference took, unasked; if the learner asks during the
+lesson, that is theirs to ask. What done means is the change; a brief
+never sets questions for the learner to answer.
 
 ## Source
 

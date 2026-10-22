@@ -43,7 +43,9 @@ to recover once crossed. Each is a rule in [`CLAUDE.md`](CLAUDE.md) and
 a row of the enforcement table in [`docs/plan.md`](docs/plan.md) § 5.
 
 - **The plugin knows nothing about any codebase.** A package manager, a
-  framework, a path, a domain in `plugins/rolling/` belongs in a map.
+  framework, a path, a domain in `plugins/rolling/` belongs in a map,
+  unless it is a generic example rather than a fact about a target, as
+  `pnpm db:reset` and a Next.js route path are.
 - **The tutor does not orchestrate environments.** No docker, no service
   lifecycle, no toolchain installation, no fixing the learner's setup.
 - **Verifiers are structured, never shell.** Declared commands and held

@@ -63,12 +63,14 @@ in flight is the maintainer's call.
 **The plugin knows nothing about any codebase; the map knows everything
 about one.** If a skill or script in `plugins/rolling/` names something
 of a target's — a path in it, a domain, a framework or tool it is built
-on — stop: that belongs in a map. A command used as a generic example
-is not that: `ask.py` explains what it matches against `pnpm db:reset`,
-which is any repository's destructive operation rather than a fact
-about one. The generic example regions in documentation are `billing`,
-`scheduling`, and `platform`. The maintainer's employer's codebase never
-appears in this repository, in examples or otherwise.
+on — stop: that belongs in a map. A command or a framework named as a
+generic example is not that: `ask.py` explains what it matches against
+`pnpm db:reset`, which is any repository's destructive operation, and
+`allow.py` says which characters travel quoted by naming a Next.js
+route path, which is any file-based router's shape. Neither is a fact
+about a target. The generic example regions in documentation are
+`billing`, `scheduling`, and `platform`. The maintainer's employer's
+codebase never appears in this repository, in examples or otherwise.
 
 **The tutor never orchestrates the environment.** No docker, no compose,
 no health checks, no installing toolchains, no fixing a broken `.env`.
