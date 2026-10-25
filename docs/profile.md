@@ -53,7 +53,6 @@ repository's tooling; that is the point of its location.
   detours/<slug>/<step>.md # a step the tutor wrote, in the lesson format (P2)
   open-detour              # the open detour's slug, while one is open (P2)
   parked/                  # the task set aside while a detour runs: its task.md, reference, held/, lesson (P2)
-  escalations/<stamp>.md   # what went to a human, with the trace (backlog)
 ```
 
 ## `profile.md`
@@ -571,10 +570,6 @@ One task is parked at a time. A parked task whose branch the learner
 has since deleted cannot be resumed, and does not block the next
 detour either: resuming says the branch is gone and clears it, and
 parking another replaces it.
-
-## `escalations/<stamp>.md` (backlog)
-
-What went to a human, with the trace. Not written yet.
 
 ## Who writes what
 
