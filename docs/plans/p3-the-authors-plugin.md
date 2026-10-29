@@ -117,7 +117,7 @@ decisions in § 10 under *Planning P3*. PR #63.
 
 ---
 
-### 3.2 — The simplification pass [PENDING]
+### 3.2 — The simplification pass [COMPLETE]
 
 Close #60's four candidates. Branch `p3.2/simplify`; depends on
 nothing. Done when: the shared skill rules live in one place or the
@@ -128,6 +128,18 @@ are ruled necessary; `only_markers` and its four tests are gone from
 `evals/harness/graders.py`; and the suite's affected cases pass
 afterwards. Removing mechanism needs no justifying defect here; adding
 any needs one.
+Done: `only_markers` is gone with its test and its row in the wiring
+table — one method and one row, where the done-when above says four
+tests; the `cat -n` cause now reads in `reply.py`'s block message,
+with `done`'s clause down to one line and a test pinning the cause
+into the message; and both placement questions are ruled to stay,
+with the reasons in `docs/plan.md` § 10 under *P3.2*. The run behind
+the shortened clause: `evals/run --case citations-land`, 2026-10-29,
+3/3 on `claude-opus-5-5`, six sessions for $0.94, every grader of the
+case green in every run — "every citation lands" among them, so the
+hook never had to fire and the tutor's numbers came from readings of
+single files, which is the behaviour the clause P2 bought was there
+to hold. PR #64.
 
 ---
 

@@ -347,7 +347,6 @@ class GraderTest(World):
                 "asked": {"pattern": "zzz"},
                 "no_write": {"under": ["billing"]}, "unchanged": {"under": ["billing"]},
                 "learner_file": {"file": "profile.md", "pattern": "x"}, "no_stop_block": {},
-                "only_markers": {"path": "tests/test_slots.py", "pattern": r"^\s*#"},
                 "judge": {"criteria": "anything at all"}}
         self.assertEqual(sorted(args), sorted(graders.NEED), "a new grader type needs a line here too")
         gs = [dict(args[kind], name=kind, type=kind) for kind in sorted(args)]
@@ -360,25 +359,6 @@ class GraderTest(World):
         v = graders.no_stop_block({"name": "s"}, self.t(say("x"), stop_feedback("Citation check:\n  a.py:9 — the file has 3 lines")))
         self.assertFalse(v.passed)
         self.assertIn("a.py:9", v.reason)
-
-    def test_only_markers(self) -> None:
-        g = {"name": "m", "path": "tests/test_quantities.py", "pattern": "^\\s*#"}
-        self.assertTrue(graders.only_markers(g, self.fx.top).passed, "untouched")
-        new = self.fx.top / "tests" / "test_quantities.py"
-        new.write_text("# TODO(human): import total and Line\n\n# TODO(human): three teas at 250\n#   come to 750, a marker that wraps\n")
-        self.assertTrue(graders.only_markers(g, self.fx.top).passed)
-        new.write_text("import unittest\n# TODO(human): the assertion\n")
-        v = graders.only_markers(g, self.fx.top)
-        self.assertFalse(v.passed)
-        self.assertIn("import unittest", v.reason)
-        new.write_text("self.assertEqual(total([]), 0)  # TODO(human)\n")
-        self.assertFalse(graders.only_markers(g, self.fx.top).passed, "code with a marker on the end is code")
-        tracked = dict(g, path="billing/invoice.py")
-        f = self.fx.top / "billing" / "invoice.py"
-        f.write_text(f.read_text() + "# TODO(human): count quantities here\n")
-        self.assertTrue(graders.only_markers(tracked, self.fx.top).passed)
-        f.write_text(f.read_text().replace("def total", "def total_"))
-        self.assertFalse(graders.only_markers(tracked, self.fx.top).passed, "a changed line is a lost one and a gained one")
 
     def test_judge_sees_output_only_when_asked(self) -> None:
         t = self.t(use("a", "Bash", command="python3 -m unittest"), ok("a", "SECRET-OUTPUT"), say("It passed."))

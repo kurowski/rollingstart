@@ -144,10 +144,14 @@ def decide(ev: Dict, data_dir: str) -> Optional[str]:
     if not flags:
         return None
     # The learner sees this too, under Claude Code's "Stop hook error"
-    # label, so it is short and reads as what it is.
+    # label, so it is short and reads as what it is: the ask first, then
+    # the one cause worth naming. It is hedged because it explains the
+    # two flags about line counts and not the three about the path.
     return (
         "Citation check:\n" + "\n".join(f"  {f}" for f in flags) + "\n"
-        "Give the right location for each, or withdraw the point, in a line or two."
+        "Give the right location for each, or withdraw the point, in a "
+        "line or two. A number past the end of a file usually means "
+        "`cat -n` over several files numbered them as one stream."
     )
 
 

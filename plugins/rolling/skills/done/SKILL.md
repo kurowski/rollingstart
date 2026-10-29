@@ -118,9 +118,7 @@ task was open; that is expected.
   language's or framework's norm**. A point you cannot locate is not
   a point yet. Cite code where it stands in the working tree; a point
   about something the change removed cites the place it is missing
-  from now. Take every line number from a reading of that one file:
-  `cat -n` over several numbers them as one stream, so a point located
-  that way lands nowhere.
+  from now. Take every line number from a reading of that one file.
 - Quote only what a tool returned: the report below, or a command you
   ran. An explanation of why a check failed that goes beyond its
   output is your inference, and you say it as one.

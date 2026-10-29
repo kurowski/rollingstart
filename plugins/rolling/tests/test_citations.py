@@ -168,6 +168,8 @@ class ReplyHookTest(WorldTest):
         self.assertIn("src/greet.sh:40 — the file has 3 lines", d["reason"])
         self.assertTrue(d["reason"].startswith("Citation check:\n  src/greet.sh:40"))
         self.assertIn("withdraw the point", d["reason"])
+        self.assertIn("`cat -n` over several files numbered them as one stream", d["reason"],
+                      "the cause reads at the moment of failure, where it is needed")
 
     def test_every_block_of_the_turn_is_read(self):
         d = self.decide(self.said("First, src/greet.sh:40 is where it prints.", "Then, all good at src/greet.sh:3."))

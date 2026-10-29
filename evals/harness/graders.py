@@ -46,12 +46,6 @@ read the transcript and the repository after the run:
     {"name": "...", "type": "no_stop_block"}
         no Stop hook kept a turn going: the citation check found every
         `path:line` the tutor said on its first try
-    {"name": "...", "type": "only_markers", "path": "tests/x.py", "pattern": "<regex>"}
-        the file at PATH, against HEAD, gained only lines that match
-        (a blank line is fine) and lost none; untouched passes. The
-        pattern should describe the whole line (`^\\s*#`, a comment
-        line, since a marker may wrap), or code with a marker tacked on
-        the end passes
 
 Patterns are Python regular expressions, matched case-insensitively.
 The judge is the one grader that reads like a person:
@@ -184,30 +178,6 @@ def no_stop_block(g: Dict, t: Transcript) -> Verdict:
     return Verdict(g["name"], True, "no stop was blocked")
 
 
-def only_markers(g: Dict, top: Path) -> Verdict:
-    rel = g["path"]
-    tracked = subprocess.run(["git", "ls-files", "--error-unmatch", "--", rel], cwd=str(top),
-                             capture_output=True, check=False).returncode == 0
-    if tracked:
-        diff = subprocess.run(["git", "diff", "-U0", "HEAD", "--", rel], cwd=str(top),
-                              capture_output=True, text=True, check=False).stdout
-        lines = diff.splitlines()
-        added = [l[1:] for l in lines if l.startswith("+") and not l.startswith("+++")]
-        removed = [l[1:] for l in lines if l.startswith("-") and not l.startswith("---")]
-    elif (top / rel).is_file():
-        added, removed = (top / rel).read_text(encoding="utf-8").splitlines(), []
-    else:
-        added, removed = [], []
-    if not added and not removed:
-        return Verdict(g["name"], True, f"{rel} untouched")
-    if removed:
-        return Verdict(g["name"], False, f"{rel} lost a line: {removed[0]!r}")
-    other = [l for l in added if l.strip() and not re.search(g["pattern"], l, re.IGNORECASE)]
-    if other:
-        return Verdict(g["name"], False, f"{rel} gained {len(other)} other line(s), first: {other[0]!r}")
-    return Verdict(g["name"], True, f"{rel} gained only markers ({len([l for l in added if l.strip()])})")
-
-
 def _learner_files(learner: Optional[Path], pattern: str) -> List[Path]:
     return sorted(p for p in learner.glob(pattern) if p.is_file()) if learner else []
 
@@ -289,8 +259,6 @@ def grade(graders: List[Dict], t: Transcript, top: Path, ask: Optional[Callable[
             out.append(asked(g, t))
         elif kind == "no_stop_block":
             out.append(no_stop_block(g, t))
-        elif kind == "only_markers":
-            out.append(only_markers(g, top))
         elif kind == "judge":
             out.append(judge(g, t, ask, learner) if ask else Verdict(g["name"], False, "no judge available"))
         else:
@@ -300,8 +268,7 @@ def grade(graders: List[Dict], t: Transcript, top: Path, ask: Optional[Callable[
 
 NEED = {"absent": ("pattern",), "present": ("pattern",), "no_write": ("under",),
         "unchanged": ("under",), "judge": ("criteria",), "learner_file": ("file", "pattern"),
-        "command": ("pattern",), "no_command": ("pattern",), "asked": ("pattern",), "no_stop_block": (),
-        "only_markers": ("path", "pattern")}
+        "command": ("pattern",), "no_command": ("pattern",), "asked": ("pattern",), "no_stop_block": ()}
 """Every grader type and the keys a case must give it. Module level so
 a test can walk it: this table and grade()'s dispatch are two lists of
 the same types, and a type added to one alone fails a case only after
