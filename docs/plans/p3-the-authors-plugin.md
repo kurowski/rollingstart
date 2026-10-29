@@ -143,7 +143,7 @@ to hold. PR #64.
 
 ---
 
-### 3.3 — The held copy keeps its mode [PENDING]
+### 3.3 — The held copy keeps its mode [COMPLETE]
 
 Close #56. Branch `p3.3/held-mode`; depends on nothing. Done when: the
 held copy is written with the mode git recorded (`tasks.py:100`, the
@@ -152,6 +152,31 @@ mode from `git ls-tree`), a test covers a `100755` held file with a
 prose that misattributed it — `task`'s "fix the line or pick another
 source", `done`'s reading of it as the environment's — no longer
 describes a state the toolkit causes.
+Done: the held copy is written with git's mode, carried from the
+checks that already read it rather than read again at the write —
+`mode_at` answers `""` when git fails, and that empty string would
+take the non-executable branch and quietly write a copy that cannot
+run. The regression guard is the new verifier test: a task begun on a
+fix whose held test is committed `100755`, with a declared command
+that *is* the file, proved on the starting state. With the one line
+reverted it reproduces #56 exactly — `HELD COULD-NOT-RUN(126)`,
+"Permission denied", `PROOF GAP: expected to fail but never ran` — and
+with it in place the line reads `EXPECTED-FAIL(1)` on the test's own
+assertion, which is the reason `task`'s prose insists a reader check.
+Two assertions pin the other modes: a `100644` held copy lands `0644`,
+which guards the branch rather than reproducing the old behaviour
+since the default umask gave `0644` anyway; and a `100755` *shown*
+path arrives executable, the sibling path, since the argument below
+leans on it. The prose needed no edit: once the copy carries git's
+mode, no write of the toolkit's loses one — shown paths come from
+`git checkout`, the reference's own mode changes are already covered
+(`test_verifier.py`, the two `old mode`/`new mode` cases), and
+`heldtest` copies with `copy2` and restores with `os.replace` — so
+`task`'s and `done`'s readings now describe only what the author's or
+the learner's change causes, which is what they claim.
+`docs/profile.md`'s `held/` section gains the clause the contract
+needs, since a command that is the file is now supported behaviour an
+author would otherwise have no way to discover. PR #65.
 
 ---
 

@@ -323,11 +323,12 @@ reference`, with a note in evidence that it was; a coding session in a
 ## `held/`, `held-aside/`, `held-aside.pending`
 
 The held test files, at their repository-relative paths, copied from
-the fix by `rolling-begin-task`. They are applied to the tree only
-while `rolling-verify` runs the `held-verify` lines, after the diff
-has been captured, and reverted before it returns, with any learner
-file at the same path set aside for the run and restored. Removed with
-the task.
+the fix by `rolling-begin-task` with the mode git recorded there, so a
+`held-verify` line whose command is the file itself can run it. They
+are applied to the tree only while `rolling-verify` runs the
+`held-verify` lines, after the diff has been captured, and reverted
+before it returns, with any learner file at the same path set aside
+for the run and restored. Removed with the task.
 
 While the held test is applied, the learner's set-aside file lives at
 `held-aside/<path>` and `held-aside.pending` records each step

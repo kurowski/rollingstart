@@ -49,7 +49,7 @@ import shutil
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from . import excludes, frontmatter as fm, paths, rules, session
 from .model import Learner, Task
@@ -97,6 +97,7 @@ class Tasks:
         if repo.is_merge(fix):
             raise Refused(f"{fix} is a merge commit; pick another fix")
         seen: List[str] = []
+        modes: Dict[str, str] = {}
         for p in held + shown:
             if not rules.is_literal_path(p):
                 raise Refused(f"{p} is not a plain repository-relative path naming one file (no leading ./, no .., no //, no glob, no pathspec magic)")
@@ -105,7 +106,8 @@ class Tasks:
             seen.append(p)
             if not repo.touched(fix, p):
                 raise Refused(f"{p} is not changed by {fix}; held and shown paths must be files the fix touched")
-            if repo.mode_at(fix, p) not in ("100644", "100755"):
+            modes[p] = repo.mode_at(fix, p)
+            if modes[p] not in ("100644", "100755"):
                 raise Refused(f"{p} is not a regular file at {fix} (a directory, a symbolic link, or a file the fix deleted cannot be held or shown)")
         branch, return_to = self._branch_for(lesson), self._return_to()
         origin, origin_branch = repo.rev_parse("HEAD"), repo.branch()
@@ -130,6 +132,14 @@ class Tasks:
                 dest = self.learner.held / p
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 dest.write_bytes(repo.show(fix, p))
+                # git's mode, not the umask's: heldtest carries this mode
+                # into the tree, and a held line whose command is the file
+                # itself cannot run a copy that lost the executable bit.
+                # The mode is the one the checks above read and narrowed to
+                # these two; mode_at answers "" when git fails, which would
+                # take the else branch and quietly write a copy that cannot
+                # run, so it is not read a second time here.
+                dest.chmod(0o755 if modes[p] == "100755" else 0o644)
             base = repo.rev_parse("HEAD")
         except (GitError, OSError) as e:
             # The tree was clean when this began and everything in it since

@@ -378,6 +378,33 @@ class VerifierTest(WorldTest):
         self.assertIn("expected failures: 1", text)
         self.assertTrue(text.endswith("PROOF: ok (on the starting state, every expected failure failed, everything else passed, every line ran, and the held test was reverted)"))
 
+    def test_a_held_file_keeps_the_mode_git_recorded(self):
+        """#56: the held copy was written 0644 whatever git recorded, and
+        heldtest carries its mode into the tree, so a held line whose
+        command is the file itself could not run at all — the shell
+        cannot exec a file without the bit, which reads COULD-NOT-RUN(126)
+        and fails the proof for a reason the author cannot fix."""
+        w = self.w
+        w.git("switch", "-q", "main")
+        w.git("branch", "-q", "-D", self.branch)
+        (w.top / "tests/greet.test.sh").chmod(0o755)
+        w.add_command("direct", "./tests/greet.test.sh")
+        w.git("add", "-A")
+        w.git("commit", "-q", "--amend", "--no-edit")
+        fix = w.git("rev-parse", "HEAD")
+        self.assertEqual(w.repo.mode_at(fix, "tests/greet.test.sh"), "100755")
+        branch, base = w.begin("greet-politely", "--fix", fix, "--held", "tests/greet.test.sh")
+        held = w.learner.held / "tests/greet.test.sh"
+        self.assertEqual(oct(held.stat().st_mode & 0o777), "0o755", "the held copy carries git's mode")
+        w.held_task(branch, base, fix=fix, return_to=f"main {fix}", held_verify=["direct"],
+                    expect_fail_on_base=["held-verify direct"])
+        rep = self.verify(on_base=True)
+        text = "\n".join(rep.render())
+        self.assertIn("HELD EXPECTED-FAIL(1) direct", text, "the file ran and failed on the code it tests")
+        self.assertNotIn("COULD-NOT-RUN", text)
+        self.assertEqual(rep.proof_gaps, [])
+        self.assertTrue(rep.proof_ok)
+
     def test_held_fails_before_the_work_and_passes_after(self):
         w = self.w
         w.held_task(self.branch, self.base)
