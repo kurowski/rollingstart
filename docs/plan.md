@@ -1471,3 +1471,42 @@ before the next checkpoint; the run is written up in its PR):
   regression suite cannot. The name matters: `verify` carried the
   deterministic reading that has caused this project's most repeated
   re-litigation, and Rolling Start is a flexible tutor, not a quiz.
+
+
+**P3.2, the simplification pass** (2026-10-25):
+
+- **A rule repeated across skills stays repeated, because what is
+  shared is one sentence and what differs is the useful part.** #60
+  asked whether the skills should share a body of common rules.
+  "Never name a file of your own" is in all six. Four of them carry
+  the same four-item list — not the task, the reference, the
+  evidence, nor the directory they live in — and of those `next` is
+  the one that carries it bare, so `next`'s copy is a strict prefix
+  of `task`'s and `done`'s; `lesson`'s drops "to the learner" and
+  adds the toolkit-command clause; `task` adds "say what you hold,
+  not where"; `done` adds the words to use in place of a path.
+  `start` names a different set, the profile and the evidence, having
+  no task or reference to name, and `cancel` is one bare sentence
+  inside a numbered step. "Everything you need is below" is in five,
+  four as a bullet and `lesson`'s inline, each tail different. So
+  there is real shared text, about two lines of it, in four skills.
+  Claude Code has no skill include, so moving it to one place means
+  either an inline command on every skill's load path or a reference
+  file the tutor is told to read: the first adds a script that runs
+  whether the rule matters or not, the second is a pointer the model
+  may skip, and neither helps `start` or `cancel`, so six places
+  would still have to be read. What this risks is drift in a hint.
+  The rule that must hold — nothing the tutor writes lands in the
+  learner's tree — is held by a hook, not by this prose.
+- **The detour and step shapes stay in three places.** `validate.py`
+  is the enforcer, `lesson`'s heredocs are the authoring form, and
+  `next`'s prose is the same shape where `next` stands. The two
+  skills author at different moments — `next` from a lesson's
+  `assumes` before it opens, `lesson` when the gap surfaces
+  mid-walkthrough — and neither body is in the other's context, so
+  each needs the shape inline. The three agree today. Making `next`'s
+  copy the same heredoc, so a test could pin the two together, would
+  add that test and rewrite prompt text P2 measured, which costs a
+  paid run to show nothing regressed; the pen already catches a
+  divergence at the moment it matters, by refusing the write and
+  naming its faults.
