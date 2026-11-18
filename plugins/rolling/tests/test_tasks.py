@@ -25,6 +25,8 @@ class BeginFromFixTest(WorldTest):
         self.assertEqual(fields["held"], "tests/greet.test.sh")
         self.assertFalse((w.top / "tests/greet.test.sh").exists())
         self.assertTrue((w.learner.held / "tests/greet.test.sh").is_file())
+        self.assertEqual(oct((w.learner.held / "tests/greet.test.sh").stat().st_mode & 0o777), "0o644",
+                         "the mode git recorded, so the umask does not decide it")
         self.assertIn("HELLO", w.read("src/greet.sh"), "the code is as it was before the fix")
         self.assertClean()
         self.assertNotIn(w.fix, w.git("log", "--format=%H"), "the fix is not in the branch's history")
@@ -53,8 +55,14 @@ class BeginFromFixTest(WorldTest):
 
     def test_shown_test_is_present_and_failing(self):
         w = self.w
-        out = self.assertRuns("begin-task", "setup", "--fix", w.fix, "--shown", "tests/greet.test.sh")
+        (w.top / "tests/greet.test.sh").chmod(0o755)
+        w.git("add", "-A")
+        w.git("commit", "-q", "--amend", "--no-edit")
+        fix = w.git("rev-parse", "HEAD")
+        out = self.assertRuns("begin-task", "setup", "--fix", fix, "--shown", "tests/greet.test.sh")
         self.assertTrue((w.top / "tests/greet.test.sh").is_file())
+        self.assertTrue(os.access(w.top / "tests/greet.test.sh", os.X_OK),
+                        "brought forward by git, so a shown path keeps its mode too (#56's sibling path)")
         self.assertClean()
         self.assertNotIn("held:", out)
         self.assertNotEqual(subprocess.run(["sh", "run-test.sh", "tests/greet.test.sh"], cwd=str(w.top), capture_output=True, check=False).returncode, 0)
