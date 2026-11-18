@@ -112,8 +112,9 @@ touches a real checkout or a real data directory. To run one command
 by hand outside a session, set `ROLLING_DATA` yourself.
 
 The floor is Python 3.9, the one a Mac's command line tools ship. CI
-runs the suite on 3.9 and on a Mac; to check the floor on a Linux
-host, the `python:3.9-alpine` image does it:
+runs the suite on it there, naming `/usr/bin/python3`, because a Mac
+runner's own `python3` is newer; to check the floor on a Linux host,
+the `python:3.9-alpine` image does it:
 
 ```sh
 docker run --rm -v "$PWD/plugins:/w/plugins:ro" -w /w python:3.9-alpine sh -c '
