@@ -1,9 +1,20 @@
 # The gate, as CI: the toolkit's tests against scratch repositories, on
-# the oldest Python the plugin supports and on a Mac, and the plugin
-# manifest validator. Each is its own job so a red run says which one
-# failed. Python 3.9 is what a Mac with the command line tools ships;
-# the ubuntu leg pins it so anything newer sneaking in fails there. The
-# macOS leg runs whatever python3 the runner has, as a learner's would.
+# the floor Python and on current ones, and the plugin manifest
+# validator. Each is its own job so a red run says which one failed.
+#
+# The floor leg names /usr/bin/python3 on a Mac, because that is
+# Apple's own: what the Command Line Tools ship, and so what the
+# shipped scripts' `#!/usr/bin/env python3` finds for a learner who
+# has installed nothing else. A 3.10 construct sneaking in fails
+# there. The leg cannot read `python3` off PATH, since on a Mac runner
+# that is the image's own Python and not Apple's. It asserts the
+# version, so Apple moving off 3.9 reads as a decision to make rather
+# than as a leg that quietly stopped testing the floor.
+#
+# The current legs are 3.13 on ubuntu-latest and a Mac's `python3` on
+# PATH. The floor cannot be either of them: 3.9 went end-of-life in
+# October 2025, and setup-python's builds stop at Ubuntu 24.04, so
+# ubuntu-latest moving to 26.04 left it with no 3.9 to install.
 name: CI
 
 on:
@@ -21,26 +32,39 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python: "3.9"
-          - os: ubuntu-latest
             python: "3.13"
           - os: macos-latest
             python: system
+          - os: macos-latest
+            python: apple
     runs-on: ${{ matrix.os }}
+    env:
+      # Which interpreter the steps below run. Only the floor leg names
+      # a path; the others take whatever `python3` the runner resolves.
+      PY: ${{ matrix.python == 'apple' && '/usr/bin/python3' || 'python3' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
-        if: matrix.python != 'system'
+        if: matrix.python != 'system' && matrix.python != 'apple'
         with:
           python-version: ${{ matrix.python }}
       - name: Which python
-        run: python3 --version
+        run: $PY --version
+      - name: The floor is the Python a Mac's command line tools ship
+        if: matrix.python == 'apple'
+        run: |
+          v=$($PY -c 'import sys; print("%d.%d" % sys.version_info[:2])')
+          echo "Apple's /usr/bin/python3 is $v"
+          if [ "$v" != "3.9" ]; then
+            echo "::error::The floor moved: $v, not 3.9. This leg exists to run the suite on the Python a learner gets from xcode-select --install, and it has stopped doing that. Decide the new floor and say it in CLAUDE.md, REVIEW.md, docs/plan.md, docs/workflow.md, plugins/rolling/README.md, plugins/rolling/lib/rolling/__init__.py and evals/harness/fixture.py, or retire this leg."
+            exit 1
+          fi
       - name: Byte-compile with warnings as errors
-        run: python3 -W error -m compileall -q plugins/rolling/lib plugins/rolling/tests .github/scripts evals
+        run: $PY -W error -m compileall -q plugins/rolling/lib plugins/rolling/tests .github/scripts evals
       - name: Toolkit tests
-        run: cd plugins/rolling/tests && python3 -W error::ResourceWarning -m unittest discover -s . -p 'test_*.py' -v
+        run: cd plugins/rolling/tests && $PY -W error::ResourceWarning -m unittest discover -s . -p 'test_*.py' -v
       - name: Eval harness tests
-        run: cd evals/tests && python3 -W error::ResourceWarning -m unittest discover -s . -p 'test_*.py' -v
+        run: cd evals/tests && $PY -W error::ResourceWarning -m unittest discover -s . -p 'test_*.py' -v
 
   validate:
     runs-on: ubuntu-latest

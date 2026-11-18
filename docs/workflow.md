@@ -49,8 +49,9 @@ the spike's version and what `spike/NOTES.md` says went wrong with it.
 5. **The gate**, each by its own exit status: byte-compile with
    warnings as errors, the test suite, `claude plugin validate
    --strict` for each plugin and the marketplace. CI runs the same on
-   every PR and on `main`, on Python 3.9 and a Mac; the commands live
-   in `.github/workflows/ci.yml`.
+   every PR and on `main`, on a current Python and on the 3.9 a Mac's
+   command line tools ship; the commands live in
+   `.github/workflows/ci.yml`.
 6. **Review.** Scripts and hooks: a code-review sub-agent on Opus over
    the outgoing diff, per `CLAUDE.md` § Rules, real findings fixed
    before the push. A finding that names no harm is declined in a
